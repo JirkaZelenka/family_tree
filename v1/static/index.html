@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Family Tree Visualizer</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Family Tree Visualizer</h1>
+            <div class="controls">
+                <select id="tree-selector">
+                    <option value="">Select a tree...</option>
+                </select>
+                <select id="visualization-selector">
+                    <option value="2d">2D Classic</option>
+                    <option value="3d-space">3D Space (Option 1)</option>
+                    <option value="3d-tower">3D Tower (Option 2)</option>
+                </select>
+                <button id="new-tree-btn">New Tree</button>
+                <button id="import-btn">Import</button>
+                <button id="export-btn">Export</button>
+                <input type="file" id="file-input" accept=".json" style="display: none;">
+            </div>
+        </header>
+
+        <div class="main-content">
+            <div class="sidebar left-sidebar">
+                <div class="sidebar-section">
+                    <h3>Legend</h3>
+                    <div id="legend"></div>
+                </div>
+                <div class="sidebar-section">
+                    <h3>Options</h3>
+                    <label>
+                        <input type="checkbox" id="show-events"> Show Events Timeline
+                    </label>
+                    <label>
+                        <input type="checkbox" id="show-birthdays"> Show Birthday Timeline
+                    </label>
+                    <button id="highlight-main-branch">Highlight Main Branch</button>
+                </div>
+                <div class="sidebar-section">
+                    <h3>People in Current Period</h3>
+                    <div id="period-people"></div>
+                </div>
+            </div>
+
+            <div class="visualization-area">
+                <div id="year-indicator">Year: 2000</div>
+                <div id="tree-visualization"></div>
+            </div>
+
+            <div class="sidebar right-sidebar">
+                <div class="sidebar-section">
+                    <h3>Person Details</h3>
+                    <div id="person-details">
+                        <p class="placeholder">Click on a person to see details</p>
+                    </div>
+                </div>
+                <div class="sidebar-section">
+                    <button id="add-person-btn">Add Person</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="person-form-container" style="display: none;">
+            <div class="form-overlay">
+                <div class="form-content">
+                    <h3>Add/Edit Person</h3>
+                    <form id="person-form">
+                        <input type="hidden" id="person-id">
+                        
+                        <label>
+                            Name: *
+                            <input type="text" id="person-name" required>
+                        </label>
+                        
+                        <label>
+                            Birth Date:
+                            <input type="date" id="person-birth">
+                        </label>
+                        
+                        <label>
+                            Death Date:
+                            <input type="date" id="person-death">
+                        </label>
+                        
+                        <label>
+                            Gender:
+                            <select id="person-gender">
+                                <option value="male">Male</option>
+                                <option value="female">Female</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </label>
+                        
+                        <label>
+                            Notes:
+                            <textarea id="person-notes" rows="3"></textarea>
+                        </label>
+                        
+                        <label>
+                            Contact:
+                            <input type="text" id="person-contact">
+                        </label>
+                        
+                        <label>
+                            <input type="checkbox" id="person-uncertain"> Uncertain Data
+                        </label>
+                        
+                        <div class="form-buttons">
+                            <button type="submit">Save</button>
+                            <button type="button" id="cancel-form">Cancel</button>
+                            <button type="button" id="delete-person" style="display: none;">Delete</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="orbit-controls-fallback.js"></script>
+    <script src="app.js"></script>
+    <script src="app-3d-space.js"></script>
+    <script src="app-3d-tower.js"></script>
+</body>
+</html>
