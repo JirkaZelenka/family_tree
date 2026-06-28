@@ -1,0 +1,65 @@
+{
+  "app": {
+    "title": "Family Tree Graph",
+    "loading": "Načítání…",
+    "noVault": "Otevřete složku vaultu nebo importujte ZIP"
+  },
+  "toolbar": {
+    "openFolder": "Otevřít složku",
+    "importZip": "Importovat ZIP",
+    "exportZip": "Exportovat ZIP",
+    "importGedcom": "Import GEDCOM",
+    "exportGedcom": "Export GEDCOM",
+    "search": "Hledat…",
+    "shareUrl": "Sdílet pohled",
+    "saveLayout": "Uložit layout"
+  },
+  "views": {
+    "sphere": "Sféra",
+    "tree": "Strom",
+    "force": "Force graf",
+    "timeline": "Časová osa",
+    "map": "Mapa"
+  },
+  "person": {
+    "birth": "Narození",
+    "death": "Úmrtí",
+    "parents": "Rodiče",
+    "spouses": "Partneři",
+    "children": "Děti",
+    "tags": "Štítky",
+    "lineage": "Rod",
+    "sources": "Zdroje",
+    "media": "Média",
+    "edit": "Upravit",
+    "contemporaries": "Současníci",
+    "noSelection": "Vyberte osobu v grafu"
+  },
+  "time": {
+    "slider": "Rok",
+    "play": "Přehrát",
+    "pause": "Pauza",
+    "contemporariesOnly": "Jen současníci",
+    "events": "Historické události"
+  },
+  "layout": {
+    "heatmap": "Heatmapa rodů",
+    "rerunSimulation": "Přepočítat layout"
+  },
+  "kinship": {
+    "title": "Příbuznost",
+    "personA": "Osoba A",
+    "personB": "Osoba B",
+    "calculate": "Vypočítat",
+    "result": "Vztah: {{label}} (stupeň {{degree}})"
+  },
+  "search": {
+    "placeholder": "Hledat jméno, místo, tag, rok…",
+    "noResults": "Žádné výsledky"
+  },
+  "save": {
+    "saving": "Ukládám…",
+    "saved": "Uloženo",
+    "error": "Chyba ukládání"
+  }
+}

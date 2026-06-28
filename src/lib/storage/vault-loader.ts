@@ -1,0 +1,81 @@
+import { parse as parseYaml, stringify as stringifyYaml } from 'yaml'
+import {
+  VaultConfigSchema,
+  LayoutFileSchema,
+  EventsFileSchema,
+  DEFAULT_TIME_LAYERS,
+  DEFAULT_LINEAGE_COLORS,
+  type VaultConfig,
+  type LayoutFile,
+  type HistoricalEvent,
+} from '@/types/vault'
+import type { PersonRecord } from '@/types/person'
+import { parsePersonMarkdown } from '@/lib/parser/markdown'
+
+export interface VaultData {
+  people: PersonRecord[]
+  config: VaultConfig
+  layout: LayoutFile
+  events: HistoricalEvent[]
+  diagnostics: string[]
+}
+
+export async function loadVaultFromFileMap(
+  files: Map<string, string>,
+): Promise<VaultData> {
+  const diagnostics: string[] = []
+  const people: PersonRecord[] = []
+
+  let config: VaultConfig = {
+    timeLayers: DEFAULT_TIME_LAYERS,
+    lineageColors: DEFAULT_LINEAGE_COLORS,
+  }
+  let layout: LayoutFile = { version: 1, views: {} }
+  let events: HistoricalEvent[] = []
+
+  for (const [path, content] of files) {
+  const normalized = path.replace(/\\/g, '/')
+    if (normalized.includes('/people/') && normalized.endsWith('.md')) {
+      const result = parsePersonMarkdown(content, path)
+      diagnostics.push(...result.errors)
+      if (result.record) people.push(result.record)
+    } else if (normalized.endsWith('.family-tree/config.yaml')) {
+      try {
+        const parsed = VaultConfigSchema.safeParse(parseYaml(content))
+        if (parsed.success) config = parsed.data
+        else diagnostics.push('Neplatný config.yaml')
+      } catch {
+        diagnostics.push('Chyba parsování config.yaml')
+      }
+    } else if (normalized.endsWith('.family-tree/layout.json')) {
+      try {
+        const parsed = LayoutFileSchema.safeParse(JSON.parse(content))
+        if (parsed.success) layout = parsed.data
+        else diagnostics.push('Neplatný layout.json')
+      } catch {
+        diagnostics.push('Chyba parsování layout.json')
+      }
+    } else if (normalized.includes('/events/') && normalized.endsWith('.yaml')) {
+      try {
+        const parsed = EventsFileSchema.safeParse(parseYaml(content))
+        if (parsed.success) events = [...events, ...parsed.data.events]
+      } catch {
+        diagnostics.push(`Chyba parsování ${path}`)
+      }
+    }
+  }
+
+  return { people, config, layout, events, diagnostics }
+}
+
+export function serializeConfig(config: VaultConfig): string {
+  return stringifyYaml(config)
+}
+
+export function serializeLayout(layout: LayoutFile): string {
+  return JSON.stringify(layout, null, 2)
+}
+
+export function serializeEvents(events: HistoricalEvent[]): string {
+  return stringifyYaml({ events })
+}

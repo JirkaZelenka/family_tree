@@ -1,0 +1,19 @@
+events:
+  - year: 1848
+    label: "Revolutiony v Evropě"
+    type: world
+  - year: 1914
+    label: "Začátek 1. světové války"
+    type: world
+  - year: 1918
+    label: "Konec 1. světové války"
+    type: world
+  - year: 1939
+    label: "Začátek 2. světové války"
+    type: world
+  - year: 1945
+    label: "Konec 2. světové války"
+    type: world
+  - year: 1989
+    label: "Sametová revoluce"
+    type: local

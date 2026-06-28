@@ -1,0 +1,135 @@
+import { useCallback, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
+import { viewRegistry } from '@/views/registry'
+import { useViewStore } from '@/stores/view-store'
+import { Toolbar } from './Toolbar'
+import { EventTimeline } from '@/components/timeline/EventTimeline'
+import { PersonDetailPanel } from '@/components/person/PersonDetailPanel'
+import { TimeSliderBar } from '@/components/shared/TimeSliderBar'
+import { LineageLegend } from '@/components/shared/LineageLegend'
+import { CommandPalette } from '@/components/search/CommandPalette'
+import { PersonHoverTooltip } from '@/components/shared/PersonHoverTooltip'
+import { TooltipProvider } from '@/components/ui/tooltip'
+import { useVaultActions } from '@/hooks/useVaultActions'
+import { useUrlState } from '@/hooks/useUrlState'
+import { useAutoSave } from '@/hooks/useAutoSave'
+
+export function AppShell() {
+  const { t } = useTranslation()
+  const activeView = useViewStore((s) => s.activeView)
+  const detailPanelOpen = useViewStore((s) => s.detailPanelOpen)
+  const eventsPanelOpen = useViewStore((s) => s.eventsPanelOpen)
+  const vault = useVaultActions()
+  useUrlState()
+  useAutoSave()
+
+  const zipInputRef = useRef<HTMLInputElement>(null)
+  const gedcomInputRef = useRef<HTMLInputElement>(null)
+
+  const ActiveView = viewRegistry.find((v) => v.id === activeView)?.Component
+
+  const handleImportZip = useCallback(() => {
+    zipInputRef.current?.click()
+  }, [])
+
+  const handleImportGedcom = useCallback(() => {
+    gedcomInputRef.current?.click()
+  }, [])
+
+  if (!vault.loaded) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 p-8">
+        <h1 className="text-2xl font-bold">{t('app.title')}</h1>
+        <p className="text-muted-foreground">{t('app.noVault')}</p>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            className="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground"
+            onClick={vault.openFolder}
+          >
+            {t('toolbar.openFolder')}
+          </button>
+          <button
+            type="button"
+            className="rounded-md border border-border px-4 py-2 text-sm"
+            onClick={handleImportZip}
+          >
+            {t('toolbar.importZip')}
+          </button>
+          <button
+            type="button"
+            className="rounded-md border border-border px-4 py-2 text-sm"
+            onClick={vault.loadSampleData}
+          >
+            Ukázková data
+          </button>
+        </div>
+        <input
+          ref={zipInputRef}
+          type="file"
+          accept=".zip"
+          className="hidden"
+          onChange={(e) => {
+            const f = e.target.files?.[0]
+            if (f) vault.importZip(f)
+          }}
+        />
+      </div>
+    )
+  }
+
+  return (
+    <TooltipProvider>
+      <div className="flex h-screen flex-col overflow-hidden">
+        <Toolbar
+          onOpenFolder={vault.openFolder}
+          onImportZip={handleImportZip}
+          onExportZip={vault.exportZip}
+          onImportGedcom={handleImportGedcom}
+          onExportGedcom={vault.exportGedcom}
+          onSaveLayout={vault.saveLayout}
+          onShareUrl={vault.shareUrl}
+        />
+        <div className="flex min-h-0 flex-1">
+          {eventsPanelOpen && (
+            <aside className="hidden w-48 shrink-0 lg:block xl:w-56">
+              <EventTimeline />
+            </aside>
+          )}
+          <main className="relative min-w-0 flex-1">
+            {ActiveView && <ActiveView className="absolute inset-0" />}
+          </main>
+          {detailPanelOpen && (
+            <aside className="w-72 shrink-0 border-l border-border xl:w-80">
+              <PersonDetailPanel />
+            </aside>
+          )}
+        </div>
+        <LineageLegend />
+        <TimeSliderBar />
+        <CommandPalette />
+        <PersonHoverTooltip />
+        <input
+          ref={zipInputRef}
+          type="file"
+          accept=".zip"
+          className="hidden"
+          onChange={(e) => {
+            const f = e.target.files?.[0]
+            if (f) vault.importZip(f)
+          }}
+        />
+        <input
+          ref={gedcomInputRef}
+          type="file"
+          accept=".ged,.gedcom"
+          className="hidden"
+          onChange={(e) => {
+            const f = e.target.files?.[0]
+            if (f) vault.importGedcom(f)
+          }}
+        />
+      </div>
+    </TooltipProvider>
+  )
+}
