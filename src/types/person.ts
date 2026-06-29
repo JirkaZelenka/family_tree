@@ -19,8 +19,21 @@ export const MediaItemSchema = z.object({
   caption: z.string().optional(),
 })
 
+/** ID v YAML může být integer (1) nebo řetězec ("1", UUID). V aplikaci vždy string. */
+export const PersonIdSchema = z
+  .union([z.string(), z.number()])
+  .transform((v) => String(v))
+  .refine((s) => s.length > 0, { message: 'Required' })
+
+const PersonIdListSchema = z
+  .array(z.union([z.string(), z.number()]))
+  .default([])
+  .transform((items) =>
+    items.map((v) => String(v)).filter((s) => s.length > 0),
+  )
+
 export const PersonFrontmatterSchema = z.object({
-  id: z.string().uuid(),
+  id: PersonIdSchema,
   slug: z.string(),
   givenName: z.string(),
   familyName: z.string().optional(),
@@ -29,9 +42,9 @@ export const PersonFrontmatterSchema = z.object({
   lineage: z.string().default('unknown'),
   birth: LifeEventSchema.optional(),
   death: LifeEventSchema.optional(),
-  parents: z.array(z.string()).default([]),
-  spouses: z.array(z.string()).default([]),
-  children: z.array(z.string()).default([]),
+  parents: PersonIdListSchema,
+  spouses: PersonIdListSchema,
+  children: PersonIdListSchema,
   tags: z.array(z.string()).default([]),
   confidence: z
     .object({

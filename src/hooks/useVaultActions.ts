@@ -9,6 +9,8 @@ import {
   importZipVault,
   exportZipVault,
   loadCachedVaultFiles,
+  cacheVaultFiles,
+  clearCachedVault,
 } from '@/lib/storage'
 import { loadVaultFromFileMap } from '@/lib/storage/vault-loader'
 import { getYearRange } from '@/lib/time/dates'
@@ -18,22 +20,10 @@ import { importGedcomToRecords, exportRecordsToGedcom } from '@/lib/gedcom'
 import { serializeLayout } from '@/lib/storage/vault-loader'
 import { serializePersonMarkdown } from '@/lib/parser/markdown'
 import { writeTextFile } from '@/lib/storage'
-
-const SAMPLE_FILES: Record<string, string> = {}
+import { loadSampleVaultFileMap } from '@/lib/data/sample-vault-files'
 
 async function loadSampleFiles(): Promise<Map<string, string>> {
-  if (Object.keys(SAMPLE_FILES).length === 0) {
-    const modules = import.meta.glob('/data/**/*.{md,yaml,json}', {
-      query: '?raw',
-      import: 'default',
-      eager: true,
-    })
-    for (const [path, content] of Object.entries(modules)) {
-      const normalized = path.replace(/^\/data\//, '')
-      SAMPLE_FILES[normalized] = content as string
-    }
-  }
-  return new Map(Object.entries(SAMPLE_FILES))
+  return loadSampleVaultFileMap()
 }
 
 function applyVault(vault: Awaited<ReturnType<typeof loadVaultFromFileMap>>, fileMap: Map<string, string>) {
@@ -49,7 +39,8 @@ function applyVault(vault: Awaited<ReturnType<typeof loadVaultFromFileMap>>, fil
   })
   const { min, max } = getYearRange(birthYears, deathYears)
   useTimeStore.getState().setYearRange(min, max)
-  useTimeStore.getState().setCurrentYear(Math.floor((min + max) / 2))
+  useTimeStore.getState().setCurrentYear(max)
+  useTimeStore.getState().setSphereHighlightByYear(false)
   const sphereLayout = vault.layout.views.sphere ?? { nodes: {}, lineageOffsets: {} }
   useLayoutStore.getState().setSavedLayout(sphereLayout)
 }
@@ -132,23 +123,53 @@ export function useVaultActions() {
       view: activeView,
       sel: sel ?? undefined,
       year,
-      heatmap: useLayoutStore.getState().showHeatmap,
     })
     navigator.clipboard.writeText(window.location.href)
   }, [])
 
-  const loadSampleData = useCallback(async () => {
-    const files = await loadSampleFiles()
-    const vault = await loadVaultFromFileMap(files)
-    applyVault(vault, files)
+  const loadSampleData = useCallback(async (): Promise<{
+    ok: boolean
+    message?: string
+  }> => {
+    try {
+      await clearCachedVault()
+      const files = await loadSampleFiles()
+      if (files.size === 0) {
+        return {
+          ok: false,
+          message: 'Soubory ukázkových dat nebyly nalezeny. Zkuste restart dev serveru.',
+        }
+      }
+      const vault = await loadVaultFromFileMap(files)
+      if (vault.people.length === 0) {
+        console.error('Ukázková data se nepodařilo načíst', vault.diagnostics)
+        return {
+          ok: false,
+          message:
+            vault.diagnostics[0] ??
+            `Nepodařilo se načíst žádnou osobu (${files.size} souborů v balíčku).`,
+        }
+      }
+      await cacheVaultFiles(files)
+      applyVault(vault, files)
+      return { ok: true }
+    } catch (e) {
+      return {
+        ok: false,
+        message: e instanceof Error ? e.message : String(e),
+      }
+    }
   }, [])
 
   const tryLoadCache = useCallback(async () => {
     const cached = await loadCachedVaultFiles()
     if (cached && cached.size > 0) {
       const vault = await loadVaultFromFileMap(cached)
-      applyVault(vault, cached)
-      return true
+      if (vault.people.length > 0) {
+        applyVault(vault, cached)
+        return true
+      }
+      await clearCachedVault()
     }
     return false
   }, [])

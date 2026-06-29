@@ -30,6 +30,21 @@ export async function cacheVaultFiles(files: Map<string, string>): Promise<void>
   db.close()
 }
 
+export async function clearCachedVault(): Promise<void> {
+  try {
+    const db = await openDb()
+    const tx = db.transaction(STORE, 'readwrite')
+    tx.objectStore(STORE).delete('current')
+    await new Promise<void>((res, rej) => {
+      tx.oncomplete = () => res()
+      tx.onerror = () => rej(tx.error)
+    })
+    db.close()
+  } catch {
+    // ignore
+  }
+}
+
 export async function loadCachedVaultFiles(): Promise<Map<string, string> | null> {
   try {
     const db = await openDb()

@@ -32,15 +32,31 @@ export const useGraphStore = create<GraphState>((set, get) => ({
   searchIndex: null,
   searchDocs: new Map(),
   loadFromRecords: (records) => {
-    const { graph, diagnostics, persons } = buildGraphFromRecords(records)
-    const { index, docs } = buildSearchIndex(persons)
-    set({
-      graph,
-      persons,
-      diagnostics,
-      searchIndex: index,
-      searchDocs: docs,
-    })
+    try {
+      const { graph, diagnostics, persons } = buildGraphFromRecords(records)
+      const { index, docs } = buildSearchIndex(persons)
+      set({
+        graph,
+        persons,
+        diagnostics,
+        searchIndex: index,
+        searchDocs: docs,
+      })
+    } catch (e) {
+      console.error('Chyba sestavení grafu', e)
+      set({
+        graph: null,
+        persons: new Map(),
+        diagnostics: [
+          {
+            level: 'error',
+            message: e instanceof Error ? e.message : String(e),
+          },
+        ],
+        searchIndex: null,
+        searchDocs: new Map(),
+      })
+    }
   },
   setSelectedId: (id) => set({ selectedId: id }),
   setHoveredId: (id) => set({ hoveredId: id }),

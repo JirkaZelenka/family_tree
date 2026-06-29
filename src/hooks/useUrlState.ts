@@ -3,7 +3,6 @@ import { readStateFromUrl } from '@/lib/url/serialize'
 import { useViewStore } from '@/stores/view-store'
 import { useGraphStore } from '@/stores/graph-store'
 import { useTimeStore } from '@/stores/time-store'
-import { useLayoutStore } from '@/stores/layout-store'
 import type { ViewId } from '@/views/types'
 
 export function useUrlState() {
@@ -13,7 +12,5 @@ export function useUrlState() {
     if (state.view) useViewStore.getState().setActiveView(state.view as ViewId)
     if (state.sel) useGraphStore.getState().setSelectedId(state.sel)
     if (state.year) useTimeStore.getState().setCurrentYear(state.year)
-    if (state.heatmap != null)
-      useLayoutStore.getState().setShowHeatmap(state.heatmap)
   }, [])
 }

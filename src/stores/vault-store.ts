@@ -9,10 +9,12 @@ interface VaultState {
   fileMap: Map<string, string>
   saveStatus: SaveStatus
   isDirty: boolean
+  isBootstrapping: boolean
   setVault: (vault: VaultData, fileMap?: Map<string, string>) => void
   setDirectoryHandle: (handle: FileSystemDirectoryHandle | null) => void
   setSaveStatus: (status: SaveStatus) => void
   setDirty: (dirty: boolean) => void
+  setBootstrapping: (bootstrapping: boolean) => void
   updatePersonFile: (path: string, content: string) => void
   updateLayout: (content: string) => void
 }
@@ -23,6 +25,7 @@ export const useVaultStore = create<VaultState>((set, get) => ({
   fileMap: new Map(),
   saveStatus: 'idle',
   isDirty: false,
+  isBootstrapping: true,
   setVault: (vault, fileMap) =>
     set({
       vault,
@@ -32,6 +35,7 @@ export const useVaultStore = create<VaultState>((set, get) => ({
   setDirectoryHandle: (handle) => set({ directoryHandle: handle }),
   setSaveStatus: (status) => set({ saveStatus: status }),
   setDirty: (dirty) => set({ isDirty: dirty }),
+  setBootstrapping: (isBootstrapping) => set({ isBootstrapping }),
   updatePersonFile: (path, content) => {
     const fileMap = new Map(get().fileMap)
     fileMap.set(path, content)

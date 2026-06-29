@@ -5,7 +5,6 @@ export interface UrlAppState {
   sel?: string
   year?: number
   showContemporaries?: boolean
-  heatmap?: boolean
 }
 
 export function serializeAppState(state: UrlAppState): string {

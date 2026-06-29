@@ -4,9 +4,9 @@
 
 Viz ukázkové soubory v `data/people/`.
 
-Povinná pole: `id` (UUID), `slug`, `givenName`, `gender`, `lineage`.
+Povinná pole: `id` (celé číslo nebo řetězec), `slug`, `givenName`, `gender`, `lineage`.
 
-Vztahy: `parents`, `spouses`, `children` — pole UUID.
+Vztahy: `parents`, `spouses`, `children` — pole ID (v YAML klidně jako čísla: `[1, 2]`).
 
 ## Config
 

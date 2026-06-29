@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { viewRegistry } from '@/views/registry'
 import { useViewStore } from '@/stores/view-store'
@@ -13,6 +13,7 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import { useVaultActions } from '@/hooks/useVaultActions'
 import { useUrlState } from '@/hooks/useUrlState'
 import { useAutoSave } from '@/hooks/useAutoSave'
+import { useVaultStore } from '@/stores/vault-store'
 
 export function AppShell() {
   const { t } = useTranslation()
@@ -20,11 +21,24 @@ export function AppShell() {
   const detailPanelOpen = useViewStore((s) => s.detailPanelOpen)
   const eventsPanelOpen = useViewStore((s) => s.eventsPanelOpen)
   const vault = useVaultActions()
+  const isBootstrapping = useVaultStore((s) => s.isBootstrapping)
   useUrlState()
   useAutoSave()
 
   const zipInputRef = useRef<HTMLInputElement>(null)
   const gedcomInputRef = useRef<HTMLInputElement>(null)
+  const [sampleLoading, setSampleLoading] = useState(false)
+  const [sampleError, setSampleError] = useState<string | null>(null)
+
+  const handleLoadSample = useCallback(async () => {
+    setSampleLoading(true)
+    setSampleError(null)
+    const result = await vault.loadSampleData()
+    if (!result.ok) {
+      setSampleError(result.message ?? 'Načtení ukázkových dat selhalo.')
+    }
+    setSampleLoading(false)
+  }, [vault])
 
   const ActiveView = viewRegistry.find((v) => v.id === activeView)?.Component
 
@@ -35,6 +49,15 @@ export function AppShell() {
   const handleImportGedcom = useCallback(() => {
     gedcomInputRef.current?.click()
   }, [])
+
+  if (isBootstrapping) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-3 p-8">
+        <h1 className="text-2xl font-bold">{t('app.title')}</h1>
+        <p className="text-muted-foreground">{t('app.loading')}</p>
+      </div>
+    )
+  }
 
   if (!vault.loaded) {
     return (
@@ -58,12 +81,16 @@ export function AppShell() {
           </button>
           <button
             type="button"
-            className="rounded-md border border-border px-4 py-2 text-sm"
-            onClick={vault.loadSampleData}
+            className="rounded-md border border-border px-4 py-2 text-sm disabled:opacity-50"
+            disabled={sampleLoading}
+            onClick={() => void handleLoadSample()}
           >
-            Ukázková data
+            {sampleLoading ? 'Načítám…' : 'Ukázková data'}
           </button>
         </div>
+        {sampleError && (
+          <p className="max-w-md text-center text-sm text-destructive">{sampleError}</p>
+        )}
         <input
           ref={zipInputRef}
           type="file"

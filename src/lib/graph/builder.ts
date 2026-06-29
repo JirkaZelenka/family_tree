@@ -68,6 +68,7 @@ export function buildGraphFromRecords(
 
   for (const node of persons.values()) {
     for (const parentId of node.parents) {
+      if (!parentId) continue
       if (!persons.has(parentId)) {
         diagnostics.push({
           level: 'warning',
@@ -79,6 +80,7 @@ export function buildGraphFromRecords(
       addEdge(parentId, node.id, { type: 'parent-child' })
     }
     for (const spouseId of node.spouses) {
+      if (!spouseId) continue
       if (!persons.has(spouseId)) {
         diagnostics.push({
           level: 'warning',
@@ -95,6 +97,7 @@ export function buildGraphFromRecords(
   for (const node of persons.values()) {
     const siblings = new Set<string>()
     for (const parentId of node.parents) {
+      if (!parentId || !graph.hasNode(parentId)) continue
       graph.forEachNeighbor(parentId, (neighbor) => {
         if (neighbor !== node.id) {
           const edge = graph.edge(parentId, neighbor)

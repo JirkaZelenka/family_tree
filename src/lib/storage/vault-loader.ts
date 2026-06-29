@@ -11,6 +11,7 @@ import {
 } from '@/types/vault'
 import type { PersonRecord } from '@/types/person'
 import { parsePersonMarkdown } from '@/lib/parser/markdown'
+import { enrichLineageColors } from '@/lib/vault/lineage-colors'
 
 export interface VaultData {
   people: PersonRecord[]
@@ -34,8 +35,13 @@ export async function loadVaultFromFileMap(
   let events: HistoricalEvent[] = []
 
   for (const [path, content] of files) {
-  const normalized = path.replace(/\\/g, '/')
-    if (normalized.includes('/people/') && normalized.endsWith('.md')) {
+    const normalized = path.replace(/\\/g, '/')
+    if (
+      (normalized.includes('/people/') ||
+        normalized.startsWith('people/') ||
+        normalized.startsWith('data/people/')) &&
+      normalized.endsWith('.md')
+    ) {
       const result = parsePersonMarkdown(content, path)
       diagnostics.push(...result.errors)
       if (result.record) people.push(result.record)
@@ -55,7 +61,12 @@ export async function loadVaultFromFileMap(
       } catch {
         diagnostics.push('Chyba parsování layout.json')
       }
-    } else if (normalized.includes('/events/') && normalized.endsWith('.yaml')) {
+    } else if (
+      (normalized.includes('/events/') ||
+        normalized.startsWith('events/') ||
+        normalized.startsWith('data/events/')) &&
+      normalized.endsWith('.yaml')
+    ) {
       try {
         const parsed = EventsFileSchema.safeParse(parseYaml(content))
         if (parsed.success) events = [...events, ...parsed.data.events]
@@ -63,6 +74,12 @@ export async function loadVaultFromFileMap(
         diagnostics.push(`Chyba parsování ${path}`)
       }
     }
+  }
+
+  const lineages = people.map((p) => p.frontmatter.lineage)
+  config = {
+    ...config,
+    lineageColors: enrichLineageColors(lineages, config.lineageColors),
   }
 
   return { people, config, layout, events, diagnostics }

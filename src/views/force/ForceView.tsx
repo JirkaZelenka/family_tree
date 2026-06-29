@@ -27,6 +27,7 @@ export function ForceView({ className }: ViewProps) {
   const selectedId = useGraphStore((s) => s.selectedId)
   const setSelectedId = useGraphStore((s) => s.setSelectedId)
   const isPersonVisible = useTimeStore((s) => s.isPersonVisible)
+  const currentYear = useTimeStore((s) => s.currentYear)
   const colors = useVaultStore((s) => s.vault?.config.lineageColors ?? {})
 
   useEffect(() => {
@@ -124,7 +125,7 @@ export function ForceView({ className }: ViewProps) {
     return () => {
       simulation.stop()
     }
-  }, [graph, persons, selectedId, setSelectedId, isPersonVisible, colors])
+  }, [graph, persons, selectedId, setSelectedId, isPersonVisible, colors, currentYear])
 
   return (
     <svg

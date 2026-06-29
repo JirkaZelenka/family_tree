@@ -8,11 +8,8 @@ import {
   Upload,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Switch } from '@/components/ui/switch'
-import { Label } from '@/components/ui/label'
 import { viewRegistry } from '@/views/registry'
 import { useViewStore } from '@/stores/view-store'
-import { useLayoutStore } from '@/stores/layout-store'
 import { useSearchStore } from '@/stores/search-store'
 import { useVaultStore } from '@/stores/vault-store'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -41,8 +38,6 @@ export function Toolbar({
   const activeView = useViewStore((s) => s.activeView)
   const setActiveView = useViewStore((s) => s.setActiveView)
   const setCommandOpen = useSearchStore((s) => s.setCommandOpen)
-  const showHeatmap = useLayoutStore((s) => s.showHeatmap)
-  const setShowHeatmap = useLayoutStore((s) => s.setShowHeatmap)
   const saveStatus = useVaultStore((s) => s.saveStatus)
 
   return (
@@ -85,12 +80,6 @@ export function Toolbar({
           <Share2 className="h-4 w-4" />
         </Button>
         <KinshipDialog />
-        <div className="flex items-center gap-2 px-2">
-          <Switch id="heatmap" checked={showHeatmap} onCheckedChange={setShowHeatmap} />
-          <Label htmlFor="heatmap" className="text-xs hidden lg:inline">
-            {t('layout.heatmap')}
-          </Label>
-        </div>
         {saveStatus !== 'idle' && (
           <span className="text-xs text-muted-foreground">
             {t(`save.${saveStatus}`)}

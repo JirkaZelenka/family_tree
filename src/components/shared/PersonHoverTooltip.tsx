@@ -1,9 +1,5 @@
 import { useGraphStore } from '@/stores/graph-store'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
+import { formatLifeSpan } from '@/lib/time/dates'
 
 export function PersonHoverTooltip() {
   const hoveredId = useGraphStore((s) => s.hoveredId)
@@ -13,15 +9,11 @@ export function PersonHoverTooltip() {
   if (!person) return null
 
   return (
-    <div className="pointer-events-none fixed bottom-20 left-1/2 z-50 -translate-x-1/2">
-      <Tooltip open>
-        <TooltipTrigger asChild>
-          <span className="sr-only">{person.fullName}</span>
-        </TooltipTrigger>
-        <TooltipContent>
-          {person.fullName} ({person.birthYear ?? '?'} – {person.deathYear ?? '?'})
-        </TooltipContent>
-      </Tooltip>
+    <div className="pointer-events-none fixed bottom-24 left-1/2 z-50 -translate-x-1/2 rounded-md border border-border bg-popover px-3 py-1.5 text-sm text-popover-foreground shadow-md">
+      <span className="font-medium">{person.fullName}</span>
+      <span className="ml-2 text-muted-foreground">
+        {formatLifeSpan(person.birthYear, person.deathYear)}
+      </span>
     </div>
   )
 }

@@ -51,7 +51,7 @@ export function TimeSliderBar() {
         max={maxYear}
         step={1}
         value={[currentYear]}
-        onValueChange={([v]) => setCurrentYear(v)}
+        onValueChange={([v]) => setCurrentYear(v, { fromSlider: true })}
       />
       <div className="flex items-center gap-2">
         <Switch

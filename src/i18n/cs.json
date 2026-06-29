@@ -43,8 +43,7 @@
     "events": "Historické události"
   },
   "layout": {
-    "heatmap": "Heatmapa rodů",
-    "rerunSimulation": "Přepočítat layout"
+    "sphereHint": "Klikněte na rod pro 2D pohled. Pásma po 20 letech od středu. Dvojklik = všichni."
   },
   "kinship": {
     "title": "Příbuznost",

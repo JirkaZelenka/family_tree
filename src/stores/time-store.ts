@@ -7,10 +7,13 @@ interface TimeState {
   maxYear: number
   animatePlaying: boolean
   showContemporariesOnly: boolean
-  setCurrentYear: (year: number) => void
+  /** Sféra: po ručním posunu slideru zvýraznit žijící v daném roce. */
+  sphereHighlightByYear: boolean
+  setCurrentYear: (year: number, opts?: { fromSlider?: boolean }) => void
   setYearRange: (min: number, max: number) => void
   setAnimatePlaying: (playing: boolean) => void
   setShowContemporariesOnly: (show: boolean) => void
+  setSphereHighlightByYear: (active: boolean) => void
   isPersonVisible: (
     birthYear: number | null,
     deathYear: number | null,
@@ -23,10 +26,16 @@ export const useTimeStore = create<TimeState>((set, get) => ({
   maxYear: 2025,
   animatePlaying: false,
   showContemporariesOnly: false,
-  setCurrentYear: (year) => set({ currentYear: year }),
+  sphereHighlightByYear: false,
+  setCurrentYear: (year, opts) =>
+    set({
+      currentYear: year,
+      ...(opts?.fromSlider ? { sphereHighlightByYear: true } : {}),
+    }),
   setYearRange: (min, max) => set({ minYear: min, maxYear: max }),
   setAnimatePlaying: (playing) => set({ animatePlaying: playing }),
   setShowContemporariesOnly: (show) => set({ showContemporariesOnly: show }),
+  setSphereHighlightByYear: (active) => set({ sphereHighlightByYear: active }),
   isPersonVisible: (birthYear, deathYear) =>
     isAliveAtYear(birthYear, deathYear, get().currentYear),
 }))

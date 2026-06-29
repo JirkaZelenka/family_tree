@@ -1,10 +1,39 @@
-import matter from 'gray-matter'
+import { parse as parseYaml, stringify as yamlStringify } from 'yaml'
 import { PersonFrontmatterSchema, type PersonRecord } from '@/types/person'
-import { stringify as yamlStringify } from 'yaml'
 
 export interface ParseResult {
   record: PersonRecord | null
   errors: string[]
+}
+
+/** Bez gray-matter — ten v prohlížeči vyžaduje Node.js Buffer. */
+function parseFrontmatter(content: string): { data: unknown; body: string } {
+  const text = String(content).replace(/^\uFEFF/, '')
+  if (!text.startsWith('---')) {
+    return { data: {}, body: text.trim() }
+  }
+
+  const lines = text.split(/\r?\n/)
+  if (lines[0].trim() !== '---') {
+    return { data: {}, body: text.trim() }
+  }
+
+  let endLine = -1
+  for (let i = 1; i < lines.length; i++) {
+    if (lines[i].trim() === '---') {
+      endLine = i
+      break
+    }
+  }
+
+  if (endLine === -1) {
+    return { data: {}, body: text.trim() }
+  }
+
+  const yamlBlock = lines.slice(1, endLine).join('\n')
+  const body = lines.slice(endLine + 1).join('\n').trim()
+  const data = yamlBlock.trim() ? parseYaml(yamlBlock) : {}
+  return { data: data ?? {}, body }
 }
 
 export function parsePersonMarkdown(
@@ -13,7 +42,7 @@ export function parsePersonMarkdown(
 ): ParseResult {
   const errors: string[] = []
   try {
-    const { data, content: body } = matter(content)
+    const { data, body } = parseFrontmatter(content)
     const parsed = PersonFrontmatterSchema.safeParse(data)
     if (!parsed.success) {
       errors.push(
