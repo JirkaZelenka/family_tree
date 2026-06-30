@@ -42,12 +42,30 @@ function applyVault(vault: Awaited<ReturnType<typeof loadVaultFromFileMap>>, fil
   useTimeStore.getState().setCurrentYear(max)
   useTimeStore.getState().setSphereHighlightByYear(false)
   const sphereLayout = vault.layout.views.sphere ?? { nodes: {}, lineageOffsets: {} }
+  const forceView = vault.layout.views.force ?? {
+    nodes: {},
+    lineageOffsets: {},
+    forceNodes: {},
+    forceSavedView: {},
+  }
   useLayoutStore.getState().setSavedLayout(sphereLayout)
+  const forceSavedView = forceView.forceSavedView ?? {}
+  const forceNodes = forceView.forceNodes ?? {}
+  const sessionForceNodes =
+    Object.keys(forceSavedView).length > 0 ? { ...forceSavedView } : { ...forceNodes }
+  useLayoutStore.getState().setForceSavedView({ ...forceSavedView })
+  useLayoutStore.setState({
+    sessionForceNodes,
+    forceAutoLayout: { ...sessionForceNodes },
+    forceLayoutRevision: useLayoutStore.getState().forceLayoutRevision + 1,
+  })
 }
 
 export function useVaultActions() {
   const vault = useVaultStore((s) => s.vault)
   const savedLayout = useLayoutStore((s) => s.savedLayout)
+  const sessionForceNodes = useLayoutStore((s) => s.sessionForceNodes)
+  const forceSavedView = useLayoutStore((s) => s.forceSavedView)
 
   const openFolder = useCallback(async () => {
     const handle = await pickVaultDirectory()
@@ -68,14 +86,23 @@ export function useVaultActions() {
     if (!v) return
     const layout = {
       ...v.layout,
-      views: { ...v.layout.views, sphere: savedLayout },
+      views: {
+        ...v.layout.views,
+        sphere: savedLayout,
+        force: {
+          nodes: {},
+          lineageOffsets: {},
+          forceNodes: sessionForceNodes,
+          forceSavedView,
+        },
+      },
     }
     const blob = await exportZipVault({ ...v, layout })
     const a = document.createElement('a')
     a.href = URL.createObjectURL(blob)
     a.download = 'family-tree-vault.zip'
     a.click()
-  }, [savedLayout])
+  }, [savedLayout, sessionForceNodes, forceSavedView])
 
   const importGedcom = useCallback(async (file: File) => {
     const text = await file.text()
@@ -104,7 +131,16 @@ export function useVaultActions() {
     if (!v) return
     const layout = {
       version: 1 as const,
-      views: { ...v.layout.views, sphere: savedLayout },
+      views: {
+        ...v.layout.views,
+        sphere: savedLayout,
+        force: {
+          nodes: {},
+          lineageOffsets: {},
+          forceNodes: sessionForceNodes,
+          forceSavedView,
+        },
+      },
     }
     const content = serializeLayout(layout)
     useVaultStore.getState().updateLayout(content)
@@ -113,7 +149,7 @@ export function useVaultActions() {
       await writeTextFile(handle, '.family-tree/layout.json', content)
       useVaultStore.getState().setSaveStatus('saved')
     }
-  }, [savedLayout])
+  }, [savedLayout, sessionForceNodes, forceSavedView])
 
   const shareUrl = useCallback(() => {
     const activeView = useViewStore.getState().activeView
@@ -127,13 +163,22 @@ export function useVaultActions() {
     navigator.clipboard.writeText(window.location.href)
   }, [])
 
-  const loadSampleData = useCallback(async (): Promise<{
+  const loadSampleData = useCallback(async (clearCache = true): Promise<{
     ok: boolean
     message?: string
   }> => {
     try {
-      await clearCachedVault()
+      let preservedLayout: string | undefined
+      if (clearCache) {
+        await clearCachedVault()
+      } else {
+        const cached = await loadCachedVaultFiles()
+        preservedLayout = cached?.get('.family-tree/layout.json')
+      }
       const files = await loadSampleFiles()
+      if (preservedLayout) {
+        files.set('.family-tree/layout.json', preservedLayout)
+      }
       if (files.size === 0) {
         return {
           ok: false,

@@ -11,7 +11,7 @@ import {
 } from '@/types/vault'
 import type { PersonRecord } from '@/types/person'
 import { parsePersonMarkdown } from '@/lib/parser/markdown'
-import { enrichLineageColors } from '@/lib/vault/lineage-colors'
+import { enrichLineageColors, countLineageMembers } from '@/lib/vault/lineage-colors'
 
 export interface VaultData {
   people: PersonRecord[]
@@ -79,7 +79,11 @@ export async function loadVaultFromFileMap(
   const lineages = people.map((p) => p.frontmatter.lineage)
   config = {
     ...config,
-    lineageColors: enrichLineageColors(lineages, config.lineageColors),
+    lineageColors: enrichLineageColors(
+      lineages,
+      config.lineageColors,
+      countLineageMembers(lineages),
+    ),
   }
 
   return { people, config, layout, events, diagnostics }

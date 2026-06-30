@@ -53,6 +53,7 @@ function TreeNodeView({
   node,
   depth,
   onSelect,
+  onHover,
   selectedId,
   colors,
   isVisible,
@@ -60,6 +61,7 @@ function TreeNodeView({
   node: TreeNode
   depth: number
   onSelect: (id: string) => void
+  onHover: (id: string | null) => void
   selectedId: string | null
   colors: Record<string, string>
   isVisible: (b: number | null, d: number | null) => boolean
@@ -74,6 +76,8 @@ function TreeNodeView({
         <button
           type="button"
           onClick={() => onSelect(node.person.id)}
+          onMouseEnter={() => onHover(node.person.id)}
+          onMouseLeave={() => onHover(null)}
           className={`rounded px-2 py-1 text-sm text-left hover:bg-accent ${
             selectedId === node.person.id ? 'bg-accent ring-1 ring-primary' : ''
           }`}
@@ -91,6 +95,7 @@ function TreeNodeView({
           node={child}
           depth={depth + 1}
           onSelect={onSelect}
+          onHover={onHover}
           selectedId={selectedId}
           colors={colors}
           isVisible={isVisible}
@@ -104,6 +109,7 @@ export function TreeView({ className }: ViewProps) {
   const persons = useGraphStore((s) => s.persons)
   const selectedId = useGraphStore((s) => s.selectedId)
   const setSelectedId = useGraphStore((s) => s.setSelectedId)
+  const setHoveredId = useGraphStore((s) => s.setHoveredId)
   const isPersonVisible = useTimeStore((s) => s.isPersonVisible)
   const currentYear = useTimeStore((s) => s.currentYear)
   const colors = useVaultStore((s) => s.vault?.config.lineageColors ?? {})
@@ -126,6 +132,7 @@ export function TreeView({ className }: ViewProps) {
             node={tree}
             depth={0}
             onSelect={setSelectedId}
+            onHover={setHoveredId}
             selectedId={selectedId}
             colors={colors}
             isVisible={isPersonVisible}

@@ -9,6 +9,7 @@ export function TimelineView({ className }: ViewProps) {
   const persons = useGraphStore((s) => s.persons)
   const selectedId = useGraphStore((s) => s.selectedId)
   const setSelectedId = useGraphStore((s) => s.setSelectedId)
+  const setHoveredId = useGraphStore((s) => s.setHoveredId)
   const currentYear = useTimeStore((s) => s.currentYear)
   const minYear = useTimeStore((s) => s.minYear)
   const maxYear = useTimeStore((s) => s.maxYear)
@@ -47,6 +48,8 @@ export function TimelineView({ className }: ViewProps) {
                 animate={{ opacity: alive ? 1 : 0.25, x: 0 }}
                 exit={{ opacity: 0 }}
                 onClick={() => setSelectedId(p.id)}
+                onMouseEnter={() => setHoveredId(p.id)}
+                onMouseLeave={() => setHoveredId(null)}
                 className={`absolute flex h-7 items-center rounded text-xs text-white px-2 ${
                   selectedId === p.id ? 'ring-2 ring-white' : ''
                 }`}

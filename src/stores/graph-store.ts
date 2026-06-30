@@ -5,18 +5,21 @@ import type { GraphDiagnostic } from '@/lib/graph/builder'
 import { buildGraphFromRecords } from '@/lib/graph/builder'
 import { buildSearchIndex, type SearchDocument } from '@/lib/search/index'
 import type { Index } from 'flexsearch'
+import { useViewStore } from '@/stores/view-store'
 
 interface GraphState {
   graph: Graph<PersonNode, GraphEdgeAttributes> | null
   persons: Map<string, PersonNode>
   diagnostics: GraphDiagnostic[]
   selectedId: string | null
+  selectedIds: Set<string>
   hoveredId: string | null
   highlightedIds: Set<string>
   searchIndex: Index | null
   searchDocs: Map<string, SearchDocument>
   loadFromRecords: (records: PersonRecord[]) => void
   setSelectedId: (id: string | null) => void
+  setSelectedIds: (ids: Iterable<string>) => void
   setHoveredId: (id: string | null) => void
   setHighlightedIds: (ids: Set<string>) => void
   getPerson: (id: string) => PersonNode | undefined
@@ -27,6 +30,7 @@ export const useGraphStore = create<GraphState>((set, get) => ({
   persons: new Map(),
   diagnostics: [],
   selectedId: null,
+  selectedIds: new Set(),
   hoveredId: null,
   highlightedIds: new Set(),
   searchIndex: null,
@@ -58,8 +62,19 @@ export const useGraphStore = create<GraphState>((set, get) => ({
       })
     }
   },
-  setSelectedId: (id) => set({ selectedId: id }),
-  setHoveredId: (id) => set({ hoveredId: id }),
+  setSelectedId: (id) => {
+    set({ selectedId: id, selectedIds: id ? new Set([id]) : new Set() })
+    if (id) useViewStore.getState().setDetailPanelCollapsed(false)
+  },
+  setSelectedIds: (ids) => {
+    const selectedIds = new Set(ids)
+    const selectedId = selectedIds.size > 0 ? [...selectedIds][0] : null
+    set({ selectedIds, selectedId })
+    if (selectedId) useViewStore.getState().setDetailPanelCollapsed(false)
+  },
+  setHoveredId: (id) => {
+    set({ hoveredId: id })
+  },
   setHighlightedIds: (ids) => set({ highlightedIds: ids }),
   getPerson: (id) => get().persons.get(id),
 }))

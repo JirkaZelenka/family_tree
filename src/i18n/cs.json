@@ -33,7 +33,12 @@
     "media": "Média",
     "edit": "Upravit",
     "contemporaries": "Současníci",
-    "noSelection": "Vyberte osobu v grafu"
+    "noSelection": "Vyberte osobu v grafu",
+    "selectedPerson": "Vybraná osoba",
+    "previewPerson": "Náhled",
+    "collapsePanel": "Sbalit panel",
+    "expandPanel": "Rozbalit panel",
+    "panelTab": "Osoba"
   },
   "time": {
     "slider": "Rok",
@@ -43,7 +48,13 @@
     "events": "Historické události"
   },
   "layout": {
-    "sphereHint": "Klikněte na rod pro 2D pohled. Pásma po 20 letech od středu. Dvojklik = všichni."
+    "sphereHint": "Klikněte na rod pro 2D pohled. Pásma po 20 letech od středu. Dvojklik = všichni.",
+    "forceHint": "Klikněte na rod pro sbalení/rozbalení. Levé tlačítko tažením posouvá graf. Více osob vyberte tlačítkem obdélníkového výběru nahoře vlevo.",
+    "marqueeSelect": "Výběr obdélníkem",
+    "defaultView": "Výchozí pohled",
+    "saveView": "Uložit pohled",
+    "loadSavedView": "Načíst uložený",
+    "forceSaveOverwrite": "Uložený pohled už existuje. Chcete ho přepsat?"
   },
   "kinship": {
     "title": "Příbuznost",

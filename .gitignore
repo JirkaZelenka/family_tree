@@ -37,3 +37,6 @@ __pycache__/
 
 # Notes
 pozn.txt
+
+# Data
+data/people/*.md

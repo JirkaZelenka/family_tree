@@ -3,58 +3,54 @@ import { useTranslation } from 'react-i18next'
 import { useGraphStore } from '@/stores/graph-store'
 import { useVaultStore } from '@/stores/vault-store'
 import { getContemporaries } from '@/lib/graph/queries'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { Badge } from '@/components/ui/badge'
+import { PersonMedallion } from './PersonMedallion'
+import { lineageColor } from '@/lib/vault/lineage-colors'
 import { Separator } from '@/components/ui/separator'
 import { formatLifeSpan } from '@/lib/time/dates'
 import { PersonForm } from './PersonForm'
 import { Button } from '@/components/ui/button'
+import { useDetailPerson } from '@/hooks/useDetailPerson'
 
 export function PersonDetailPanel() {
   const { t } = useTranslation()
   const [editing, setEditing] = useState(false)
-  const selectedId = useGraphStore((s) => s.selectedId)
-  const getPerson = useGraphStore((s) => s.getPerson)
+  const { person, detailId, selectedId, isPreview } = useDetailPerson()
   const graph = useGraphStore((s) => s.graph)
   const setHighlightedIds = useGraphStore((s) => s.setHighlightedIds)
   const persons = useGraphStore((s) => s.persons)
   const colors = useVaultStore((s) => s.vault?.config.lineageColors ?? {})
 
-  const person = selectedId ? getPerson(selectedId) : null
-
-  if (!person) {
+  if (!person || !detailId) {
     return (
-      <div className="flex h-full items-center justify-center p-4 text-sm text-muted-foreground">
+      <div className="flex h-full min-h-[12rem] items-center justify-center p-4 text-sm text-muted-foreground">
         {t('person.noSelection')}
       </div>
     )
   }
 
+  const color = lineageColor(person.lineage, colors)
+  const canEdit = !isPreview && selectedId === detailId
+
   const contemporaries =
-    graph && selectedId ? getContemporaries(graph, selectedId) : []
+    graph && detailId ? getContemporaries(graph, detailId) : []
 
   const showContemporaries = () => {
     setHighlightedIds(new Set(contemporaries))
   }
 
   return (
-    <ScrollArea className="h-full">
+    <div className="flex h-full min-h-0 flex-col overflow-y-auto">
+      <PersonMedallion person={person} color={color} variant="panel" />
+
       <div className="space-y-4 p-4">
-        <div>
-          <h2 className="text-lg font-semibold">{person.fullName}</h2>
-          <div className="mt-1 flex items-center gap-2">
-            <Badge
-              style={{
-                backgroundColor: colors[person.lineage] ?? '#94a3b8',
-              }}
-            >
-              {person.lineage}
-            </Badge>
+        {canEdit && (
+          <div className="flex justify-end">
             <Button variant="ghost" size="sm" onClick={() => setEditing(true)}>
               {t('person.edit')}
             </Button>
           </div>
-        </div>
+        )}
 
         <Separator />
 
@@ -151,10 +147,10 @@ export function PersonDetailPanel() {
           </div>
         )}
 
-        {editing && (
+        {canEdit && editing && (
           <PersonForm person={person} onClose={() => setEditing(false)} />
         )}
       </div>
-    </ScrollArea>
+    </div>
   )
 }

@@ -4,7 +4,7 @@ import { viewRegistry } from '@/views/registry'
 import { useViewStore } from '@/stores/view-store'
 import { Toolbar } from './Toolbar'
 import { EventTimeline } from '@/components/timeline/EventTimeline'
-import { PersonDetailPanel } from '@/components/person/PersonDetailPanel'
+import { PersonDetailSidebar } from '@/components/person/PersonDetailSidebar'
 import { TimeSliderBar } from '@/components/shared/TimeSliderBar'
 import { LineageLegend } from '@/components/shared/LineageLegend'
 import { CommandPalette } from '@/components/search/CommandPalette'
@@ -18,7 +18,6 @@ import { useVaultStore } from '@/stores/vault-store'
 export function AppShell() {
   const { t } = useTranslation()
   const activeView = useViewStore((s) => s.activeView)
-  const detailPanelOpen = useViewStore((s) => s.detailPanelOpen)
   const eventsPanelOpen = useViewStore((s) => s.eventsPanelOpen)
   const vault = useVaultActions()
   const isBootstrapping = useVaultStore((s) => s.isBootstrapping)
@@ -126,11 +125,7 @@ export function AppShell() {
           <main className="relative min-w-0 flex-1">
             {ActiveView && <ActiveView className="absolute inset-0" />}
           </main>
-          {detailPanelOpen && (
-            <aside className="w-72 shrink-0 border-l border-border xl:w-80">
-              <PersonDetailPanel />
-            </aside>
-          )}
+          <PersonDetailSidebar />
         </div>
         <LineageLegend />
         <TimeSliderBar />

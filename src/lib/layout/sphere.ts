@@ -6,6 +6,7 @@ import {
   radiusForBirthYear,
   yearBandShellRadii,
 } from '@/lib/layout/sphere-bands'
+import { findLineageBridgePeople } from '@/lib/layout/force-bridge'
 import {
   layoutLineagePedigree,
   resolvePlacementLineage,
@@ -126,28 +127,6 @@ function buildLineagePlane(lineage: string, index: number, total: number): Linea
   }
 }
 
-function findLineageBridgeWomen(
-  graph: Graph<PersonNode, GraphEdgeAttributes>,
-): Set<string> {
-  const bridges = new Set<string>()
-  graph.forEachNode((id, attrs) => {
-    if (attrs.gender !== 'female') return
-
-    const crossSpouse = attrs.spouses.some((sid) => {
-      if (!sid || !graph.hasNode(sid)) return false
-      return graph.getNodeAttributes(sid).lineage !== attrs.lineage
-    })
-
-    const crossBirth = attrs.parents.some((pid) => {
-      if (!pid || !graph.hasNode(pid)) return false
-      return graph.getNodeAttributes(pid).lineage !== attrs.lineage
-    })
-
-    if (crossSpouse || crossBirth) bridges.add(id)
-  })
-  return bridges
-}
-
 function uOnSphere(
   u: number,
   radius: number,
@@ -211,7 +190,7 @@ export function computeSphereLayout(
   maxYear: number,
 ): SphereLayoutResult {
   const positions = new Map<string, SpherePosition>()
-  const mergePointIds = findLineageBridgeWomen(graph)
+  const mergePointIds = findLineageBridgePeople(graph)
 
   const birthYears = graph
     .nodes()

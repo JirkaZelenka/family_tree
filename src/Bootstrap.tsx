@@ -12,11 +12,12 @@ export function Bootstrap() {
       useVaultStore.getState().setBootstrapping(true)
       try {
         if (import.meta.env.DEV) {
-          await vault.loadSampleData()
+          // V dev vždy načti aktuální soubory z data/ (cache jen pro layout).
+          await vault.loadSampleData(false)
         } else {
           const fromCache = await vault.tryLoadCache()
           if (!fromCache || useGraphStore.getState().persons.size === 0) {
-            await vault.loadSampleData()
+            await vault.loadSampleData(false)
           }
         }
       } finally {
