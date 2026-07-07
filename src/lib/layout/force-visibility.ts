@@ -1,6 +1,7 @@
 import type Graph from 'graphology'
 import type { PersonNode } from '@/types/person'
-import { getFamilyNeighbours } from '@/lib/layout/force-bridge'
+import { getLineages } from '@/lib/graph/queries'
+import { getPersonAffiliatedLineages } from '@/lib/vault/lineage-colors'
 
 export interface ForceVisibilityOptions {
   expandedLineages: Set<string>
@@ -12,24 +13,13 @@ export interface ForceVisibilityResult {
   boundaryIds: Set<string>
 }
 
-function normalizeRod(s: string): string {
-  return s
-    .normalize('NFD')
-    .replace(/\p{M}/gu, '')
-    .toLowerCase()
-    .replace(/ovi$/, '')
-    .replace(/ova$/, '')
-    .replace(/ové$/, '')
-}
-
-/** Osoba „přišla z jiného rodu“ – jiné příjmení než rod v datech, nebo rodné příjmení. */
-export function isCrossLineagePerson(attrs: PersonNode): boolean {
-  if (attrs.maidenName) return true
-  if (!attrs.familyName) return false
-  const lineage = normalizeRod(attrs.lineage)
-  const family = normalizeRod(attrs.familyName)
-  if (!lineage || !family) return false
-  return !lineage.includes(family) && !family.includes(lineage)
+/** Osoba „přišla z jiného rodu“ – příjmení neodpovídá poli lineage. */
+export function isCrossLineagePerson(
+  attrs: PersonNode,
+  allLineages?: Iterable<string>,
+): boolean {
+  const lineages = allLineages ?? [attrs.lineage]
+  return getPersonAffiliatedLineages(attrs, lineages).length > 1
 }
 
 export function computeForceVisibility(
@@ -39,38 +29,21 @@ export function computeForceVisibility(
   const { expandedLineages, timeVisible } = options
   const visibleIds = new Set<string>()
   const boundaryIds = new Set<string>()
+  const allLineages = getLineages(graph)
 
   graph.forEachNode((id, attrs) => {
     if (!timeVisible(id)) return
-    if (expandedLineages.has(attrs.lineage)) visibleIds.add(id)
+
+    const affiliations = getPersonAffiliatedLineages(attrs, allLineages)
+    const hasExpandedAffiliation = affiliations.some((l) => expandedLineages.has(l))
+    if (!hasExpandedAffiliation) return
+
+    visibleIds.add(id)
+
+    if (!expandedLineages.has(attrs.lineage)) {
+      boundaryIds.add(id)
+    }
   })
-
-  let changed = true
-  while (changed) {
-    changed = false
-    graph.forEachNode((id, attrs) => {
-      if (!timeVisible(id)) return
-      if (visibleIds.has(id)) return
-      if (!isCrossLineagePerson(attrs)) return
-
-      const lineage = attrs.lineage
-      if (expandedLineages.has(lineage)) return
-
-      const anchorsExpanded = getFamilyNeighbours(graph, id).some((nid) => {
-        if (!timeVisible(nid)) return false
-        const neighbour = graph.getNodeAttributes(nid)
-        if (!expandedLineages.has(neighbour.lineage)) return false
-        if (neighbour.lineage === lineage) return false
-        return visibleIds.has(nid)
-      })
-
-      if (anchorsExpanded) {
-        visibleIds.add(id)
-        boundaryIds.add(id)
-        changed = true
-      }
-    })
-  }
 
   return { visibleIds, boundaryIds }
 }

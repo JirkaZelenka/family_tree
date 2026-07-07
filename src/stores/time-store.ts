@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { isAliveAtYear } from '@/lib/time/dates'
+import { isAliveAtYear, isBornByYear } from '@/lib/time/dates'
 
 interface TimeState {
   currentYear: number
@@ -36,6 +36,12 @@ export const useTimeStore = create<TimeState>((set, get) => ({
   setAnimatePlaying: (playing) => set({ animatePlaying: playing }),
   setShowContemporariesOnly: (show) => set({ showContemporariesOnly: show }),
   setSphereHighlightByYear: (active) => set({ sphereHighlightByYear: active }),
-  isPersonVisible: (birthYear, deathYear) =>
-    isAliveAtYear(birthYear, deathYear, get().currentYear),
+  isPersonVisible: (birthYear, deathYear) => {
+    const { currentYear, showContemporariesOnly } = get()
+    if (!isBornByYear(birthYear, currentYear)) return false
+    if (showContemporariesOnly) {
+      return isAliveAtYear(birthYear, deathYear, currentYear)
+    }
+    return true
+  },
 }))

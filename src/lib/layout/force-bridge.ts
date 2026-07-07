@@ -1,11 +1,11 @@
 import type Graph from 'graphology'
 import type { PersonNode } from '@/types/person'
-
+import { spouseIds } from '@/lib/graph/person-links'
 /** Osoby propojující dva různé rody (manželství, rodičovství, potomci). */
 export function findLineageBridgePeople(graph: Graph<PersonNode>): Set<string> {
   const bridges = new Set<string>()
   graph.forEachNode((id, attrs) => {
-    const crossSpouse = attrs.spouses.some((sid) => {
+    const crossSpouse = spouseIds(attrs.spouses).some((sid) => {
       if (!sid || !graph.hasNode(sid)) return false
       return graph.getNodeAttributes(sid).lineage !== attrs.lineage
     })
@@ -31,7 +31,7 @@ export function getFamilyNeighbours(graph: Graph<PersonNode>, id: string): strin
   for (const cid of attrs.children) {
     if (cid && graph.hasNode(cid)) neighbours.add(cid)
   }
-  for (const sid of attrs.spouses) {
+  for (const sid of spouseIds(attrs.spouses)) {
     if (sid && graph.hasNode(sid)) neighbours.add(sid)
   }
   return [...neighbours]

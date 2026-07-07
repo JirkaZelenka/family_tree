@@ -2,6 +2,7 @@ import type Graph from 'graphology'
 import type { PersonNode } from '@/types/person'
 import { FORCE_NODE_WIDTH } from '@/lib/layout/force-layout'
 import { lineageColor, pastelizeColor } from '@/lib/vault/lineage-colors'
+import { spouseIds } from '@/lib/graph/person-links'
 
 export type ForceNodeFill =
   | { type: 'solid'; color: string }
@@ -46,7 +47,7 @@ function pickVisibleSpouse(
   let best: { id: string; dist: number } | null = null
   const selfCx = nodeCenterX(selfPos)
 
-  for (const sid of person.spouses) {
+  for (const sid of spouseIds(person.spouses)) {
     if (!sid || !visibleIds.has(sid) || !positions.has(sid)) continue
     const dist = Math.abs(nodeCenterX(positions.get(sid)!) - selfCx)
     if (!best || dist < best.dist) best = { id: sid, dist }

@@ -1,20 +1,26 @@
 import { create } from 'zustand'
 import type { ViewId } from '@/views/types'
 
+export type LineageSort = 'name' | 'members'
+
 interface ViewState {
   activeView: ViewId
-  detailPanelCollapsed: boolean
   eventsPanelOpen: boolean
+  profilePersonId: string | null
+  lineageSort: LineageSort
   setActiveView: (view: ViewId) => void
-  setDetailPanelCollapsed: (collapsed: boolean) => void
   setEventsPanelOpen: (open: boolean) => void
+  setProfilePersonId: (id: string | null) => void
+  setLineageSort: (sort: LineageSort) => void
 }
 
 export const useViewStore = create<ViewState>((set) => ({
-  activeView: 'sphere',
-  detailPanelCollapsed: false,
+  activeView: 'tree',
   eventsPanelOpen: true,
+  profilePersonId: null,
+  lineageSort: 'name',
   setActiveView: (view) => set({ activeView: view }),
-  setDetailPanelCollapsed: (collapsed) => set({ detailPanelCollapsed: collapsed }),
   setEventsPanelOpen: (open) => set({ eventsPanelOpen: open }),
+  setProfilePersonId: (id) => set({ profilePersonId: id }),
+  setLineageSort: (sort) => set({ lineageSort: sort }),
 }))

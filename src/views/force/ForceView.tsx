@@ -12,6 +12,7 @@ import { useGraphStore } from '@/stores/graph-store'
 import { useTimeStore } from '@/stores/time-store'
 import { useVaultStore } from '@/stores/vault-store'
 import { useLayoutStore } from '@/stores/layout-store'
+import { useViewStore } from '@/stores/view-store'
 import { computeForceVisibility } from '@/lib/layout/force-visibility'
 import { buildForceEdgeSegments, segmentPathD } from '@/lib/layout/force-edges'
 import {
@@ -30,6 +31,7 @@ import {
   computeLineagePathHighlight,
 } from '@/lib/layout/force-lineage-highlight'
 import { formatLifeSpan } from '@/lib/time/dates'
+import { ForceViewPresets } from '@/components/layout/ForceViewPresets'
 import type { ViewProps } from '../types'
 import type { PersonNode } from '@/types/person'
 
@@ -51,6 +53,7 @@ function PersonNodeCard({
   highlighted,
   dragging,
   onSelect,
+  onOpenProfile,
   onDragStart,
 }: {
   person: PersonNode
@@ -62,6 +65,7 @@ function PersonNodeCard({
   highlighted: boolean
   dragging: boolean
   onSelect: (additive: boolean) => void
+  onOpenProfile: () => void
   onDragStart: (e: ReactPointerEvent<SVGGElement>) => void
 }) {
   const accent =
@@ -85,6 +89,10 @@ function PersonNodeCard({
       onClick={(e) => {
         e.stopPropagation()
         onSelect(e.shiftKey)
+      }}
+      onDoubleClick={(e) => {
+        e.stopPropagation()
+        onOpenProfile()
       }}
       onPointerDown={onDragStart}
     >
@@ -164,8 +172,10 @@ export function ForceView({ className }: ViewProps) {
   const setSelectedIds = useGraphStore((s) => s.setSelectedIds)
   const setHoveredId = useGraphStore((s) => s.setHoveredId)
   const setHighlightedIds = useGraphStore((s) => s.setHighlightedIds)
+  const setProfilePersonId = useViewStore((s) => s.setProfilePersonId)
 
   const isPersonVisible = useTimeStore((s) => s.isPersonVisible)
+  const showContemporariesOnly = useTimeStore((s) => s.showContemporariesOnly)
   const currentYear = useTimeStore((s) => s.currentYear)
 
   const vaultColors = useVaultStore((s) => s.vault?.config.lineageColors ?? {})
@@ -185,9 +195,6 @@ export function ForceView({ className }: ViewProps) {
   const ensureForceAutoBaseline = useLayoutStore((s) => s.ensureForceAutoBaseline)
   const updateForceNodesX = useLayoutStore((s) => s.updateForceNodesX)
   const resetForceLayout = useLayoutStore((s) => s.resetForceLayout)
-  const saveForceView = useLayoutStore((s) => s.saveForceView)
-  const loadForceSavedView = useLayoutStore((s) => s.loadForceSavedView)
-  const hasForceSavedView = useLayoutStore((s) => s.hasForceSavedView)
 
   const [transform, setTransform] = useState<ViewTransform>({ x: 40, y: 40, k: 1 })
   const transformRef = useRef(transform)
@@ -264,7 +271,7 @@ export function ForceView({ className }: ViewProps) {
     if (expandedLineages.size === 0) initForceLineages(lineages)
   }, [graph, lineages, expandedLineages.size, initForceLineages])
 
-  const { visibleIds } = useMemo(() => {
+  const { visibleIds, boundaryIds } = useMemo(() => {
     if (!graph) {
       return { visibleIds: new Set<string>(), boundaryIds: new Set<string>() }
     }
@@ -275,7 +282,7 @@ export function ForceView({ className }: ViewProps) {
         return p ? isPersonVisible(p.birthYear, p.deathYear) : false
       },
     })
-  }, [graph, persons, expandedLineages, isPersonVisible, currentYear])
+  }, [graph, persons, expandedLineages, isPersonVisible, currentYear, showContemporariesOnly])
 
   const layout = useMemo(() => {
     if (!graph) return null
@@ -300,8 +307,7 @@ export function ForceView({ className }: ViewProps) {
     for (const id of visibleIds) {
       const person = persons.get(id)
       if (!person) continue
-      const lineageExpanded = expandedLineages.has(person.lineage)
-      const boundary = !lineageExpanded
+      const boundary = boundaryIds.has(id)
       map.set(
         id,
         resolveForceNodeFill(
@@ -315,7 +321,7 @@ export function ForceView({ className }: ViewProps) {
       )
     }
     return map
-  }, [graph, visibleIds, displayPositions, colors, persons, expandedLineages])
+  }, [graph, visibleIds, boundaryIds, displayPositions, colors, persons])
 
   const edgeSegments = useMemo(() => {
     if (!graph) return []
@@ -604,21 +610,9 @@ export function ForceView({ className }: ViewProps) {
     fittedGraphRef.current = null
   }, [resetForceLayout])
 
-  const handleSaveView = useCallback(() => {
-    const nodes = useLayoutStore.getState().sessionForceNodes
-    if (Object.keys(nodes).length === 0) return
-    if (useLayoutStore.getState().hasForceSavedView()) {
-      const ok = window.confirm(t('layout.forceSaveOverwrite'))
-      if (!ok) return
-    }
-    saveForceView()
-  }, [saveForceView, t])
-
-  const handleLoadSaved = useCallback(() => {
-    if (!hasForceSavedView()) return
-    loadForceSavedView()
+  const handlePresetLoaded = useCallback(() => {
     fittedGraphRef.current = null
-  }, [hasForceSavedView, loadForceSavedView])
+  }, [])
 
   if (!graph || !layout) {
     return (
@@ -658,22 +652,7 @@ export function ForceView({ className }: ViewProps) {
         >
           {t('layout.defaultView')}
         </button>
-        <button
-          type="button"
-          onClick={handleSaveView}
-          className="rounded-md border border-border bg-background/90 px-3 py-1.5 text-xs font-medium shadow-sm backdrop-blur hover:bg-accent"
-        >
-          {t('layout.saveView')}
-        </button>
-        {hasForceSavedView() && (
-          <button
-            type="button"
-            onClick={handleLoadSaved}
-            className="rounded-md border border-border bg-background/90 px-3 py-1.5 text-xs font-medium shadow-sm backdrop-blur hover:bg-accent"
-          >
-            {t('layout.loadSavedView')}
-          </button>
-        )}
+        <ForceViewPresets onLoaded={handlePresetLoaded} />
       </div>
 
       <svg
@@ -777,8 +756,7 @@ export function ForceView({ className }: ViewProps) {
             const pos = displayPositions.get(id)
             if (!person || !pos) return null
 
-            const lineageExpanded = expandedLineages.has(person.lineage)
-            const boundary = !lineageExpanded
+            const boundary = boundaryIds.has(id)
             const isSelected = selectedIds.has(id)
             const onLineagePath =
               lineageHighlight !== null &&
@@ -817,6 +795,7 @@ export function ForceView({ className }: ViewProps) {
                       setHighlightedIds(new Set())
                     }
                   }}
+                  onOpenProfile={() => setProfilePersonId(id)}
                   onDragStart={(e) => onNodeDragStart(id, e)}
                 />
               </g>

@@ -4,6 +4,7 @@ import type { PersonNode } from '@/types/person'
 import type { LineagePlane, SpherePosition } from '@/lib/layout/sphere'
 import { layoutPointTo3D } from '@/lib/layout/sphere'
 import { resolveCouplePlane } from '@/lib/layout/sphere-tree'
+import { spouseIds } from '@/lib/graph/person-links'
 
 export type TreeEdgeKind = 'spouse' | 'descent' | 'branch'
 
@@ -122,8 +123,8 @@ export function buildTreeEdges(
   const spouseDone = new Set<string>()
 
   graph.forEachNode((id, attrs) => {
-    for (const sid of attrs.spouses) {
-      if (!sid || !graph.hasNode(sid)) continue
+    for (const sid of spouseIds(attrs.spouses)) {
+      if (!graph.hasNode(sid)) continue
       const key = [id, sid].sort().join('--')
       if (spouseDone.has(key)) continue
       spouseDone.add(key)

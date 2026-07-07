@@ -1,5 +1,6 @@
 import Graph from 'graphology'
 import type { PersonNode } from '@/types/person'
+import { spouseIds } from '@/lib/graph/person-links'
 
 const SLOT = 0.1
 const COUPLE_GAP = 0.11
@@ -23,9 +24,7 @@ function visibleSpouses(
   id: string,
   visibleIds: Set<string>,
 ): string[] {
-  return graph
-    .getNodeAttributes(id)
-    .spouses.filter((sid) => sid && visibleIds.has(sid))
+  return spouseIds(graph.getNodeAttributes(id).spouses).filter((sid) => visibleIds.has(sid))
 }
 
 function visibleChildren(
@@ -173,7 +172,7 @@ function familyNeighbour(
   const out: string[] = []
   for (const pid of attrs.parents) if (pid && visibleIds.has(pid)) out.push(pid)
   for (const cid of attrs.children) if (cid && visibleIds.has(cid)) out.push(cid)
-  for (const sid of attrs.spouses) if (sid && visibleIds.has(sid)) out.push(sid)
+  for (const sid of spouseIds(attrs.spouses)) if (visibleIds.has(sid)) out.push(sid)
   return out
 }
 

@@ -1,11 +1,27 @@
-const YEAR_RE = /^(-?\d{1,4})(?:-(\d{1,2}))?(?:-(\d{1,2}))?$/
+const ISO_YEAR_RE = /^(-?\d{1,4})(?:-(\d{1,2}))?(?:-(\d{1,2}))?$/
+const DOT_DATE_RE = /^(\d{1,2})\.(\d{1,2})\.(-?\d{1,4})$/
 
-export function parseYear(dateStr: string | undefined): number | null {
-  if (!dateStr) return null
-  const match = dateStr.trim().match(YEAR_RE)
-  if (!match) return null
-  const year = parseInt(match[1], 10)
-  return Number.isFinite(year) ? year : null
+export function parseYear(date: string | number | undefined | null): number | null {
+  if (date === undefined || date === null) return null
+  if (typeof date === 'number') {
+    return Number.isFinite(date) ? Math.trunc(date) : null
+  }
+  const trimmed = date.trim()
+  if (!trimmed) return null
+
+  const dotMatch = trimmed.match(DOT_DATE_RE)
+  if (dotMatch) {
+    const year = parseInt(dotMatch[3], 10)
+    return Number.isFinite(year) ? year : null
+  }
+
+  const isoMatch = trimmed.match(ISO_YEAR_RE)
+  if (isoMatch) {
+    const year = parseInt(isoMatch[1], 10)
+    return Number.isFinite(year) ? year : null
+  }
+
+  return null
 }
 
 export function formatLifeSpan(
@@ -15,6 +31,11 @@ export function formatLifeSpan(
   const birth = birthYear ?? '?'
   const death = deathYear ?? '?'
   return `${birth} – ${death}`
+}
+
+export function isBornByYear(birthYear: number | null, year: number): boolean {
+  if (birthYear === null) return true
+  return birthYear <= year
 }
 
 export function isAliveAtYear(

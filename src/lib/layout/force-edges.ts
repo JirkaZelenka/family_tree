@@ -1,6 +1,7 @@
 import type Graph from 'graphology'
 import type { PersonNode } from '@/types/person'
 import { collectFamilyUnits } from '@/lib/layout/sphere-tree'
+import { spouseIds } from '@/lib/graph/person-links'
 import { FORCE_NODE_HEIGHT, FORCE_NODE_WIDTH } from '@/lib/layout/force-layout'
 
 export type ForceEdgeKind = 'spouse' | 'descent' | 'branch'
@@ -12,6 +13,8 @@ export interface ForceEdgeSegment {
   parentIds?: string[]
   childIds?: string[]
   spouseIds?: string[]
+  /** Konkrétní dítě u svislé větve hráběte (ne celá rodinná jednotka). */
+  targetChildId?: string
 }
 
 function nodeTopCenter(pos: { x: number; y: number }) {
@@ -61,9 +64,9 @@ function buildDescentRake(
     .filter((p): p is { x: number; y: number } => !!p)
     .map(nodeCenter)
 
-  const childPts = childIds
-    .map((id) => positions.get(id))
-    .filter((p): p is { x: number; y: number } => !!p)
+  const visibleChildIds = childIds.filter((id) => positions.has(id))
+  const childPts = visibleChildIds
+    .map((id) => positions.get(id)!)
     .map(nodeTopCenter)
 
   if (parentPts.length === 0 || childPts.length === 0) return []
@@ -92,6 +95,7 @@ function buildDescentRake(
       kind: 'branch',
       parentIds: [...parentIds],
       childIds: [...childIds],
+      targetChildId: visibleChildIds[0],
       points: [
         { x: stemX, y: barY },
         childPts[0],
@@ -100,27 +104,27 @@ function buildDescentRake(
     return segments
   }
 
-  const childXs = childPts.map((p) => p.x)
-  const minX = Math.min(...childXs)
-  const maxX = Math.max(...childXs)
-
-  segments.push({
-    id: `branch-bar-${unitKey}`,
-    kind: 'branch',
-    parentIds: [...parentIds],
-    childIds: [...childIds],
-    points: [
-      { x: minX, y: barY },
-      { x: maxX, y: barY },
-    ],
-  })
-
   childPts.forEach((child, i) => {
+    if (Math.abs(child.x - stemX) > 0.5) {
+      segments.push({
+        id: `branch-horiz-${unitKey}-${i}`,
+        kind: 'branch',
+        parentIds: [...parentIds],
+        childIds: [...childIds],
+        targetChildId: visibleChildIds[i],
+        points: [
+          { x: stemX, y: barY },
+          { x: child.x, y: barY },
+        ],
+      })
+    }
+
     segments.push({
       id: `branch-${unitKey}-${i}`,
       kind: 'branch',
       parentIds: [...parentIds],
       childIds: [...childIds],
+      targetChildId: visibleChildIds[i],
       points: [
         { x: child.x, y: barY },
         child,
@@ -165,7 +169,7 @@ export function buildForceEdgeSegments(
 
   graph.forEachNode((id, attrs) => {
     if (!visibleIds.has(id)) return
-    for (const sid of attrs.spouses) {
+    for (const sid of spouseIds(attrs.spouses)) {
       if (!sid || !visibleIds.has(sid)) continue
       const key = [id, sid].sort().join('--')
       if (seenSpouse.has(key)) continue

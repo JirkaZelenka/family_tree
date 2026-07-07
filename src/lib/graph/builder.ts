@@ -3,6 +3,7 @@ import type { Attributes } from 'graphology-types'
 import type { PersonNode, PersonRecord, GraphEdgeAttributes } from '@/types/person'
 import { buildFullName } from '@/lib/parser/markdown'
 import { parseYear } from '@/lib/time/dates'
+import { deriveChildren, spouseIds } from '@/lib/graph/person-links'
 
 export interface GraphDiagnostic {
   level: 'error' | 'warning'
@@ -20,6 +21,7 @@ function recordToNode(record: PersonRecord): PersonNode {
   const fm = record.frontmatter
   return {
     ...fm,
+    children: [],
     fullName: buildFullName(fm),
     birthYear: parseYear(fm.birth?.date),
     deathYear: parseYear(fm.death?.date),
@@ -54,6 +56,8 @@ export function buildGraphFromRecords(
     graph.addNode(node.id, node)
   }
 
+  deriveChildren(persons)
+
   const addEdge = (
     source: string,
     target: string,
@@ -79,7 +83,8 @@ export function buildGraphFromRecords(
       }
       addEdge(parentId, node.id, { type: 'parent-child' })
     }
-    for (const spouseId of node.spouses) {
+    for (const marriage of node.spouses) {
+      const spouseId = marriage.id
       if (!spouseId) continue
       if (!persons.has(spouseId)) {
         diagnostics.push({
@@ -89,7 +94,10 @@ export function buildGraphFromRecords(
         })
         continue
       }
-      addEdge(node.id, spouseId, { type: 'spouse' })
+      addEdge(node.id, spouseId, {
+        type: 'spouse',
+        startYear: parseYear(marriage.marriage?.date),
+      })
     }
   }
 

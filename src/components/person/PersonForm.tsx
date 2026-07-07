@@ -49,7 +49,6 @@ export function PersonForm({ person, onClose }: PersonFormProps) {
         death: updated.death,
         parents: updated.parents,
         spouses: updated.spouses,
-        children: updated.children,
         tags: updated.tags,
         confidence: updated.confidence,
         media: updated.media,

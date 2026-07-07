@@ -1,5 +1,6 @@
 import Graph from 'graphology'
 import type { PersonNode } from '@/types/person'
+import { spouseIds } from '@/lib/graph/person-links'
 
 export interface TreeUV {
   u: number
@@ -22,7 +23,7 @@ function sortByAge(graph: Graph<PersonNode>, ids: string[]): string[] {
 }
 
 function allSpouses(graph: Graph<PersonNode>, id: string): string[] {
-  return graph.getNodeAttributes(id).spouses.filter((sid) => sid && graph.hasNode(sid))
+  return spouseIds(graph.getNodeAttributes(id).spouses).filter((sid) => graph.hasNode(sid))
 }
 
 function childrenInLineage(

@@ -89,7 +89,6 @@ export function importGedcomToRecords(text: string): PersonRecord[] {
         death: death ? { date: death } : undefined,
         parents: [],
         spouses: [],
-        children: [],
         tags: [],
         media: [],
         sources: ['Importováno z GEDCOM'],

@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useGraphStore } from '@/stores/graph-store'
 import { useTimeStore } from '@/stores/time-store'
 import { useVaultStore } from '@/stores/vault-store'
+import { useViewStore } from '@/stores/view-store'
 import type { ViewProps } from '../types'
 
 export function TimelineView({ className }: ViewProps) {
@@ -10,6 +11,7 @@ export function TimelineView({ className }: ViewProps) {
   const selectedId = useGraphStore((s) => s.selectedId)
   const setSelectedId = useGraphStore((s) => s.setSelectedId)
   const setHoveredId = useGraphStore((s) => s.setHoveredId)
+  const setProfilePersonId = useViewStore((s) => s.setProfilePersonId)
   const currentYear = useTimeStore((s) => s.currentYear)
   const minYear = useTimeStore((s) => s.minYear)
   const maxYear = useTimeStore((s) => s.maxYear)
@@ -48,6 +50,7 @@ export function TimelineView({ className }: ViewProps) {
                 animate={{ opacity: alive ? 1 : 0.25, x: 0 }}
                 exit={{ opacity: 0 }}
                 onClick={() => setSelectedId(p.id)}
+                onDoubleClick={() => setProfilePersonId(p.id)}
                 onMouseEnter={() => setHoveredId(p.id)}
                 onMouseLeave={() => setHoveredId(null)}
                 className={`absolute flex h-7 items-center rounded text-xs text-white px-2 ${

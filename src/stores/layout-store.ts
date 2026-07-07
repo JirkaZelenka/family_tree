@@ -4,11 +4,16 @@ import type {
   LineagePlane,
   SphereLayoutResult,
 } from '@/lib/layout/sphere'
-import type { ForceNodeLayout, ViewLayout } from '@/types/vault'
+import type { ForceNodeLayout, ForceSavedViews, ViewLayout } from '@/types/vault'
 import { useVaultStore } from '@/stores/vault-store'
 import { serializeLayout } from '@/lib/storage/vault-loader'
 import { cacheVaultFiles } from '@/lib/storage'
 import type { LayoutFile } from '@/types/vault'
+import {
+  activeForceViewNodes,
+  mergeForcePositions,
+  migrateForceSavedViews,
+} from '@/lib/layout/force-saved-views'
 import {
   FORCE_PADDING,
   FORCE_TIMELINE_WIDTH,
@@ -27,7 +32,8 @@ interface LayoutState {
   savedLayout: ViewLayout
   sessionForceNodes: Record<string, ForceNodeLayout>
   forceAutoLayout: Record<string, ForceNodeLayout>
-  forceSavedView: Record<string, ForceNodeLayout>
+  forceSavedViews: ForceSavedViews
+  activeForceViewName: string | null
   simulationRunning: boolean
   draggingLineage: string | null
   mergePointIds: Set<string>
@@ -40,15 +46,17 @@ interface LayoutState {
   setSphereLayout: (result: SphereLayoutResult) => void
   updateNodePosition: (id: string, pos: SpherePosition, pinned?: boolean) => void
   setSavedLayout: (layout: ViewLayout) => void
-  setForceSavedView: (nodes: Record<string, ForceNodeLayout>) => void
+  setForceSavedViews: (views: ForceSavedViews, activeName?: string | null) => void
   setForceAutoLayout: (nodes: Record<string, ForceNodeLayout>) => void
   ensureForceAutoBaseline: (nodes: Record<string, ForceNodeLayout>) => void
   updateForceNodeX: (id: string, x: number) => void
   updateForceNodesX: (updates: Record<string, number>) => void
   resetForceLayout: () => void
-  saveForceView: () => boolean
-  loadForceSavedView: () => void
-  hasForceSavedView: () => boolean
+  saveForceViewPreset: (name: string) => boolean
+  loadForceViewPreset: (name: string) => boolean
+  renameForceViewPreset: (oldName: string, newName: string) => boolean
+  deleteForceViewPreset: (name: string) => void
+  listForceViewPresetNames: () => string[]
   setSimulationRunning: (running: boolean) => void
   setDraggingLineage: (lineage: string | null) => void
   setFocusedLineage: (lineage: string | null) => void
@@ -57,7 +65,8 @@ interface LayoutState {
 }
 
 function persistForceViews(
-  forceSavedView: Record<string, ForceNodeLayout>,
+  forceSavedViews: ForceSavedViews,
+  activeForceViewName: string | null,
   sessionForceNodes: Record<string, ForceNodeLayout>,
 ) {
   const vault = useVaultStore.getState().vault
@@ -68,12 +77,16 @@ function persistForceViews(
     lineageOffsets: {},
     forceNodes: {},
     forceSavedView: {},
+    forceSavedViews: {},
   }
+
+  const activeNodes = activeForceViewNodes(forceSavedViews, activeForceViewName)
 
   const forceView: ViewLayout = {
     ...existingForce,
     forceNodes: sessionForceNodes,
-    forceSavedView,
+    forceSavedView: activeNodes,
+    forceSavedViews,
   }
 
   const layout: LayoutFile = {
@@ -88,10 +101,17 @@ function persistForceViews(
 
 export const useLayoutStore = create<LayoutState>((set, get) => ({
   positions: new Map(),
-  savedLayout: { nodes: {}, lineageOffsets: {}, forceNodes: {}, forceSavedView: {} },
+  savedLayout: {
+    nodes: {},
+    lineageOffsets: {},
+    forceNodes: {},
+    forceSavedView: {},
+    forceSavedViews: {},
+  },
   sessionForceNodes: {},
   forceAutoLayout: {},
-  forceSavedView: {},
+  forceSavedViews: {},
+  activeForceViewName: null,
   simulationRunning: false,
   draggingLineage: null,
   mergePointIds: new Set(),
@@ -126,9 +146,22 @@ export const useLayoutStore = create<LayoutState>((set, get) => ({
         lineageOffsets: layout.lineageOffsets ?? {},
         forceNodes: layout.forceNodes ?? {},
         forceSavedView: layout.forceSavedView ?? {},
+        forceSavedViews: layout.forceSavedViews ?? {},
       },
     }),
-  setForceSavedView: (nodes) => set({ forceSavedView: nodes }),
+  setForceSavedViews: (views, activeName) => {
+    const names = Object.keys(views)
+    const resolvedActive =
+      activeName !== undefined
+        ? activeName
+        : get().activeForceViewName && views[get().activeForceViewName!]
+          ? get().activeForceViewName
+          : names[0] ?? null
+    set({
+      forceSavedViews: views,
+      activeForceViewName: resolvedActive,
+    })
+  },
   setForceAutoLayout: (nodes) => set({ forceAutoLayout: nodes }),
   ensureForceAutoBaseline: (nodes) => {
     if (Object.keys(get().sessionForceNodes).length > 0) return
@@ -145,37 +178,90 @@ export const useLayoutStore = create<LayoutState>((set, get) => ({
       sessionForceNodes[id] = { x: clampForceX(x), pinned: true }
     }
     set({ sessionForceNodes })
-    persistForceViews(get().forceSavedView, sessionForceNodes)
+    persistForceViews(
+      get().forceSavedViews,
+      get().activeForceViewName,
+      sessionForceNodes,
+    )
   },
   resetForceLayout: () => {
     set({
       sessionForceNodes: {},
       forceAutoLayout: {},
+      activeForceViewName: null,
       forceLayoutRevision: get().forceLayoutRevision + 1,
     })
-    persistForceViews(get().forceSavedView, {})
+    persistForceViews(get().forceSavedViews, null, {})
   },
-  saveForceView: () => {
-    const merged = { ...get().forceAutoLayout, ...get().sessionForceNodes }
+  saveForceViewPreset: (name) => {
+    const trimmed = name.trim()
+    if (!trimmed) return false
+    const merged = mergeForcePositions(get().forceAutoLayout, get().sessionForceNodes)
     if (Object.keys(merged).length === 0) return false
+    const forceSavedViews = {
+      ...get().forceSavedViews,
+      [trimmed]: { ...merged },
+    }
     set({
-      forceSavedView: { ...merged },
+      forceSavedViews,
+      activeForceViewName: trimmed,
       sessionForceNodes: { ...merged },
       forceAutoLayout: { ...merged },
     })
-    persistForceViews({ ...merged }, { ...merged })
+    persistForceViews(forceSavedViews, trimmed, { ...merged })
     return true
   },
-  loadForceSavedView: () => {
-    const saved = get().forceSavedView
+  loadForceViewPreset: (name) => {
+    const nodes = get().forceSavedViews[name]
+    if (!nodes || Object.keys(nodes).length === 0) return false
+    const copy = { ...nodes }
     set({
-      sessionForceNodes: { ...saved },
-      forceAutoLayout: { ...saved },
+      activeForceViewName: name,
+      sessionForceNodes: copy,
+      forceAutoLayout: copy,
       forceLayoutRevision: get().forceLayoutRevision + 1,
     })
-    persistForceViews(saved, { ...saved })
+    persistForceViews(get().forceSavedViews, name, copy)
+    return true
   },
-  hasForceSavedView: () => Object.keys(get().forceSavedView).length > 0,
+  renameForceViewPreset: (oldName, newName) => {
+    const trimmed = newName.trim()
+    if (!trimmed || oldName === trimmed) return false
+    const views = get().forceSavedViews
+    if (!views[oldName] || views[trimmed]) return false
+    const next = { ...views }
+    next[trimmed] = next[oldName]
+    delete next[oldName]
+    const activeForceViewName =
+      get().activeForceViewName === oldName ? trimmed : get().activeForceViewName
+    set({ forceSavedViews: next, activeForceViewName })
+    persistForceViews(next, activeForceViewName, get().sessionForceNodes)
+    return true
+  },
+  deleteForceViewPreset: (name) => {
+    const views = { ...get().forceSavedViews }
+    if (!views[name]) return
+    delete views[name]
+    const wasActive = get().activeForceViewName === name
+    const activeForceViewName = wasActive ? Object.keys(views)[0] ?? null : get().activeForceViewName
+    const sessionForceNodes = wasActive
+      ? activeForceViewNodes(views, activeForceViewName)
+      : get().sessionForceNodes
+    set({
+      forceSavedViews: views,
+      activeForceViewName,
+      ...(wasActive
+        ? {
+            sessionForceNodes,
+            forceAutoLayout: { ...sessionForceNodes },
+            forceLayoutRevision: get().forceLayoutRevision + 1,
+          }
+        : {}),
+    })
+    persistForceViews(views, activeForceViewName, sessionForceNodes)
+  },
+  listForceViewPresetNames: () =>
+    Object.keys(get().forceSavedViews).sort((a, b) => a.localeCompare(b, 'cs')),
   setSimulationRunning: (running) => set({ simulationRunning: running }),
   setDraggingLineage: (lineage) => set({ draggingLineage: lineage }),
   setFocusedLineage: (lineage) => set({ focusedLineage: lineage }),
@@ -190,3 +276,20 @@ export const useLayoutStore = create<LayoutState>((set, get) => ({
     set({ expandedLineages })
   },
 }))
+
+export function initForceViewsFromVault(forceView: ViewLayout): {
+  views: ForceSavedViews
+  activeName: string | null
+  sessionNodes: Record<string, ForceNodeLayout>
+} {
+  const views = migrateForceSavedViews(forceView)
+  const names = Object.keys(views)
+  const activeName = names[0] ?? null
+  const sessionNodes =
+    activeName !== null
+      ? { ...views[activeName] }
+      : Object.keys(forceView.forceNodes ?? {}).length > 0
+        ? { ...(forceView.forceNodes ?? {}) }
+        : {}
+  return { views, activeName, sessionNodes }
+}

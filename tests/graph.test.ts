@@ -75,4 +75,66 @@ describe('buildGraphFromRecords', () => {
       'a1000001-0001-4000-8000-000000000003',
     )).toBe(true)
   })
+
+  it('extracts birth year from DD.MM.YYYY', () => {
+    const { record } = parsePersonMarkdown(
+      `---
+id: "1"
+slug: jiri-zelenka
+givenName: Jiří
+familyName: Zelenka
+gender: male
+lineage: zelenkovi
+birth:
+  date: "4.6.1993"
+parents: []
+spouses: []
+children: []
+tags: []
+media: []
+sources: []
+---
+`,
+      'people/1-jiri-zelenka.md',
+    )
+    const { persons } = buildGraphFromRecords([record!])
+    expect(persons.get('1')?.birthYear).toBe(1993)
+  })
+
+  it('odvozí children z parents', () => {
+    const { record: parent } = parsePersonMarkdown(
+      `---
+id: "p"
+slug: parent
+givenName: Parent
+gender: male
+lineage: test
+parents: []
+spouses: []
+tags: []
+media: []
+sources: []
+---
+`,
+      'people/p.md',
+    )
+    const { record: child } = parsePersonMarkdown(
+      `---
+id: "c"
+slug: child
+givenName: Child
+gender: male
+lineage: test
+parents: ["p"]
+spouses: []
+tags: []
+media: []
+sources: []
+---
+`,
+      'people/c.md',
+    )
+    const { persons } = buildGraphFromRecords([parent!, child!])
+    expect(persons.get('p')?.children).toEqual(['c'])
+  })
 })

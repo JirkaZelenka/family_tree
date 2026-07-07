@@ -2,7 +2,7 @@ import { useCallback } from 'react'
 import { useVaultStore } from '@/stores/vault-store'
 import { useGraphStore } from '@/stores/graph-store'
 import { useTimeStore } from '@/stores/time-store'
-import { useLayoutStore } from '@/stores/layout-store'
+import { useLayoutStore, initForceViewsFromVault } from '@/stores/layout-store'
 import {
   pickVaultDirectory,
   loadVaultFromDirectory,
@@ -13,7 +13,7 @@ import {
   clearCachedVault,
 } from '@/lib/storage'
 import { loadVaultFromFileMap } from '@/lib/storage/vault-loader'
-import { getYearRange } from '@/lib/time/dates'
+import { getYearRange, parseYear } from '@/lib/time/dates'
 import { applyStateToUrl } from '@/lib/url/serialize'
 import { useViewStore } from '@/stores/view-store'
 import { importGedcomToRecords, exportRecordsToGedcom } from '@/lib/gedcom'
@@ -29,14 +29,8 @@ async function loadSampleFiles(): Promise<Map<string, string>> {
 function applyVault(vault: Awaited<ReturnType<typeof loadVaultFromFileMap>>, fileMap: Map<string, string>) {
   useVaultStore.getState().setVault(vault, fileMap)
   useGraphStore.getState().loadFromRecords(vault.people)
-  const birthYears = vault.people.map((p) => {
-    const y = p.frontmatter.birth?.date?.slice(0, 4)
-    return y ? parseInt(y, 10) : null
-  })
-  const deathYears = vault.people.map((p) => {
-    const y = p.frontmatter.death?.date?.slice(0, 4)
-    return y ? parseInt(y, 10) : null
-  })
+  const birthYears = vault.people.map((p) => parseYear(p.frontmatter.birth?.date))
+  const deathYears = vault.people.map((p) => parseYear(p.frontmatter.death?.date))
   const { min, max } = getYearRange(birthYears, deathYears)
   useTimeStore.getState().setYearRange(min, max)
   useTimeStore.getState().setCurrentYear(max)
@@ -47,16 +41,14 @@ function applyVault(vault: Awaited<ReturnType<typeof loadVaultFromFileMap>>, fil
     lineageOffsets: {},
     forceNodes: {},
     forceSavedView: {},
+    forceSavedViews: {},
   }
   useLayoutStore.getState().setSavedLayout(sphereLayout)
-  const forceSavedView = forceView.forceSavedView ?? {}
-  const forceNodes = forceView.forceNodes ?? {}
-  const sessionForceNodes =
-    Object.keys(forceSavedView).length > 0 ? { ...forceSavedView } : { ...forceNodes }
-  useLayoutStore.getState().setForceSavedView({ ...forceSavedView })
+  const { views, activeName, sessionNodes } = initForceViewsFromVault(forceView)
+  useLayoutStore.getState().setForceSavedViews(views, activeName)
   useLayoutStore.setState({
-    sessionForceNodes,
-    forceAutoLayout: { ...sessionForceNodes },
+    sessionForceNodes: sessionNodes,
+    forceAutoLayout: { ...sessionNodes },
     forceLayoutRevision: useLayoutStore.getState().forceLayoutRevision + 1,
   })
 }
@@ -65,7 +57,8 @@ export function useVaultActions() {
   const vault = useVaultStore((s) => s.vault)
   const savedLayout = useLayoutStore((s) => s.savedLayout)
   const sessionForceNodes = useLayoutStore((s) => s.sessionForceNodes)
-  const forceSavedView = useLayoutStore((s) => s.forceSavedView)
+  const forceSavedViews = useLayoutStore((s) => s.forceSavedViews)
+  const activeForceViewName = useLayoutStore((s) => s.activeForceViewName)
 
   const openFolder = useCallback(async () => {
     const handle = await pickVaultDirectory()
@@ -93,7 +86,11 @@ export function useVaultActions() {
           nodes: {},
           lineageOffsets: {},
           forceNodes: sessionForceNodes,
-          forceSavedView,
+          forceSavedView:
+            activeForceViewName && forceSavedViews[activeForceViewName]
+              ? forceSavedViews[activeForceViewName]
+              : {},
+          forceSavedViews,
         },
       },
     }
@@ -102,7 +99,7 @@ export function useVaultActions() {
     a.href = URL.createObjectURL(blob)
     a.download = 'family-tree-vault.zip'
     a.click()
-  }, [savedLayout, sessionForceNodes, forceSavedView])
+  }, [savedLayout, sessionForceNodes, forceSavedViews, activeForceViewName])
 
   const importGedcom = useCallback(async (file: File) => {
     const text = await file.text()
@@ -138,7 +135,11 @@ export function useVaultActions() {
           nodes: {},
           lineageOffsets: {},
           forceNodes: sessionForceNodes,
-          forceSavedView,
+          forceSavedView:
+            activeForceViewName && forceSavedViews[activeForceViewName]
+              ? forceSavedViews[activeForceViewName]
+              : {},
+          forceSavedViews,
         },
       },
     }
@@ -149,7 +150,7 @@ export function useVaultActions() {
       await writeTextFile(handle, '.family-tree/layout.json', content)
       useVaultStore.getState().setSaveStatus('saved')
     }
-  }, [savedLayout, sessionForceNodes, forceSavedView])
+  }, [savedLayout, sessionForceNodes, forceSavedViews, activeForceViewName])
 
   const shareUrl = useCallback(() => {
     const activeView = useViewStore.getState().activeView

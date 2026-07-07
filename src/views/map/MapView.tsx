@@ -22,6 +22,7 @@ export function MapView({ className }: ViewProps) {
   const persons = useGraphStore((s) => s.persons)
   const setSelectedId = useGraphStore((s) => s.setSelectedId)
   const isPersonVisible = useTimeStore((s) => s.isPersonVisible)
+  const showContemporariesOnly = useTimeStore((s) => s.showContemporariesOnly)
 
   const markers = useMemo(
     () =>
@@ -31,7 +32,7 @@ export function MapView({ className }: ViewProps) {
           p.birth?.lon != null &&
           isPersonVisible(p.birthYear, p.deathYear),
       ),
-    [persons, isPersonVisible],
+    [persons, isPersonVisible, showContemporariesOnly],
   )
 
   const center: [number, number] =

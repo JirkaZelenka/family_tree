@@ -64,4 +64,50 @@ sources: []
       buildFullName({ givenName: 'Marie', familyName: 'Nováková', maidenName: 'Svobodová' }),
     ).toBe('Marie Nováková (Svobodová)')
   })
+
+  it('accepts birth date as year only (quoted or YAML number)', () => {
+    const quoted = parsePersonMarkdown(
+      `---
+id: "5"
+slug: deda
+givenName: Deda
+gender: male
+lineage: zelenkovi
+birth:
+  date: "1933"
+parents: []
+spouses: []
+children: []
+tags: []
+media: []
+sources: []
+---
+`,
+      'people/deda.md',
+    )
+    expect(quoted.errors).toEqual([])
+    expect(quoted.record?.frontmatter.birth?.date).toBe('1933')
+
+    const numeric = parsePersonMarkdown(
+      `---
+id: "6"
+slug: babi
+givenName: Babi
+gender: female
+lineage: zelenkovi
+birth:
+  date: 1940
+parents: []
+spouses: []
+children: []
+tags: []
+media: []
+sources: []
+---
+`,
+      'people/babi.md',
+    )
+    expect(numeric.errors).toEqual([])
+    expect(numeric.record?.frontmatter.birth?.date).toBe('1940')
+  })
 })

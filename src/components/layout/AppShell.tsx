@@ -4,9 +4,9 @@ import { viewRegistry } from '@/views/registry'
 import { useViewStore } from '@/stores/view-store'
 import { Toolbar } from './Toolbar'
 import { EventTimeline } from '@/components/timeline/EventTimeline'
-import { PersonDetailSidebar } from '@/components/person/PersonDetailSidebar'
+import { LineageSidebar } from '@/components/lineage/LineageSidebar'
+import { PersonProfileDialog } from '@/components/person/PersonProfileDialog'
 import { TimeSliderBar } from '@/components/shared/TimeSliderBar'
-import { LineageLegend } from '@/components/shared/LineageLegend'
 import { CommandPalette } from '@/components/search/CommandPalette'
 import { PersonHoverTooltip } from '@/components/shared/PersonHoverTooltip'
 import { TooltipProvider } from '@/components/ui/tooltip'
@@ -125,11 +125,11 @@ export function AppShell() {
           <main className="relative min-w-0 flex-1">
             {ActiveView && <ActiveView className="absolute inset-0" />}
           </main>
-          <PersonDetailSidebar />
+          <LineageSidebar />
         </div>
-        <LineageLegend />
         <TimeSliderBar />
         <CommandPalette />
+        <PersonProfileDialog />
         <PersonHoverTooltip />
         <input
           ref={zipInputRef}

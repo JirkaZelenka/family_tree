@@ -35,17 +35,17 @@ function person(
 describe('isCrossLineagePerson', () => {
   it('rozpozná jiné příjmení než rod', () => {
     const p = person('a', 'bartonovi', { familyName: 'Zelenkova' })
-    expect(isCrossLineagePerson(p)).toBe(true)
+    expect(isCrossLineagePerson(p, ['bartonovi', 'zelenkovi'])).toBe(true)
   })
 
   it('nativní člen rodu není hraniční', () => {
     const p = person('a', 'bartonovi', { familyName: 'Barton' })
-    expect(isCrossLineagePerson(p)).toBe(false)
+    expect(isCrossLineagePerson(p, ['bartonovi'])).toBe(false)
   })
 })
 
 describe('computeForceVisibility', () => {
-  it('sbalí rod – zmizí nativní členové', () => {
+  it('sbalí rod – zmizí nativní členové, hraniční jen přes příjmení', () => {
     const graph = new Graph<PersonNode>()
     graph.addNode(
       'deda',
@@ -79,11 +79,11 @@ describe('computeForceVisibility', () => {
 
     expect(visibleIds.has('deda')).toBe(false)
     expect(visibleIds.has('babi')).toBe(true)
-    expect(visibleIds.has('marta')).toBe(true)
-    expect(boundaryIds.has('marta')).toBe(true)
+    expect(visibleIds.has('marta')).toBe(false)
+    expect(boundaryIds.has('babi')).toBe(false)
   })
 
-  it('hraniční osoba zmizí bez viditelného jiného rodu', () => {
+  it('vdaná žena: viditelná přes příjmení, rozsvícená když lineage sbalená', () => {
     const graph = new Graph<PersonNode>()
     graph.addNode(
       'zuzana',
@@ -97,16 +97,18 @@ describe('computeForceVisibility', () => {
       person('jirka', 'zelenkovi', { familyName: 'Zelenka', spouses: ['zuzana'] }),
     )
 
-    const { visibleIds } = computeForceVisibility(graph, {
+    const { visibleIds, boundaryIds } = computeForceVisibility(graph, {
       expandedLineages: new Set(['zelenkovi']),
       timeVisible: () => true,
     })
 
     expect(visibleIds.has('jirka')).toBe(true)
     expect(visibleIds.has('zuzana')).toBe(true)
+    expect(boundaryIds.has('zuzana')).toBe(true)
+    expect(boundaryIds.has('jirka')).toBe(false)
   })
 
-  it('bez rozbaleného druhého rodu hraniční osoba zmizí', () => {
+  it('zmizí když jsou sbalené oba rody (lineage i příjmení)', () => {
     const graph = new Graph<PersonNode>()
     graph.addNode(
       'zuzana',
@@ -121,11 +123,30 @@ describe('computeForceVisibility', () => {
     )
 
     const { visibleIds } = computeForceVisibility(graph, {
-      expandedLineages: new Set(),
+      expandedLineages: new Set(['spilkovi']),
       timeVisible: () => true,
     })
 
-    expect(visibleIds.has('zuzana')).toBe(false)
+    expect(visibleIds.has('zuzana')).toBe(true)
     expect(visibleIds.has('jirka')).toBe(false)
+
+    const none = computeForceVisibility(graph, {
+      expandedLineages: new Set(),
+      timeVisible: () => true,
+    })
+    expect(none.visibleIds.has('zuzana')).toBe(false)
+    expect(none.visibleIds.has('jirka')).toBe(false)
+  })
+
+  it('nativní člen zmizí se svým jediným rodem', () => {
+    const graph = new Graph<PersonNode>()
+    graph.addNode('jan', person('jan', 'zelenkovi', { familyName: 'Zelenka' }))
+
+    const { visibleIds } = computeForceVisibility(graph, {
+      expandedLineages: new Set(['bartonovi']),
+      timeVisible: () => true,
+    })
+
+    expect(visibleIds.has('jan')).toBe(false)
   })
 })

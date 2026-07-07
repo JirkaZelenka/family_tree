@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useGraphStore } from '@/stores/graph-store'
 import { useVaultStore } from '@/stores/vault-store'
+import { useViewStore } from '@/stores/view-store'
 import { getContemporaries } from '@/lib/graph/queries'
 import { Badge } from '@/components/ui/badge'
 import { PersonMedallion } from './PersonMedallion'
@@ -10,18 +11,20 @@ import { Separator } from '@/components/ui/separator'
 import { formatLifeSpan } from '@/lib/time/dates'
 import { PersonForm } from './PersonForm'
 import { Button } from '@/components/ui/button'
-import { useDetailPerson } from '@/hooks/useDetailPerson'
 
 export function PersonDetailPanel() {
   const { t } = useTranslation()
   const [editing, setEditing] = useState(false)
-  const { person, detailId, selectedId, isPreview } = useDetailPerson()
+  const profilePersonId = useViewStore((s) => s.profilePersonId)
+  const selectedId = useGraphStore((s) => s.selectedId)
   const graph = useGraphStore((s) => s.graph)
   const setHighlightedIds = useGraphStore((s) => s.setHighlightedIds)
   const persons = useGraphStore((s) => s.persons)
   const colors = useVaultStore((s) => s.vault?.config.lineageColors ?? {})
 
-  if (!person || !detailId) {
+  const person = profilePersonId ? persons.get(profilePersonId) : null
+
+  if (!person || !profilePersonId) {
     return (
       <div className="flex h-full min-h-[12rem] items-center justify-center p-4 text-sm text-muted-foreground">
         {t('person.noSelection')}
@@ -30,10 +33,10 @@ export function PersonDetailPanel() {
   }
 
   const color = lineageColor(person.lineage, colors)
-  const canEdit = !isPreview && selectedId === detailId
+  const canEdit = selectedId === profilePersonId
 
   const contemporaries =
-    graph && detailId ? getContemporaries(graph, detailId) : []
+    graph && profilePersonId ? getContemporaries(graph, profilePersonId) : []
 
   const showContemporaries = () => {
     setHighlightedIds(new Set(contemporaries))
@@ -85,9 +88,12 @@ export function PersonDetailPanel() {
           <div>
             <h3 className="mb-1 text-sm font-medium">{t('person.spouses')}</h3>
             <ul className="space-y-1 text-sm">
-              {person.spouses.map((id) => (
-                <li key={id}>{persons.get(id)?.fullName ?? id}</li>
-              ))}
+              {person.spouses.map((marriage) => (
+              <li key={marriage.id}>
+                {persons.get(marriage.id)?.fullName ?? marriage.id}
+                {marriage.marriage?.date ? ` — ${marriage.marriage.date}` : ''}
+              </li>
+            ))}
             </ul>
           </div>
         )}

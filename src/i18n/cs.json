@@ -15,11 +15,8 @@
     "saveLayout": "Uložit layout"
   },
   "views": {
-    "sphere": "Sféra",
     "tree": "Strom",
-    "force": "Force graf",
-    "timeline": "Časová osa",
-    "map": "Mapa"
+    "timeline": "Časová osa"
   },
   "person": {
     "birth": "Narození",
@@ -34,11 +31,12 @@
     "edit": "Upravit",
     "contemporaries": "Současníci",
     "noSelection": "Vyberte osobu v grafu",
-    "selectedPerson": "Vybraná osoba",
-    "previewPerson": "Náhled",
-    "collapsePanel": "Sbalit panel",
-    "expandPanel": "Rozbalit panel",
-    "panelTab": "Osoba"
+    "profileTitle": "Profil osoby"
+  },
+  "lineage": {
+    "panelTitle": "Rody",
+    "sortByName": "Podle jména",
+    "sortByMembers": "Podle počtu"
   },
   "time": {
     "slider": "Rok",
@@ -48,13 +46,21 @@
     "events": "Historické události"
   },
   "layout": {
-    "sphereHint": "Klikněte na rod pro 2D pohled. Pásma po 20 letech od středu. Dvojklik = všichni.",
-    "forceHint": "Klikněte na rod pro sbalení/rozbalení. Levé tlačítko tažením posouvá graf. Více osob vyberte tlačítkem obdélníkového výběru nahoře vlevo.",
+    "treeHint": "Klikněte na rod pro sbalení/rozbalení. Levé tlačítko tažením posouvá graf. Více osob vyberte tlačítkem obdélníkového výběru nahoře vlevo.",
     "marqueeSelect": "Výběr obdélníkem",
     "defaultView": "Výchozí pohled",
-    "saveView": "Uložit pohled",
-    "loadSavedView": "Načíst uložený",
-    "forceSaveOverwrite": "Uložený pohled už existuje. Chcete ho přepsat?"
+    "forceViewsTitle": "Uložené pohledy",
+    "forceViewSave": "Uložit",
+    "forceViewSaveHint": "Uloží aktuální rozložení stromu pod zadaným názvem.",
+    "forceViewNamePlaceholder": "Název pohledu",
+    "forceViewLoad": "Načíst pohled",
+    "forceViewRename": "Přejmenovat",
+    "forceViewRenameSave": "Uložit název",
+    "forceViewDelete": "Smazat",
+    "forceViewDeleteConfirm": "Smazat uložený pohled „{{name}}“?",
+    "forceViewOverwrite": "Pohled „{{name}}“ už existuje. Chcete ho přepsat?",
+    "forceViewNameTaken": "Pohled „{{name}}“ už existuje.",
+    "forceViewEmpty": "Zatím nemáte žádný uložený pohled."
   },
   "kinship": {
     "title": "Příbuznost",

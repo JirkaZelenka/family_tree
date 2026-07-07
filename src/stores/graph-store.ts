@@ -5,7 +5,6 @@ import type { GraphDiagnostic } from '@/lib/graph/builder'
 import { buildGraphFromRecords } from '@/lib/graph/builder'
 import { buildSearchIndex, type SearchDocument } from '@/lib/search/index'
 import type { Index } from 'flexsearch'
-import { useViewStore } from '@/stores/view-store'
 
 interface GraphState {
   graph: Graph<PersonNode, GraphEdgeAttributes> | null
@@ -64,13 +63,11 @@ export const useGraphStore = create<GraphState>((set, get) => ({
   },
   setSelectedId: (id) => {
     set({ selectedId: id, selectedIds: id ? new Set([id]) : new Set() })
-    if (id) useViewStore.getState().setDetailPanelCollapsed(false)
   },
   setSelectedIds: (ids) => {
     const selectedIds = new Set(ids)
     const selectedId = selectedIds.size > 0 ? [...selectedIds][0] : null
     set({ selectedIds, selectedId })
-    if (selectedId) useViewStore.getState().setDetailPanelCollapsed(false)
   },
   setHoveredId: (id) => {
     set({ hoveredId: id })

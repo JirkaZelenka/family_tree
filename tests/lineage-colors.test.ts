@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest'
-import { enrichLineageColors, lineageColor, SMALL_LINEAGE_COLOR } from '@/lib/vault/lineage-colors'
+import {
+  enrichLineageColors,
+  lineageColor,
+  SMALL_LINEAGE_COLOR,
+  countAffiliatedLineageMembers,
+  personBelongsToLineage,
+} from '@/lib/vault/lineage-colors'
 
 describe('enrichLineageColors', () => {
   it('assigns colors for lineages missing from config', () => {
@@ -22,5 +28,18 @@ describe('enrichLineageColors', () => {
     )
     expect(colors.zelenka).toBe('#22c55e')
     expect(colors.spilka).toBe(SMALL_LINEAGE_COLOR)
+  })
+
+  it('počítá vdané ženy do obou rodů', () => {
+    const persons = [
+      { lineage: 'brazdovi', familyName: 'Nagyová' },
+      { lineage: 'nagyovi', familyName: 'Nagy' },
+      { lineage: 'brazdovi', familyName: 'Brazda' },
+    ]
+    const counts = countAffiliatedLineageMembers(persons, ['brazdovi', 'nagyovi'])
+    expect(counts.brazdovi).toBe(2)
+    expect(counts.nagyovi).toBe(2)
+    expect(personBelongsToLineage(persons[0], 'nagyovi')).toBe(true)
+    expect(personBelongsToLineage(persons[0], 'brazdovi')).toBe(true)
   })
 })

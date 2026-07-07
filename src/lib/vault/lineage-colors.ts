@@ -29,11 +29,64 @@ function autoColor(lineage: string): string {
   return PALETTE[hashLineage(lineage) % PALETTE.length]
 }
 
-/** Počet osob v každém rodu. */
+/** Počet osob v každém rodu (jen pole `lineage`). */
 export function countLineageMembers(lineages: Iterable<string>): Record<string, number> {
   const counts: Record<string, number> = {}
   for (const lineage of lineages) {
     counts[lineage] = (counts[lineage] ?? 0) + 1
+  }
+  return counts
+}
+
+export function normalizeRodName(s: string): string {
+  return s
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+    .toLowerCase()
+    .replace(/ovi$/, '')
+    .replace(/ova$/, '')
+    .replace(/ové$/, '')
+}
+
+/** Příjmení patří k rodu (např. vdaná žena v přehledu druhého rodu). */
+export function familyNameAffiliatedWithLineage(
+  familyName: string | undefined,
+  lineage: string,
+): boolean {
+  if (!familyName) return false
+  const lineageNorm = normalizeRodName(lineage)
+  const family = normalizeRodName(familyName)
+  if (!lineageNorm || !family) return false
+  return lineageNorm.includes(family) || family.includes(lineageNorm)
+}
+
+export function personBelongsToLineage(
+  person: { lineage: string; familyName?: string },
+  lineage: string,
+): boolean {
+  if (person.lineage === lineage) return true
+  return familyNameAffiliatedWithLineage(person.familyName, lineage)
+}
+
+/** Rody, do kterých osoba patří (pole lineage + příjmení, max. 2). */
+export function getPersonAffiliatedLineages(
+  person: { lineage: string; familyName?: string },
+  lineages: Iterable<string>,
+): string[] {
+  return [...lineages].filter((l) => personBelongsToLineage(person, l))
+}
+
+/** Počty včetně osob s příslušným příjmením (vdané ženy v obou rodech). */
+export function countAffiliatedLineageMembers(
+  persons: Iterable<{ lineage: string; familyName?: string }>,
+  lineages: Iterable<string>,
+): Record<string, number> {
+  const lineageList = [...lineages]
+  const counts = Object.fromEntries(lineageList.map((l) => [l, 0])) as Record<string, number>
+  for (const person of persons) {
+    for (const lineage of lineageList) {
+      if (personBelongsToLineage(person, lineage)) counts[lineage]++
+    }
   }
   return counts
 }

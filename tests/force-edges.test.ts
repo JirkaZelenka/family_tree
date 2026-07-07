@@ -63,9 +63,9 @@ describe('buildForceEdgeSegments', () => {
     const segments = buildForceEdgeSegments(graph, visible, positions)
     const spouse = segments.find((s) => s.kind === 'spouse')
     const descent = segments.find((s) => s.kind === 'descent')
-    const bar = segments.find((s) => s.id.includes('branch-bar'))
+    const horizontals = segments.filter((s) => s.id.includes('branch-horiz'))
     const childBranches = segments.filter(
-      (s) => s.kind === 'branch' && s.id.includes('branch-') && !s.id.includes('branch-bar'),
+      (s) => s.kind === 'branch' && s.id.includes('branch-') && !s.id.includes('branch-horiz'),
     )
 
     expect(spouse).toBeDefined()
@@ -73,12 +73,12 @@ describe('buildForceEdgeSegments', () => {
     expect(spouse!.points[0].y).toBe(midY)
     expect(spouse!.points[1].y).toBe(55 + FORCE_NODE_HEIGHT / 2)
     expect(descent).toBeDefined()
-    expect(bar).toBeDefined()
+    expect(horizontals.length).toBeGreaterThanOrEqual(2)
     expect(childBranches.length).toBeGreaterThanOrEqual(2)
 
-    const barY = bar!.points[0].y
+    const barY = horizontals[0]!.points[0].y
     expect(descent!.points[1].y).toBe(barY)
-    expect(bar!.points[0].x).toBeLessThan(bar!.points[1].x)
+    expect(horizontals[0]!.points[0].x).not.toBe(horizontals[0]!.points[1].x)
   })
 
   it('nepřidá dvojité linky od každého rodiče ke každému dítěti', () => {

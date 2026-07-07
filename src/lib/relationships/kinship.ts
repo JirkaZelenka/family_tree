@@ -1,5 +1,6 @@
 import type Graph from 'graphology'
 import type { PersonNode } from '@/types/person'
+import { spouseIds } from '@/lib/graph/person-links'
 
 const CS_LABELS: Record<string, string> = {
   parent: 'rodič',
@@ -43,7 +44,7 @@ function bfsPath(
     const neighbors = new Set<string>([
       ...node.parents,
       ...node.children,
-      ...node.spouses,
+      ...spouseIds(node.spouses),
     ])
     graph.forEachNeighbor(id, (n) => neighbors.add(n))
     for (const n of neighbors) {
