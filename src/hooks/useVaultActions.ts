@@ -12,6 +12,8 @@ import {
   cacheVaultFiles,
   clearCachedVault,
 } from '@/lib/storage'
+import { mergeVaultMetaFiles } from '@/lib/storage/vault-merge'
+import { persistVaultFileMap, readDevVaultMetaFiles } from '@/lib/storage/vault-persist'
 import { loadVaultFromFileMap } from '@/lib/storage/vault-loader'
 import { getYearRange, parseYear } from '@/lib/time/dates'
 import { applyStateToUrl } from '@/lib/url/serialize'
@@ -19,7 +21,6 @@ import { useViewStore } from '@/stores/view-store'
 import { importGedcomToRecords, exportRecordsToGedcom } from '@/lib/gedcom'
 import { serializeLayout } from '@/lib/storage/vault-loader'
 import { serializePersonMarkdown } from '@/lib/parser/markdown'
-import { writeTextFile } from '@/lib/storage'
 import { loadSampleVaultFileMap } from '@/lib/data/sample-vault-files'
 
 async function loadSampleFiles(): Promise<Map<string, string>> {
@@ -145,11 +146,8 @@ export function useVaultActions() {
     }
     const content = serializeLayout(layout)
     useVaultStore.getState().updateLayout(content)
-    const handle = useVaultStore.getState().directoryHandle
-    if (handle) {
-      await writeTextFile(handle, '.family-tree/layout.json', content)
-      useVaultStore.getState().setSaveStatus('saved')
-    }
+    useVaultStore.setState({ vault: { ...v, layout } })
+    await persistVaultFileMap(useVaultStore.getState().fileMap)
   }, [savedLayout, sessionForceNodes, forceSavedViews, activeForceViewName])
 
   const shareUrl = useCallback(() => {
@@ -169,17 +167,17 @@ export function useVaultActions() {
     message?: string
   }> => {
     try {
-      let preservedLayout: string | undefined
+      let cached: Map<string, string> | null = null
       if (clearCache) {
         await clearCachedVault()
       } else {
-        const cached = await loadCachedVaultFiles()
-        preservedLayout = cached?.get('.family-tree/layout.json')
+        cached = await loadCachedVaultFiles()
       }
+
       const files = await loadSampleFiles()
-      if (preservedLayout) {
-        files.set('.family-tree/layout.json', preservedLayout)
-      }
+      const diskMeta = clearCache ? null : await readDevVaultMetaFiles()
+      mergeVaultMetaFiles(files, cached, diskMeta)
+
       if (files.size === 0) {
         return {
           ok: false,

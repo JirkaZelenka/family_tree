@@ -3,7 +3,7 @@ import { DEFAULT_LINEAGE_COLORS } from '@/types/vault'
 /** Jednočlenné rody (typicky manžel/ka bez vlastní větve). */
 export const SMALL_LINEAGE_COLOR = '#fde68a'
 
-const PALETTE = [
+export const LINEAGE_COLOR_PALETTE = [
   '#4ade80',
   '#38bdf8',
   '#e879f9',
@@ -14,7 +14,15 @@ const PALETTE = [
   '#f472b6',
   '#818cf8',
   '#a3e635',
-]
+  '#60a5fa',
+  '#34d399',
+  '#fde68a',
+  '#94a3b8',
+  '#f8fafc',
+  '#1e293b',
+] as const
+
+const PALETTE = LINEAGE_COLOR_PALETTE
 
 function hashLineage(lineage: string): number {
   let h = 0
@@ -48,16 +56,41 @@ export function normalizeRodName(s: string): string {
     .replace(/ové$/, '')
 }
 
+/** Porovná příjmení a rod (např. Hynek ↔ hynkovi, Zelenka ↔ zelenkovi). */
+export function rodNamesMatch(a: string, b: string): boolean {
+  const left = normalizeRodName(a)
+  const right = normalizeRodName(b)
+  if (!left || !right) return !left && !right
+  if (left === right) return true
+  if (left.includes(right) || right.includes(left)) return true
+
+  const shorter = left.length <= right.length ? left : right
+  const longer = left.length > right.length ? left : right
+  let prefix = 0
+  while (prefix < shorter.length && shorter[prefix] === longer[prefix]) prefix++
+
+  const minPrefix = 3
+  return prefix >= minPrefix && shorter.length >= minPrefix
+}
+
 /** Příjmení patří k rodu (např. vdaná žena v přehledu druhého rodu). */
 export function familyNameAffiliatedWithLineage(
   familyName: string | undefined,
   lineage: string,
 ): boolean {
   if (!familyName) return false
-  const lineageNorm = normalizeRodName(lineage)
-  const family = normalizeRodName(familyName)
-  if (!lineageNorm || !family) return false
-  return lineageNorm.includes(family) || family.includes(lineageNorm)
+  return rodNamesMatch(familyName, lineage)
+}
+
+/** Příjmení odpovídá vlastnímu rodu — jednolitá barva ve stromě. */
+export function familyNameMatchesLineage(person: {
+  lineage: string
+  familyName?: string
+  maidenName?: string | null
+}): boolean {
+  if (person.maidenName) return false
+  if (!person.familyName) return true
+  return rodNamesMatch(person.familyName, person.lineage)
 }
 
 export function personBelongsToLineage(
@@ -108,7 +141,7 @@ export function enrichLineageColors(
   }
   if (memberCounts) {
     for (const lineage of lineages) {
-      if (memberCounts[lineage] === 1) {
+      if (memberCounts[lineage] === 1 && !fromConfig[lineage]) {
         merged[lineage] = SMALL_LINEAGE_COLOR
       }
     }

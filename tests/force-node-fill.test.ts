@@ -35,6 +35,7 @@ describe('resolveForceNodeFill', () => {
     zelenkovi: '#4ade80',
     brazdovi: '#fb923c',
     nagyovi: SMALL_LINEAGE_COLOR,
+    hynkovi: '#a855f7',
   }
 
   it('bez manžela vrátí jednolitou barvu', () => {
@@ -222,5 +223,41 @@ describe('resolveForceNodeFill', () => {
       false,
     )
     expect(fill.type).toBe('solid')
+  })
+
+  it('syn Hynek v rodu hynkovi má jednolitou barvu i s manželkou', () => {
+    const graph = new Graph<PersonNode>()
+    graph.addNode(
+      'oldrich',
+      person('oldrich', {
+        lineage: 'hynkovi',
+        familyName: 'Hynek',
+        spouses: ['wife'],
+      }),
+    )
+    graph.addNode(
+      'wife',
+      person('wife', {
+        lineage: 'hynkovi',
+        familyName: 'Hynková',
+        spouses: ['oldrich'],
+      }),
+    )
+
+    const visible = new Set(['oldrich', 'wife'])
+    const positions = new Map([
+      ['oldrich', { x: 200, y: 80 }],
+      ['wife', { x: 380, y: 80 }],
+    ])
+
+    const fill = resolveForceNodeFill(
+      graph,
+      graph.getNodeAttributes('oldrich'),
+      visible,
+      positions,
+      colors,
+      false,
+    )
+    expect(fill).toEqual({ type: 'solid', color: colors.hynkovi })
   })
 })

@@ -1,5 +1,8 @@
 import { create } from 'zustand'
 import type { VaultData } from '@/lib/storage/vault-loader'
+import { serializeConfig } from '@/lib/storage/vault-loader'
+import { persistVaultMetaPaths } from '@/lib/storage/vault-persist'
+import { parseColorInput } from '@/lib/vault/color-input'
 
 export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
 
@@ -17,6 +20,7 @@ interface VaultState {
   setBootstrapping: (bootstrapping: boolean) => void
   updatePersonFile: (path: string, content: string) => void
   updateLayout: (content: string) => void
+  setLineageColor: (lineage: string, colorInput: string) => boolean
 }
 
 export const useVaultStore = create<VaultState>((set, get) => ({
@@ -45,5 +49,24 @@ export const useVaultStore = create<VaultState>((set, get) => ({
     const fileMap = new Map(get().fileMap)
     fileMap.set('.family-tree/layout.json', content)
     set({ fileMap, isDirty: true })
+  },
+  setLineageColor: (lineage, colorInput) => {
+    const color = parseColorInput(colorInput)
+    if (!color) return false
+    const vault = get().vault
+    if (!vault) return false
+
+    const lineageColors = { ...vault.config.lineageColors, [lineage]: color }
+    const config = { ...vault.config, lineageColors }
+    const content = serializeConfig(config)
+    const fileMap = new Map(get().fileMap)
+    fileMap.set('.family-tree/config.yaml', content)
+    set({
+      vault: { ...vault, config },
+      fileMap,
+      isDirty: true,
+    })
+    void persistVaultMetaPaths(fileMap, ['.family-tree/config.yaml'])
+    return true
   },
 }))

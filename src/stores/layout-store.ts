@@ -7,7 +7,7 @@ import type {
 import type { ForceNodeLayout, ForceSavedViews, ViewLayout } from '@/types/vault'
 import { useVaultStore } from '@/stores/vault-store'
 import { serializeLayout } from '@/lib/storage/vault-loader'
-import { cacheVaultFiles } from '@/lib/storage'
+import { persistVaultMetaPaths } from '@/lib/storage/vault-persist'
 import type { LayoutFile } from '@/types/vault'
 import {
   activeForceViewNodes,
@@ -87,6 +87,7 @@ function persistForceViews(
     forceNodes: sessionForceNodes,
     forceSavedView: activeNodes,
     forceSavedViews,
+    activeForceViewName,
   }
 
   const layout: LayoutFile = {
@@ -96,7 +97,7 @@ function persistForceViews(
   const content = serializeLayout(layout)
   useVaultStore.getState().updateLayout(content)
   useVaultStore.setState({ vault: { ...vault, layout } })
-  void cacheVaultFiles(useVaultStore.getState().fileMap)
+  void persistVaultMetaPaths(useVaultStore.getState().fileMap, ['.family-tree/layout.json'])
 }
 
 export const useLayoutStore = create<LayoutState>((set, get) => ({
@@ -150,13 +151,12 @@ export const useLayoutStore = create<LayoutState>((set, get) => ({
       },
     }),
   setForceSavedViews: (views, activeName) => {
-    const names = Object.keys(views)
     const resolvedActive =
       activeName !== undefined
         ? activeName
         : get().activeForceViewName && views[get().activeForceViewName!]
           ? get().activeForceViewName
-          : names[0] ?? null
+          : null
     set({
       forceSavedViews: views,
       activeForceViewName: resolvedActive,
@@ -283,13 +283,10 @@ export function initForceViewsFromVault(forceView: ViewLayout): {
   sessionNodes: Record<string, ForceNodeLayout>
 } {
   const views = migrateForceSavedViews(forceView)
-  const names = Object.keys(views)
-  const activeName = names[0] ?? null
+  const storedActive = forceView.activeForceViewName ?? null
+  const activeName =
+    storedActive && views[storedActive] ? storedActive : null
   const sessionNodes =
-    activeName !== null
-      ? { ...views[activeName] }
-      : Object.keys(forceView.forceNodes ?? {}).length > 0
-        ? { ...(forceView.forceNodes ?? {}) }
-        : {}
+    activeName !== null ? { ...views[activeName] } : {}
   return { views, activeName, sessionNodes }
 }

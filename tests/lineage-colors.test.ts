@@ -5,6 +5,8 @@ import {
   SMALL_LINEAGE_COLOR,
   countAffiliatedLineageMembers,
   personBelongsToLineage,
+  rodNamesMatch,
+  familyNameMatchesLineage,
 } from '@/lib/vault/lineage-colors'
 
 describe('enrichLineageColors', () => {
@@ -20,7 +22,7 @@ describe('enrichLineageColors', () => {
     expect(lineageColor('barton', colors)).not.toBe('#94a3b8')
   })
 
-  it('assigns pastel yellow to single-member lineages', () => {
+  it('assigns pastel yellow to single-member lineages without explicit color', () => {
     const colors = enrichLineageColors(
       ['zelenka', 'spilka', 'spilka'],
       { zelenka: '#22c55e' },
@@ -41,5 +43,25 @@ describe('enrichLineageColors', () => {
     expect(counts.nagyovi).toBe(2)
     expect(personBelongsToLineage(persons[0], 'nagyovi')).toBe(true)
     expect(personBelongsToLineage(persons[0], 'brazdovi')).toBe(true)
+  })
+})
+
+describe('rodNamesMatch', () => {
+  it('spáruje Hynek s rodem hynkovi', () => {
+    expect(rodNamesMatch('Hynek', 'hynkovi')).toBe(true)
+    expect(
+      familyNameMatchesLineage({
+        lineage: 'hynkovi',
+        familyName: 'Hynek',
+      }),
+    ).toBe(true)
+  })
+
+  it('stále spáruje Zelenka se zelenkovi', () => {
+    expect(rodNamesMatch('Zelenka', 'zelenkovi')).toBe(true)
+  })
+
+  it('nerozpozná nesouvisející jména', () => {
+    expect(rodNamesMatch('Novák', 'hynkovi')).toBe(false)
   })
 })

@@ -8,9 +8,9 @@ import { useLayoutStore } from '@/stores/layout-store'
 import {
   enrichLineageColors,
   lineageColor,
-  pastelizeColor,
   countAffiliatedLineageMembers,
 } from '@/lib/vault/lineage-colors'
+import { LineageColorPicker } from '@/components/lineage/LineageColorPicker'
 import { cn } from '@/lib/utils'
 
 export function LineageSidebar() {
@@ -87,34 +87,39 @@ export function LineageSidebar() {
         {sortedLineages.map(({ name, count }) => {
           const baseColor = lineageColor(name, colors)
           const expanded = isTree ? expandedLineages.has(name) : true
-          const swatchColor = isTree && !expanded ? pastelizeColor(baseColor, 0.7) : baseColor
-
           return (
             <li key={name}>
-              <button
-                type="button"
-                onClick={() => {
-                  if (isTree) {
-                    toggleLineageExpanded(name)
-                    setHighlightedIds(new Set())
-                  }
-                }}
+              <div
                 className={cn(
-                  'flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-sm transition-colors',
-                  isTree ? 'cursor-pointer hover:bg-accent' : 'cursor-default',
+                  'flex w-full items-center gap-1 rounded-md px-1 py-1 text-left text-sm transition-colors',
                   isTree && expanded && 'bg-accent ring-1 ring-primary',
                   isTree && !expanded && 'opacity-80',
                 )}
               >
-                <span
-                  className="inline-block h-3 w-3 shrink-0 rounded-full"
-                  style={{ backgroundColor: swatchColor }}
+                <LineageColorPicker
+                  lineage={name}
+                  color={baseColor}
+                  muted={isTree && !expanded}
                 />
-                <span className="min-w-0 flex-1 truncate font-medium">{name}</span>
-                <span className="shrink-0 tabular-nums text-xs text-muted-foreground">
-                  {count}
-                </span>
-              </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (isTree) {
+                      toggleLineageExpanded(name)
+                      setHighlightedIds(new Set())
+                    }
+                  }}
+                  className={cn(
+                    'flex min-w-0 flex-1 items-center gap-2 rounded-md px-1 py-1',
+                    isTree ? 'cursor-pointer hover:bg-accent/80' : 'cursor-default',
+                  )}
+                >
+                  <span className="min-w-0 flex-1 truncate font-medium">{name}</span>
+                  <span className="shrink-0 tabular-nums text-xs text-muted-foreground">
+                    {count}
+                  </span>
+                </button>
+              </div>
             </li>
           )
         })}

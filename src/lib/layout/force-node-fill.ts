@@ -1,32 +1,16 @@
 import type Graph from 'graphology'
 import type { PersonNode } from '@/types/person'
 import { FORCE_NODE_WIDTH } from '@/lib/layout/force-layout'
-import { lineageColor, pastelizeColor } from '@/lib/vault/lineage-colors'
+import {
+  familyNameMatchesLineage,
+  lineageColor,
+  pastelizeColor,
+} from '@/lib/vault/lineage-colors'
 import { spouseIds } from '@/lib/graph/person-links'
 
 export type ForceNodeFill =
   | { type: 'solid'; color: string }
   | { type: 'split'; left: string; right: string }
-
-function normalizeRod(s: string): string {
-  return s
-    .normalize('NFD')
-    .replace(/\p{M}/gu, '')
-    .toLowerCase()
-    .replace(/ovi$/, '')
-    .replace(/ova$/, '')
-    .replace(/ové$/, '')
-}
-
-/** Příjmení odpovídá rodu — osoba zůstává v „svém“ rodu (jednolitá barva). */
-export function familyNameMatchesLineage(person: PersonNode): boolean {
-  if (person.maidenName) return false
-  if (!person.familyName) return true
-  const lineage = normalizeRod(person.lineage)
-  const family = normalizeRod(person.familyName)
-  if (!lineage || !family) return true
-  return lineage.includes(family) || family.includes(lineage)
-}
 
 function nodeCenterX(pos: { x: number }): number {
   return pos.x + FORCE_NODE_WIDTH / 2
