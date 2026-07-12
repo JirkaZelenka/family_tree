@@ -2,12 +2,13 @@ import { describe, it, expect } from 'vitest'
 import { parsePersonMarkdown } from '@/lib/parser/markdown'
 import fs from 'fs'
 import path from 'path'
+import { templateDataPath } from './template-paths'
 
 describe('user markdown files', () => {
   it('parses integer id and marriage spouses', () => {
-    const file = path.join(process.cwd(), 'data/people/1-jiri-zelenka.md')
+    const file = path.join(process.cwd(), templateDataPath('people/1-jan-novak.md'))
     const content = fs.readFileSync(file, 'utf8')
-    const { record, errors } = parsePersonMarkdown(content, 'people/1-jiri-zelenka.md')
+    const { record, errors } = parsePersonMarkdown(content, 'people/1-jan-novak.md')
     expect(errors).toEqual([])
     expect(record?.frontmatter.id).toBe('1')
     expect(record?.frontmatter.spouses).toEqual([
@@ -148,9 +149,9 @@ note: ""
   })
 
   it('ignores empty spouse placeholder entries', () => {
-    const brazda = path.join(process.cwd(), 'data/people/14-ondrej-brazda.md')
-    const zelenka = path.join(process.cwd(), 'data/people/19-ondrej-zelenka.md')
-    for (const file of [brazda, zelenka]) {
+    const dvorak = path.join(process.cwd(), templateDataPath('people/14-frantisek-dvorak.md'))
+    const novak = path.join(process.cwd(), templateDataPath('people/19-karel-novak.md'))
+    for (const file of [dvorak, novak]) {
       const content = fs.readFileSync(file, 'utf8')
       const { record, errors } = parsePersonMarkdown(content, file)
       expect(errors).toEqual([])

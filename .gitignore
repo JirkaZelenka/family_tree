@@ -39,5 +39,9 @@ __pycache__/
 # Notes
 pozn.txt
 
-# Data
+# Real people data
 data/people/*.md
+data/.family-tree/layout.json
+data/.family-tree/config.yaml
+src/types/vault.ts
+tests/lineage-names.test.ts

@@ -11,6 +11,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
+    "setup:local": "node scripts/setup-from-templates.mjs",
     "ci": "npm run lint && npm run test && npm run build"
   },
   "dependencies": {

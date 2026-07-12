@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import fs from 'fs'
 import path from 'path'
 import { LayoutFileSchema } from '@/types/vault'
+import { templateDataPath } from './template-paths'
 import { initForceViewsFromVault, useLayoutStore } from '@/stores/layout-store'
 import { migrateForceSavedViews } from '@/lib/layout/force-saved-views'
 
@@ -18,7 +19,7 @@ describe('loadForceViewPreset', () => {
 
   it('parses user layout.json with saved views', () => {
     const raw = fs.readFileSync(
-      path.join(process.cwd(), 'data/.family-tree/layout.json'),
+      path.join(process.cwd(), templateDataPath('.family-tree/layout.json')),
       'utf8',
     )
     const parsed = LayoutFileSchema.safeParse(JSON.parse(raw))
@@ -30,7 +31,7 @@ describe('loadForceViewPreset', () => {
 
   it('loadForceViewPreset applies different x positions', () => {
     const raw = fs.readFileSync(
-      path.join(process.cwd(), 'data/.family-tree/layout.json'),
+      path.join(process.cwd(), templateDataPath('.family-tree/layout.json')),
       'utf8',
     )
     const layout = LayoutFileSchema.parse(JSON.parse(raw))

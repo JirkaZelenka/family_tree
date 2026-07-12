@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "views": {
+    "sphere": {
+      "nodes": {},
+      "lineageOffsets": {},
+      "forceNodes": {},
+      "forceSavedView": {},
+      "forceSavedViews": {}
+    },
+    "force": {
+      "nodes": {},
+      "lineageOffsets": {},
+      "forceNodes": {
+        "37": {
+          "x": 100,
+          "pinned": true
+        }
+      },
+      "forceSavedView": {},
+      "forceSavedViews": {
+        "V4": {
+          "37": {
+            "x": 274.7783643267441,
+            "pinned": true
+          }
+        },
+        "V6": {
+          "37": {
+            "x": 100,
+            "pinned": true
+          }
+        }
+      },
+      "activeForceViewName": "V6"
+    }
+  }
+}

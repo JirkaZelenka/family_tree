@@ -25,13 +25,17 @@ Otevřete http://localhost:5173 — aplikace automaticky načte ukázková data 
 ## Vault struktura
 
 ```
-data/
+data/                          # lokální data (většina v .gitignore)
 ├── people/*.md
 ├── events/world-events.yaml
 └── .family-tree/
     ├── config.yaml
     └── layout.json
+
+templates/data/                # fiktivní ukázky (Novák / Dvořák) — v gitu
 ```
+
+Po čistém clone spusťte `npm run setup:local` — zkopíruje šablony do `data/` a dalších gitignorovaných cest. Viz [templates/README.md](templates/README.md).
 
 ## Skripty
 

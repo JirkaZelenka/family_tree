@@ -1,0 +1,21 @@
+timeLayers:
+  - id: ancient
+    label: Do 1500
+    minYear: -9999
+    maxYear: 1500
+  - id: early
+    label: 1500–1800
+    minYear: 1500
+    maxYear: 1800
+  - id: modern
+    label: 1800–1900
+    minYear: 1800
+    maxYear: 1900
+  - id: recent
+    label: 1900+
+    minYear: 1900
+    maxYear: 9999
+lineageColors:
+  novakovi: "#60a5fa"
+  dvorakovi: "#34d399"
+  unknown: "#94a3b8"

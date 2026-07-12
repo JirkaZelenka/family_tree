@@ -15,4 +15,5 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
+      - run: node scripts/setup-from-templates.mjs
       - run: npm run ci
