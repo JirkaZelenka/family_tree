@@ -8,10 +8,15 @@ interface ViewState {
   eventsPanelOpen: boolean
   profilePersonId: string | null
   lineageSort: LineageSort
+  lineageSidebarOpen: boolean
+  personSidebarOpen: boolean
   setActiveView: (view: ViewId) => void
   setEventsPanelOpen: (open: boolean) => void
   setProfilePersonId: (id: string | null) => void
   setLineageSort: (sort: LineageSort) => void
+  setLineageSidebarOpen: (open: boolean) => void
+  setPersonSidebarOpen: (open: boolean) => void
+  toggleTreeFullscreen: () => void
 }
 
 export const useViewStore = create<ViewState>((set) => ({
@@ -19,8 +24,19 @@ export const useViewStore = create<ViewState>((set) => ({
   eventsPanelOpen: true,
   profilePersonId: null,
   lineageSort: 'name',
+  lineageSidebarOpen: true,
+  personSidebarOpen: true,
   setActiveView: (view) => set({ activeView: view }),
   setEventsPanelOpen: (open) => set({ eventsPanelOpen: open }),
   setProfilePersonId: (id) => set({ profilePersonId: id }),
   setLineageSort: (sort) => set({ lineageSort: sort }),
+  setLineageSidebarOpen: (open) => set({ lineageSidebarOpen: open }),
+  setPersonSidebarOpen: (open) => set({ personSidebarOpen: open }),
+  toggleTreeFullscreen: () =>
+    set((s) => {
+      if (s.personSidebarOpen || s.lineageSidebarOpen) {
+        return { personSidebarOpen: false, lineageSidebarOpen: false }
+      }
+      return { personSidebarOpen: true, lineageSidebarOpen: true }
+    }),
 }))

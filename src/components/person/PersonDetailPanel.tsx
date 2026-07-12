@@ -1,4 +1,3 @@
-import { X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useGraphStore } from '@/stores/graph-store'
 import { useVaultStore } from '@/stores/vault-store'
@@ -14,7 +13,6 @@ import {
   MarriageDateDisplay,
   RelativeLineYears,
 } from '@/components/person/PersonDateDisplay'
-import { Button } from '@/components/ui/button'
 import type { PersonNode } from '@/types/person'
 
 interface PersonDetailPanelProps {
@@ -33,7 +31,6 @@ function relativeLine(rel: PersonNode | undefined, id: string) {
 export function PersonDetailPanel({ variant = 'default' }: PersonDetailPanelProps) {
   const { t } = useTranslation()
   const profilePersonId = useViewStore((s) => s.profilePersonId)
-  const setProfilePersonId = useViewStore((s) => s.setProfilePersonId)
   const persons = useGraphStore((s) => s.persons)
   const colors = useVaultStore((s) => s.vault?.config.lineageColors ?? {})
 
@@ -56,20 +53,6 @@ export function PersonDetailPanel({ variant = 'default' }: PersonDetailPanelProp
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-background">
-      {isSidebar && (
-        <div className="flex shrink-0 items-center justify-end border-b border-border px-2 py-1">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8"
-            onClick={() => setProfilePersonId(null)}
-            aria-label={t('person.closeProfile')}
-          >
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
-      )}
-
       <div className="min-h-0 flex-1 overflow-y-auto bg-background">
         <PersonMedallion
           person={person}

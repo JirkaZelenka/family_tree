@@ -6,7 +6,7 @@ import {
   useState,
   type PointerEvent as ReactPointerEvent,
 } from 'react'
-import { BoxSelect } from 'lucide-react'
+import { BoxSelect, Maximize2, Minimize2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useGraphStore } from '@/stores/graph-store'
 import { useTimeStore } from '@/stores/time-store'
@@ -97,9 +97,9 @@ function PersonNodeCard({
   const accent =
     nodeFill.type === 'split' ? nodeFill.right : nodeFill.color
   const stroke = boundary
-    ? '#f8fafc'
+    ? 'var(--force-selection-stroke)'
     : selected
-      ? '#f8fafc'
+      ? 'var(--force-selection-stroke)'
       : highlighted
         ? accent
         : muted
@@ -123,7 +123,7 @@ function PersonNodeCard({
           height={FORCE_NODE_HEIGHT + 10}
           rx={18}
           fill="none"
-          stroke="#f8fafc"
+          stroke="var(--force-selection-stroke)"
           strokeWidth={2.5}
           opacity={0.95}
           filter="url(#force-boundary-glow)"
@@ -172,6 +172,10 @@ function PersonNodeCard({
 
 export function ForceView({ className }: ViewProps) {
   const { t } = useTranslation()
+  const personSidebarOpen = useViewStore((s) => s.personSidebarOpen)
+  const lineageSidebarOpen = useViewStore((s) => s.lineageSidebarOpen)
+  const toggleTreeFullscreen = useViewStore((s) => s.toggleTreeFullscreen)
+  const isTreeFullscreenActive = !personSidebarOpen && !lineageSidebarOpen
   const svgRef = useRef<SVGSVGElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const graph = useGraphStore((s) => s.graph)
@@ -677,6 +681,24 @@ export function ForceView({ className }: ViewProps) {
           {t('layout.defaultView')}
         </button>
         <ForceViewPresets onLoaded={handlePresetLoaded} />
+        <button
+          type="button"
+          onClick={toggleTreeFullscreen}
+          title={isTreeFullscreenActive ? t('layout.exitFullscreen') : t('layout.enterFullscreen')}
+          aria-pressed={isTreeFullscreenActive}
+          className={`rounded-md border border-border bg-background/90 px-3 py-1.5 text-xs font-medium shadow-sm backdrop-blur hover:bg-accent ${
+            isTreeFullscreenActive ? 'bg-accent ring-1 ring-primary' : ''
+          }`}
+        >
+          <span className="inline-flex items-center gap-1.5">
+            {isTreeFullscreenActive ? (
+              <Minimize2 className="h-3.5 w-3.5" aria-hidden />
+            ) : (
+              <Maximize2 className="h-3.5 w-3.5" aria-hidden />
+            )}
+            {t('layout.fullscreen')}
+          </span>
+        </button>
       </div>
 
       <svg
@@ -692,7 +714,7 @@ export function ForceView({ className }: ViewProps) {
             <feDropShadow dx="0" dy="2" stdDeviation="3" floodOpacity="0.28" />
           </filter>
           <filter id="force-boundary-glow" x="-50%" y="-50%" width="200%" height="200%">
-            <feDropShadow dx="0" dy="0" stdDeviation="5" floodColor="#f8fafc" floodOpacity="0.85" />
+            <feDropShadow dx="0" dy="0" stdDeviation="5" floodColor="var(--force-glow-color)" floodOpacity="0.85" />
             <feDropShadow dx="0" dy="0" stdDeviation="10" floodColor="#38bdf8" floodOpacity="0.45" />
           </filter>
           <pattern id="force-grid" width={32} height={32} patternUnits="userSpaceOnUse">

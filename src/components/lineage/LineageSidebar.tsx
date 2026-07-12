@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { PanelRightClose, PanelRightOpen } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useVaultStore } from '@/stores/vault-store'
 import { getLineages } from '@/lib/graph/queries'
@@ -22,6 +23,8 @@ export function LineageSidebar() {
   const activeView = useViewStore((s) => s.activeView)
   const lineageSort = useViewStore((s) => s.lineageSort)
   const setLineageSort = useViewStore((s) => s.setLineageSort)
+  const lineageSidebarOpen = useViewStore((s) => s.lineageSidebarOpen)
+  const setLineageSidebarOpen = useViewStore((s) => s.setLineageSidebarOpen)
   const expandedLineages = useLayoutStore((s) => s.expandedLineages)
   const toggleLineageExpanded = useLayoutStore((s) => s.toggleLineageExpanded)
 
@@ -51,10 +54,37 @@ export function LineageSidebar() {
 
   if (!graph) return null
 
+  if (!lineageSidebarOpen) {
+    return (
+      <aside className="flex h-full w-9 shrink-0 flex-col border-l border-border bg-background">
+        <button
+          type="button"
+          onClick={() => setLineageSidebarOpen(true)}
+          title={t('layout.expandLineagePanel')}
+          aria-label={t('layout.expandLineagePanel')}
+          className="flex h-9 w-full items-center justify-center text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+        >
+          <PanelRightOpen className="h-4 w-4" aria-hidden />
+        </button>
+      </aside>
+    )
+  }
+
   return (
     <aside className="flex h-full w-72 min-h-0 shrink-0 flex-col overflow-hidden border-l border-border bg-background xl:w-80">
       <div className="shrink-0 border-b border-border px-4 py-3">
-        <h2 className="text-sm font-semibold">{t('lineage.panelTitle')}</h2>
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-sm font-semibold">{t('lineage.panelTitle')}</h2>
+          <button
+            type="button"
+            onClick={() => setLineageSidebarOpen(false)}
+            title={t('layout.collapseLineagePanel')}
+            aria-label={t('layout.collapseLineagePanel')}
+            className="shrink-0 rounded-md p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          >
+            <PanelRightClose className="h-4 w-4" aria-hidden />
+          </button>
+        </div>
         <div className="mt-2 flex gap-1">
           <button
             type="button"

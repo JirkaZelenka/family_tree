@@ -12,7 +12,9 @@
     "exportGedcom": "Export GEDCOM",
     "search": "Hledat…",
     "shareUrl": "Sdílet pohled",
-    "saveLayout": "Uložit layout"
+    "saveLayout": "Uložit layout",
+    "lightMode": "Světlý režim",
+    "darkMode": "Tmavý režim"
   },
   "views": {
     "tree": "Strom",
@@ -71,7 +73,14 @@
     "forceViewDeleteConfirm": "Smazat uložený pohled „{{name}}“?",
     "forceViewOverwrite": "Pohled „{{name}}“ už existuje. Chcete ho přepsat?",
     "forceViewNameTaken": "Pohled „{{name}}“ už existuje.",
-    "forceViewEmpty": "Zatím nemáte žádný uložený pohled."
+    "forceViewEmpty": "Zatím nemáte žádný uložený pohled.",
+    "fullscreen": "Celá obrazovka",
+    "enterFullscreen": "Sbalit oba panely",
+    "exitFullscreen": "Rozbalit oba panely",
+    "collapseLineagePanel": "Skrýt panel rodů",
+    "expandLineagePanel": "Zobrazit panel rodů",
+    "collapsePersonPanel": "Skrýt panel osoby",
+    "expandPersonPanel": "Zobrazit panel osoby"
   },
   "kinship": {
     "title": "Příbuznost",
