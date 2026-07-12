@@ -6,7 +6,9 @@ export interface SearchDocument {
   fullName: string
   givenName: string
   familyName: string
-  tags: string
+  maidenName: string
+  note: string
+  internalNote: string
   birthPlace: string
   deathPlace: string
   birthYear: string
@@ -29,7 +31,9 @@ export function buildSearchIndex(persons: Map<string, PersonNode>) {
       fullName: p.fullName,
       givenName: p.givenName,
       familyName: p.familyName ?? '',
-      tags: p.tags.join(' '),
+      maidenName: p.maidenName ?? '',
+      note: p.note,
+      internalNote: p.internal_note,
       birthPlace: p.birth?.place ?? '',
       deathPlace: p.death?.place ?? '',
       birthYear: p.birthYear?.toString() ?? '',
@@ -43,7 +47,9 @@ export function buildSearchIndex(persons: Map<string, PersonNode>) {
         doc.fullName,
         doc.givenName,
         doc.familyName,
-        doc.tags,
+        doc.maidenName,
+        doc.note,
+        doc.internalNote,
         doc.birthPlace,
         doc.deathPlace,
         doc.birthYear,

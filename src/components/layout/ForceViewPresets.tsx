@@ -50,6 +50,7 @@ export function ForceViewPresets({ onLoaded }: ForceViewPresetsProps) {
     (name: string) => {
       if (loadForceViewPreset(name)) {
         onLoaded?.()
+        setOpen(false)
       }
     },
     [loadForceViewPreset, onLoaded],

@@ -16,22 +16,21 @@ export const DateValueSchema = z.preprocess(
   z.string().optional(),
 )
 
+/** Datum/místo v YAML — prázdný řetězec se zachová. */
+export const StoredDateSchema = z.preprocess(
+  (val) => {
+    if (val === null || val === undefined) return ''
+    if (typeof val === 'number') return String(val)
+    return String(val)
+  },
+  z.string(),
+)
+
 export const LifeEventSchema = z.object({
-  date: DateValueSchema,
-  place: z.string().optional(),
+  date: StoredDateSchema.default(''),
+  place: z.string().default(''),
   lat: z.number().optional(),
   lon: z.number().optional(),
-})
-
-export const MarriageEventSchema = z.object({
-  date: DateValueSchema,
-  place: z.string().optional(),
-})
-
-export const MediaItemSchema = z.object({
-  type: z.enum(['photo', 'document', 'map']),
-  path: z.string(),
-  caption: z.string().optional(),
 })
 
 /** ID v YAML může být integer (1) nebo řetězec ("1", UUID). V aplikaci vždy string. */
@@ -49,7 +48,8 @@ const PersonIdListSchema = z
 
 export const MarriageSchema = z.object({
   id: PersonIdSchema,
-  marriage: MarriageEventSchema.optional(),
+  marriageDate: StoredDateSchema.default(''),
+  marriagePlace: z.string().optional(),
 })
 
 export type Marriage = z.infer<typeof MarriageSchema>
@@ -59,28 +59,68 @@ const SpousesSchema = z.preprocess((val) => {
   return val
     .map((item) => {
       if (item && typeof item === 'object' && 'id' in item) {
-        const entry = item as { id: unknown; marriage?: { date?: unknown; place?: unknown } }
-        const marriage: { date?: string; place?: string } = {}
+        const entry = item as {
+          id: unknown
+          marriageDate?: unknown
+          marriagePlace?: unknown
+          marriage?: { date?: unknown; place?: unknown }
+        }
+        const result: { id: string; marriageDate: string; marriagePlace?: string } = {
+          id: String(entry.id),
+          marriageDate: '',
+        }
+        if (entry.marriageDate !== undefined && entry.marriageDate !== null) {
+          result.marriageDate = String(entry.marriageDate)
+        }
+        if (entry.marriagePlace) {
+          result.marriagePlace = String(entry.marriagePlace)
+        }
         if (entry.marriage && typeof entry.marriage === 'object') {
-          const date = entry.marriage.date
-          if (date !== undefined && date !== null && String(date).trim() !== '') {
-            marriage.date = String(date)
+          if (entry.marriage.date !== undefined && entry.marriage.date !== null) {
+            result.marriageDate = String(entry.marriage.date)
           }
           if (entry.marriage.place) {
-            marriage.place = String(entry.marriage.place)
+            result.marriagePlace = String(entry.marriage.place)
           }
         }
-        if (Object.keys(marriage).length > 0) {
-          return { id: String(entry.id), marriage }
-        }
-        return { id: String(entry.id) }
+        return result
       }
-      return { id: String(item) }
+      return { id: String(item), marriageDate: '' }
     })
     .filter((entry) => entry.id.trim().length > 0)
 }, z.array(MarriageSchema).default([]))
 
-export const PersonFrontmatterSchema = z.object({
+export const PersonLinkSchema = z.preprocess((val) => {
+  if (!val || typeof val !== 'object') return val
+  const entry = val as Record<string, unknown>
+  if ('popisek' in entry || !('info' in entry)) return val
+  return { ...entry, popisek: entry.info }
+}, z.object({
+  link: z.string().default(''),
+  popisek: z.string().default(''),
+}))
+
+export type PersonLink = z.infer<typeof PersonLinkSchema>
+
+const LinksSchema = z.preprocess((val) => {
+  if (val == null) return []
+  if (Array.isArray(val)) return val
+  if (typeof val === 'object') {
+    return Object.entries(val as Record<string, unknown>).map(([key, item]) => {
+      if (item && typeof item === 'object' && !Array.isArray(item)) {
+        const entry = item as Record<string, unknown>
+        return {
+          link: entry.link ?? '',
+          popisek: entry.popisek ?? entry.info ?? key,
+        }
+      }
+      return { link: item ?? '', popisek: key }
+    })
+  }
+  return []
+}, z.array(PersonLinkSchema).default([]))
+
+const PersonFrontmatterFieldsSchema = z.object({
   id: PersonIdSchema,
   slug: z.string(),
   givenName: z.string(),
@@ -88,20 +128,34 @@ export const PersonFrontmatterSchema = z.object({
   maidenName: z.string().nullable().optional(),
   gender: Gender.default('unknown'),
   lineage: z.string().default('unknown'),
-  birth: LifeEventSchema.optional(),
-  death: LifeEventSchema.optional(),
+  birth: LifeEventSchema.default({ date: '', place: '' }),
+  death: LifeEventSchema.default({ date: '', place: '' }),
   parents: PersonIdListSchema,
   spouses: SpousesSchema,
-  tags: z.array(z.string()).default([]),
+  links: LinksSchema,
+  internal_note: z.string().default(''),
+  note: z.string().default(''),
   confidence: z
     .object({
       birth: ConfidenceLevel.optional(),
       death: ConfidenceLevel.optional(),
     })
     .optional(),
-  media: z.array(MediaItemSchema).default([]),
-  sources: z.array(z.string()).default([]),
 })
+
+export const PersonFrontmatterSchema = z.preprocess((raw) => {
+  if (!raw || typeof raw !== 'object') return raw
+  const data = { ...(raw as Record<string, unknown>) }
+  if ('pozn' in data && !('internal_note' in data)) {
+    data.internal_note = data.pozn
+  }
+  delete data.pozn
+  delete data.tags
+  delete data.media
+  delete data.sources
+  delete data.children
+  return data
+}, PersonFrontmatterFieldsSchema)
 
 export type PersonFrontmatter = z.infer<typeof PersonFrontmatterSchema>
 

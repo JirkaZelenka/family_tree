@@ -6,7 +6,16 @@ import { BIRTH_BAND_SIZE } from '@/lib/layout/sphere-bands'
 
 export const FORCE_HORIZONTAL_SCALE = 172
 export const FORCE_PADDING = 40
-export const FORCE_TIMELINE_WIDTH = 72
+/** Levý pás: historické události + popisky roků + svislá osa. */
+export const FORCE_EVENTS_WIDTH = 148
+export const FORCE_TIMELINE_WIDTH = 172
+export const FORCE_EVENT_SPAN_X = 8
+/** Popisek události: top = y - EVENT_LABEL_TOP_OFFSET. */
+export const FORCE_EVENT_LABEL_TOP_OFFSET = 8
+/** Odhad výšky řádku popisku (px). */
+export const FORCE_EVENT_LABEL_HEIGHT = 22
+/** Mezera mezi spojnicí a textem (px). */
+export const FORCE_EVENT_LABEL_GAP = 4
 export const FORCE_NODE_WIDTH = 148
 export const FORCE_NODE_HEIGHT = 52
 export const FORCE_PIXELS_PER_YEAR = 5
@@ -33,6 +42,7 @@ export interface ForceLayoutResult {
   timelineTicks: ForceTimelineTick[]
   yearMin: number
   yearMax: number
+  timelineHeight: number
   contentWidth: number
   width: number
   height: number
@@ -50,6 +60,28 @@ export function birthYearToCenterY(
   return FORCE_PADDING + t * timelineHeight
 }
 
+/** Y rozsah svislé spojnice — pod horním řádkem, nad spodním (ne skrz text). */
+export function insetEventSpanYs(
+  startY: number,
+  endY: number,
+): { lineStart: number; lineEnd: number } {
+  const minGap = 6
+  const belowTop =
+    startY -
+    FORCE_EVENT_LABEL_TOP_OFFSET +
+    FORCE_EVENT_LABEL_HEIGHT +
+    FORCE_EVENT_LABEL_GAP
+  const aboveBottom = endY - FORCE_EVENT_LABEL_TOP_OFFSET - FORCE_EVENT_LABEL_GAP
+  let lineStart = belowTop
+  let lineEnd = aboveBottom
+  if (lineEnd <= lineStart + minGap) {
+    const mid = (belowTop + aboveBottom) / 2
+    lineStart = mid - minGap / 2
+    lineEnd = mid + minGap / 2
+  }
+  return { lineStart, lineEnd }
+}
+
 export function buildTimelineTicks(
   yearMin: number,
   yearMax: number,
@@ -64,15 +96,14 @@ export function buildTimelineTicks(
   return ticks
 }
 
-function yearRangeForVisible(
+/** Stabilní rozsah let — celý graf, aby filtr rodů neposouval osu. */
+export function yearRangeForGraph(
   graph: Graph<PersonNode>,
-  visibleIds: Set<string>,
 ): { yearMin: number; yearMax: number } {
   const years: number[] = []
-  for (const id of visibleIds) {
-    const y = graph.getNodeAttributes(id).birthYear
-    if (y !== null) years.push(y)
-  }
+  graph.forEachNode((_id, attrs) => {
+    if (attrs.birthYear !== null) years.push(attrs.birthYear)
+  })
   if (years.length === 0) {
     const now = new Date().getFullYear()
     return { yearMin: now - 80, yearMax: now }
@@ -158,7 +189,7 @@ export function computeForceLayout(
   savedNodes: Record<string, ForceNodeLayout> = {},
   autoLayout: Record<string, ForceNodeLayout> = {},
 ): ForceLayoutResult {
-  const { yearMin, yearMax } = yearRangeForVisible(graph, visibleIds)
+  const { yearMin, yearMax } = yearRangeForGraph(graph)
   const span = Math.max(yearMax - yearMin, 1)
   const timelineHeight = Math.max(span * FORCE_PIXELS_PER_YEAR, FORCE_MIN_TIMELINE_HEIGHT)
   const timelineTicks = buildTimelineTicks(yearMin, yearMax, timelineHeight)
@@ -228,6 +259,7 @@ export function computeForceLayout(
     timelineTicks,
     yearMin,
     yearMax,
+    timelineHeight,
     contentWidth,
     width: contentWidth,
     height,

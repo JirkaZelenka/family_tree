@@ -21,3 +21,26 @@ export function deriveChildren(persons: Map<string, PersonNode>): void {
     }
   }
 }
+
+/** Sourozenci odvození ze společných rodičů. */
+export function siblingIds(
+  person: PersonNode,
+  persons: Map<string, PersonNode>,
+): string[] {
+  const ids = new Set<string>()
+  for (const parentId of person.parents) {
+    const parent = persons.get(parentId)
+    if (!parent) continue
+    for (const childId of parent.children) {
+      if (childId !== person.id) ids.add(childId)
+    }
+  }
+  return [...ids].sort((a, b) => {
+    const pa = persons.get(a)
+    const pb = persons.get(b)
+    const ya = pa?.birthYear ?? 9999
+    const yb = pb?.birthYear ?? 9999
+    if (ya !== yb) return ya - yb
+    return (pa?.fullName ?? a).localeCompare(pb?.fullName ?? b, 'cs')
+  })
+}

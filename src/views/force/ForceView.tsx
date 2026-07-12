@@ -17,6 +17,7 @@ import { computeForceVisibility } from '@/lib/layout/force-visibility'
 import { buildForceEdgeSegments, segmentPathD } from '@/lib/layout/force-edges'
 import {
   computeForceLayout,
+  birthYearToCenterY,
   FORCE_NODE_HEIGHT,
   FORCE_NODE_WIDTH,
   FORCE_PADDING,
@@ -30,7 +31,9 @@ import {
   classifySegmentHighlight,
   computeLineagePathHighlight,
 } from '@/lib/layout/force-lineage-highlight'
-import { formatLifeSpan } from '@/lib/time/dates'
+import { formatFamilyNameWithMaiden } from '@/lib/parser/markdown'
+import { LifeSpanSvg } from '@/components/person/PersonDateDisplay'
+import { ForceTimelineEventsLayer } from '@/components/timeline/ForceTimelineEvents'
 import { ForceViewPresets } from '@/components/layout/ForceViewPresets'
 import type { ViewProps } from '../types'
 import type { PersonNode } from '@/types/person'
@@ -42,6 +45,27 @@ interface ViewTransform {
 }
 
 const MIN_DRAG_PX = 4
+
+function useNodeClickHandler(
+  onSelect: (additive: boolean) => void,
+  onOpenProfile: () => void,
+) {
+  const lastClickRef = useRef(0)
+  return useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation()
+      const now = Date.now()
+      if (now - lastClickRef.current < 400) {
+        lastClickRef.current = 0
+        onOpenProfile()
+        return
+      }
+      lastClickRef.current = now
+      onSelect(e.shiftKey)
+    },
+    [onSelect, onOpenProfile],
+  )
+}
 
 function PersonNodeCard({
   person,
@@ -68,6 +92,8 @@ function PersonNodeCard({
   onOpenProfile: () => void
   onDragStart: (e: ReactPointerEvent<SVGGElement>) => void
 }) {
+  const handleClick = useNodeClickHandler(onSelect, onOpenProfile)
+
   const accent =
     nodeFill.type === 'split' ? nodeFill.right : nodeFill.color
   const stroke = boundary
@@ -86,14 +112,7 @@ function PersonNodeCard({
     <g
       transform={`translate(${pos.x}, ${pos.y})`}
       className={dragging ? 'cursor-grabbing' : 'cursor-grab'}
-      onClick={(e) => {
-        e.stopPropagation()
-        onSelect(e.shiftKey)
-      }}
-      onDoubleClick={(e) => {
-        e.stopPropagation()
-        onOpenProfile()
-      }}
+      onClick={handleClick}
       onPointerDown={onDragStart}
     >
       {boundary && (
@@ -125,7 +144,7 @@ function PersonNodeCard({
         fill={nodeFill.type === 'split' ? `url(#${gradientId})` : nodeFill.color}
         stroke={stroke}
         strokeWidth={boundary ? 2.5 : selected ? 2.5 : highlighted ? 2 : 1.25}
-        opacity={muted ? 0.88 : dragging ? 0.95 : 1}
+        opacity={1}
         filter={dragging ? undefined : boundary ? 'url(#force-boundary-glow)' : 'url(#force-node-shadow)'}
       />
       <text
@@ -144,17 +163,9 @@ function PersonNodeCard({
         className="fill-slate-800 text-[10px]"
         style={{ pointerEvents: 'none' }}
       >
-        {person.familyName ?? ''}
+        {formatFamilyNameWithMaiden(person)}
       </text>
-      <text
-        x={FORCE_NODE_WIDTH / 2}
-        y={48}
-        textAnchor="middle"
-        className="fill-slate-700 text-[9px] opacity-80"
-        style={{ pointerEvents: 'none' }}
-      >
-        {formatLifeSpan(person.birthYear, person.deathYear)}
-      </text>
+      <LifeSpanSvg person={person} x={FORCE_NODE_WIDTH / 2} y={48} />
     </g>
   )
 }
@@ -173,7 +184,6 @@ export function ForceView({ className }: ViewProps) {
   const setHoveredId = useGraphStore((s) => s.setHoveredId)
   const setHighlightedIds = useGraphStore((s) => s.setHighlightedIds)
   const setProfilePersonId = useViewStore((s) => s.setProfilePersonId)
-
   const isPersonVisible = useTimeStore((s) => s.isPersonVisible)
   const showContemporariesOnly = useTimeStore((s) => s.showContemporariesOnly)
   const currentYear = useTimeStore((s) => s.currentYear)
@@ -191,6 +201,7 @@ export function ForceView({ className }: ViewProps) {
   const sessionForceNodes = useLayoutStore((s) => s.sessionForceNodes)
   const forceAutoLayout = useLayoutStore((s) => s.forceAutoLayout)
   const forceLayoutRevision = useLayoutStore((s) => s.forceLayoutRevision)
+  const pendingForceFit = useLayoutStore((s) => s.pendingForceFit)
   const initForceLineages = useLayoutStore((s) => s.initForceLineages)
   const ensureForceAutoBaseline = useLayoutStore((s) => s.ensureForceAutoBaseline)
   const updateForceNodesX = useLayoutStore((s) => s.updateForceNodesX)
@@ -350,10 +361,13 @@ export function ForceView({ className }: ViewProps) {
   }, [layout])
 
   useEffect(() => {
-    if (!layout || graph === fittedGraphRef.current) return
+    if (!layout || (!pendingForceFit && graph === fittedGraphRef.current)) return
     fitToView()
     fittedGraphRef.current = graph
-  }, [graph, layout, fitToView])
+    if (pendingForceFit) {
+      useLayoutStore.setState({ pendingForceFit: false })
+    }
+  }, [graph, layout, fitToView, pendingForceFit])
 
   useEffect(() => {
     const el = containerRef.current
@@ -387,7 +401,8 @@ export function ForceView({ className }: ViewProps) {
       e.button === 2 ||
       (e.button === 0 && (!marqueeMode || spaceHeldRef.current))
     if (isPan) {
-      if (e.button !== 0) e.preventDefault()
+      e.preventDefault()
+      window.getSelection()?.removeAllRanges()
       panRef.current = {
         x: e.clientX,
         y: e.clientY,
@@ -425,7 +440,15 @@ export function ForceView({ className }: ViewProps) {
     (e: ReactPointerEvent<SVGSVGElement>) => {
       if (nodeDragRef.current && e.pointerId === nodeDragRef.current.pointerId) {
         const dx = (e.clientX - nodeDragRef.current.startClientX) / transformRef.current.k
-        if (Math.abs(dx) > MIN_DRAG_PX) nodeDragRef.current.moved = true
+        if (!nodeDragRef.current.moved && Math.abs(dx) > MIN_DRAG_PX) {
+          nodeDragRef.current.moved = true
+          try {
+            e.currentTarget.setPointerCapture(e.pointerId)
+          } catch {
+            /* ignore */
+          }
+        }
+        if (!nodeDragRef.current.moved) return
         const next: Record<string, number> = {}
         for (const id of nodeDragRef.current.ids) {
           const origX = nodeDragRef.current.origXs.get(id)
@@ -600,7 +623,6 @@ export function ForceView({ className }: ViewProps) {
         pointerId: e.pointerId,
         moved: false,
       }
-      svgRef.current.setPointerCapture(e.pointerId)
     },
     [displayPositions, ensureForceAutoBaseline, selectedIds, setSelectedId, setSelectedIds],
   )
@@ -612,6 +634,7 @@ export function ForceView({ className }: ViewProps) {
 
   const handlePresetLoaded = useCallback(() => {
     fittedGraphRef.current = null
+    useLayoutStore.setState({ pendingForceFit: true })
   }, [])
 
   if (!graph || !layout) {
@@ -625,9 +648,10 @@ export function ForceView({ className }: ViewProps) {
   return (
     <div
       ref={containerRef}
-      className={`relative h-full w-full overscroll-contain touch-none ${
+      className={`relative h-full w-full select-none overscroll-contain touch-none ${
         isPanning ? 'cursor-grabbing' : marqueeMode ? 'cursor-crosshair' : 'cursor-grab'
       } ${className ?? ''}`}
+      onPointerDown={() => window.getSelection()?.removeAllRanges()}
     >
       <div className="absolute left-3 top-3 z-10 flex gap-2">
         <button
@@ -657,7 +681,7 @@ export function ForceView({ className }: ViewProps) {
 
       <svg
         ref={svgRef}
-        className="h-full w-full touch-none bg-background"
+        className="h-full w-full touch-none select-none bg-background"
         onPointerDown={onSvgPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
@@ -795,7 +819,11 @@ export function ForceView({ className }: ViewProps) {
                       setHighlightedIds(new Set())
                     }
                   }}
-                  onOpenProfile={() => setProfilePersonId(id)}
+                  onOpenProfile={() => {
+                    setProfilePersonId(id)
+                    setSelectedId(id)
+                    setHighlightedIds(new Set())
+                  }}
                   onDragStart={(e) => onNodeDragStart(id, e)}
                 />
               </g>
@@ -803,6 +831,15 @@ export function ForceView({ className }: ViewProps) {
           })}
         </g>
       </svg>
+
+      <ForceTimelineEventsLayer
+        transform={transform}
+        layoutWidth={layout.width}
+        layoutHeight={layout.height}
+        yearMin={layout.yearMin}
+        yearMax={layout.yearMax}
+        timelineHeight={layout.timelineHeight}
+      />
 
       {marqueeScreen && marqueeScreen.w + marqueeScreen.h > 0 && (
         <div

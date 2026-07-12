@@ -89,11 +89,11 @@ export function importGedcomToRecords(text: string): PersonRecord[] {
         death: death ? { date: death } : undefined,
         parents: [],
         spouses: [],
-        tags: [],
-        media: [],
-        sources: ['Importováno z GEDCOM'],
+        links: [],
+        internal_note: 'Importováno z GEDCOM',
+        note: '',
       },
-      body: `# ${givenName}${familyName ? ` ${familyName}` : ''}\n`,
+      body: '',
       filePath: `people/${slug || node.id}.md`,
     })
   }

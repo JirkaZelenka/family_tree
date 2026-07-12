@@ -22,9 +22,12 @@ export function PersonForm({ person, onClose }: PersonFormProps) {
 
   const [givenName, setGivenName] = useState(person.givenName)
   const [familyName, setFamilyName] = useState(person.familyName ?? '')
+  const [maidenName, setMaidenName] = useState(person.maidenName ?? '')
+  const [lineage, setLineage] = useState(person.lineage)
   const [birthDate, setBirthDate] = useState(person.birth?.date ?? '')
   const [deathDate, setDeathDate] = useState(person.death?.date ?? '')
-  const [body, setBody] = useState(person.body)
+  const [note, setNote] = useState(person.note)
+  const [internalNote, setInternalNote] = useState(person.internal_note)
 
   const save = () => {
     if (!vault) return
@@ -32,9 +35,12 @@ export function PersonForm({ person, onClose }: PersonFormProps) {
       ...person,
       givenName,
       familyName: familyName || undefined,
+      maidenName: maidenName || undefined,
+      lineage: lineage.trim() || person.lineage,
       birth: { ...person.birth, date: birthDate || undefined },
       death: { ...person.death, date: deathDate || undefined },
-      body,
+      note,
+      internal_note: internalNote,
     }
     const record = {
       frontmatter: {
@@ -49,12 +55,12 @@ export function PersonForm({ person, onClose }: PersonFormProps) {
         death: updated.death,
         parents: updated.parents,
         spouses: updated.spouses,
-        tags: updated.tags,
+        links: updated.links,
+        internal_note: updated.internal_note,
+        note: updated.note,
         confidence: updated.confidence,
-        media: updated.media,
-        sources: updated.sources,
       },
-      body,
+      body: '',
       filePath: person.filePath,
     }
     const content = serializePersonMarkdown(record)
@@ -79,6 +85,14 @@ export function PersonForm({ person, onClose }: PersonFormProps) {
         <Input value={familyName} onChange={(e) => setFamilyName(e.target.value)} />
       </div>
       <div>
+        <Label>{t('person.maidenName')}</Label>
+        <Input value={maidenName} onChange={(e) => setMaidenName(e.target.value)} />
+      </div>
+      <div>
+        <Label>{t('person.lineage')}</Label>
+        <Input value={lineage} onChange={(e) => setLineage(e.target.value)} />
+      </div>
+      <div>
         <Label>{t('person.birth')}</Label>
         <Input value={birthDate} onChange={(e) => setBirthDate(e.target.value)} />
       </div>
@@ -87,11 +101,19 @@ export function PersonForm({ person, onClose }: PersonFormProps) {
         <Input value={deathDate} onChange={(e) => setDeathDate(e.target.value)} />
       </div>
       <div>
-        <Label>Biografie</Label>
+        <Label>{t('person.note')}</Label>
         <textarea
           className="flex min-h-20 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm"
-          value={body}
-          onChange={(e) => setBody(e.target.value)}
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+        />
+      </div>
+      <div>
+        <Label>{t('person.internalNote')}</Label>
+        <textarea
+          className="flex min-h-20 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm"
+          value={internalNote}
+          onChange={(e) => setInternalNote(e.target.value)}
         />
       </div>
       <div className="flex gap-2">

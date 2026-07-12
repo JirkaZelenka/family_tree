@@ -176,7 +176,7 @@ export function useVaultActions() {
 
       const files = await loadSampleFiles()
       const diskMeta = clearCache ? null : await readDevVaultMetaFiles()
-      mergeVaultMetaFiles(files, cached, diskMeta)
+      mergeVaultMetaFiles(files, cached, diskMeta, import.meta.env.DEV)
 
       if (files.size === 0) {
         return {

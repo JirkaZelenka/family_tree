@@ -73,6 +73,40 @@ export function rodNamesMatch(a: string, b: string): boolean {
   return prefix >= minPrefix && shorter.length >= minPrefix
 }
 
+function lineageKeyMatchScore(
+  familyName: string,
+  key: string,
+  preferredLineages?: Set<string>,
+): number {
+  const familyNorm = normalizeRodName(familyName)
+  const keyNorm = normalizeRodName(key)
+  let score = 0
+  if (preferredLineages?.has(key)) score += 1000
+  if (/ovi$/i.test(key.normalize('NFD').replace(/\p{M}/gu, ''))) score += 100
+  if (familyNorm === keyNorm) score += 50
+  score += key.length
+  return score
+}
+
+/** Vybere nejlepší klíč barvy — preferuje rody ze stromu (spilkovi) před aliasy (spilka). */
+export function pickBestLineageKeyForName(
+  familyName: string | undefined,
+  colorKeys: Iterable<string>,
+  preferredLineages?: Iterable<string>,
+): string | null {
+  if (!familyName?.trim()) return null
+  const preferred =
+    preferredLineages != null ? new Set(preferredLineages) : undefined
+  const matches = [...colorKeys].filter((key) => rodNamesMatch(familyName, key))
+  if (matches.length === 0) return null
+  if (matches.length === 1) return matches[0]
+  return matches.sort(
+    (a, b) =>
+      lineageKeyMatchScore(familyName, b, preferred) -
+      lineageKeyMatchScore(familyName, a, preferred),
+  )[0]
+}
+
 /** Příjmení patří k rodu (např. vdaná žena v přehledu druhého rodu). */
 export function familyNameAffiliatedWithLineage(
   familyName: string | undefined,
@@ -82,15 +116,27 @@ export function familyNameAffiliatedWithLineage(
   return rodNamesMatch(familyName, lineage)
 }
 
-/** Příjmení odpovídá vlastnímu rodu — jednolitá barva ve stromě. */
+/** Příjmení odpovídá aktuálnímu příjmení v rodokmenu — jednolitá barva ve stromě. */
 export function familyNameMatchesLineage(person: {
   lineage: string
   familyName?: string
-  maidenName?: string | null
 }): boolean {
-  if (person.maidenName) return false
   if (!person.familyName) return true
   return rodNamesMatch(person.familyName, person.lineage)
+}
+
+/** Najde klíč rodu v paletě podle příjmení (např. Zelenková → zelenkovi). */
+export function lineageKeyForFamilyName(
+  familyName: string | undefined,
+  colorKeys: Iterable<string>,
+  fallback: string,
+  preferredLineages?: Iterable<string>,
+): string {
+  if (!familyName) return fallback
+  return (
+    pickBestLineageKeyForName(familyName, colorKeys, preferredLineages) ??
+    fallback
+  )
 }
 
 export function personBelongsToLineage(

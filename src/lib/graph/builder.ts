@@ -96,7 +96,7 @@ export function buildGraphFromRecords(
       }
       addEdge(node.id, spouseId, {
         type: 'spouse',
-        startYear: parseYear(marriage.marriage?.date),
+        startYear: parseYear(marriage.marriageDate),
       })
     }
   }

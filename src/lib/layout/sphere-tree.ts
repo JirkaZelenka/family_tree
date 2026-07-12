@@ -250,7 +250,7 @@ function fillMissingOnPlane(
     const attrs = graph.getNodeAttributes(id)
     let placed = false
 
-    for (const sid of attrs.spouses) {
+    for (const sid of spouseIds(attrs.spouses)) {
       if (!sid || !graph.hasNode(sid)) continue
       if (resolvePlacementLineage(graph, sid) !== planeLineage) continue
       const sp = tree2d.get(sid)
@@ -326,7 +326,7 @@ export function resolvePlacementLineage(graph: Graph<PersonNode>, id: string): s
     return own
   }
 
-  for (const sid of attrs.spouses) {
+  for (const sid of spouseIds(attrs.spouses)) {
     if (!sid || !graph.hasNode(sid)) continue
     const spouse = graph.getNodeAttributes(sid)
     if (spouse.lineage === own) continue
@@ -379,7 +379,7 @@ export function collectSpouseUnits(graph: Graph<PersonNode>): FamilyUnit[] {
   const seen = new Set<string>()
 
   graph.forEachNode((id, attrs) => {
-    for (const sid of attrs.spouses) {
+    for (const sid of spouseIds(attrs.spouses)) {
       if (!sid || !graph.hasNode(sid)) continue
       const key = [id, sid].sort().join('--')
       if (seen.has(key)) continue

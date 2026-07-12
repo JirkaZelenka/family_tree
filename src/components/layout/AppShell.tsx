@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { viewRegistry } from '@/views/registry'
 import { useViewStore } from '@/stores/view-store'
 import { Toolbar } from './Toolbar'
-import { EventTimeline } from '@/components/timeline/EventTimeline'
+import { PersonTreeSidebar } from '@/components/person/PersonTreeSidebar'
 import { LineageSidebar } from '@/components/lineage/LineageSidebar'
 import { PersonProfileDialog } from '@/components/person/PersonProfileDialog'
 import { TimeSliderBar } from '@/components/shared/TimeSliderBar'
@@ -18,7 +18,6 @@ import { useVaultStore } from '@/stores/vault-store'
 export function AppShell() {
   const { t } = useTranslation()
   const activeView = useViewStore((s) => s.activeView)
-  const eventsPanelOpen = useViewStore((s) => s.eventsPanelOpen)
   const vault = useVaultActions()
   const isBootstrapping = useVaultStore((s) => s.isBootstrapping)
   useUrlState()
@@ -117,11 +116,7 @@ export function AppShell() {
           onShareUrl={vault.shareUrl}
         />
         <div className="flex min-h-0 flex-1">
-          {eventsPanelOpen && (
-            <aside className="hidden w-48 shrink-0 lg:block xl:w-56">
-              <EventTimeline />
-            </aside>
-          )}
+          {activeView === 'tree' && <PersonTreeSidebar />}
           <main className="relative min-w-0 flex-1">
             {ActiveView && <ActiveView className="absolute inset-0" />}
           </main>
@@ -129,7 +124,7 @@ export function AppShell() {
         </div>
         <TimeSliderBar />
         <CommandPalette />
-        <PersonProfileDialog />
+        {activeView !== 'tree' && <PersonProfileDialog />}
         <PersonHoverTooltip />
         <input
           ref={zipInputRef}

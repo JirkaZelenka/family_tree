@@ -36,6 +36,7 @@ describe('resolveForceNodeFill', () => {
     brazdovi: '#fb923c',
     nagyovi: SMALL_LINEAGE_COLOR,
     hynkovi: '#a855f7',
+    bartonovi: '#e879f9',
   }
 
   it('bez manžela vrátí jednolitou barvu', () => {
@@ -259,5 +260,88 @@ describe('resolveForceNodeFill', () => {
       false,
     )
     expect(fill).toEqual({ type: 'solid', color: colors.hynkovi })
+  })
+
+  it('vdaná Hynková / Bartoňová má split i bez viditelného manžela', () => {
+    const graph = new Graph<PersonNode>()
+    graph.addNode(
+      'marta',
+      person('marta', {
+        lineage: 'hynkovi',
+        familyName: 'Bartoňová',
+        maidenName: 'Hynková',
+        gender: 'female',
+        spouses: ['jiri'],
+      }),
+    )
+    graph.addNode('jiri', person('jiri', { lineage: 'bartonovi', familyName: 'Bartoň', spouses: ['marta'] }))
+
+    const visible = new Set(['marta'])
+    const positions = new Map([['marta', { x: 200, y: 80 }]])
+
+    const fill = resolveForceNodeFill(
+      graph,
+      graph.getNodeAttributes('marta'),
+      visible,
+      positions,
+      colors,
+      false,
+    )
+
+    expect(fill).toEqual({
+      type: 'split',
+      left: colors.hynkovi,
+      right: colors.bartonovi,
+    })
+  })
+
+  it('Spilková: hladíkovi + spilkovi (ne alias spilka)', () => {
+    const graph = new Graph<PersonNode>()
+    graph.addNode(
+      'miroslava',
+      person('miroslava', {
+        lineage: 'hladíkovi',
+        familyName: 'Spilková',
+        maidenName: 'Hladíková',
+        gender: 'female',
+        spouses: ['jiri'],
+      }),
+    )
+    graph.addNode(
+      'jiri',
+      person('jiri', {
+        lineage: 'spilkovi',
+        familyName: 'Spilka',
+        spouses: ['miroslava'],
+      }),
+    )
+
+    const palette = {
+      spilka: '#38bdf8',
+      spilkovi: '#f472b6',
+      hladikovi: '#fde68a',
+      'hladíkovi': '#fde68a',
+    }
+
+    const visible = new Set(['miroslava', 'jiri'])
+    const positions = new Map([
+      ['miroslava', { x: 200, y: 80 }],
+      ['jiri', { x: 380, y: 80 }],
+    ])
+
+    const fill = resolveForceNodeFill(
+      graph,
+      graph.getNodeAttributes('miroslava'),
+      visible,
+      positions,
+      palette,
+      false,
+    )
+
+    expect(fill).toEqual({
+      type: 'split',
+      left: palette['hladíkovi'],
+      right: palette.spilkovi,
+    })
   })
 })

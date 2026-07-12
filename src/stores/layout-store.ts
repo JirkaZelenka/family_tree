@@ -43,6 +43,7 @@ interface LayoutState {
   focusedLineage: string | null
   expandedLineages: Set<string>
   forceLayoutRevision: number
+  pendingForceFit: boolean
   setSphereLayout: (result: SphereLayoutResult) => void
   updateNodePosition: (id: string, pos: SpherePosition, pinned?: boolean) => void
   setSavedLayout: (layout: ViewLayout) => void
@@ -122,6 +123,7 @@ export const useLayoutStore = create<LayoutState>((set, get) => ({
   focusedLineage: null,
   expandedLineages: new Set(),
   forceLayoutRevision: 0,
+  pendingForceFit: false,
   setSphereLayout: (result) =>
     set({
       positions: result.positions,
@@ -214,14 +216,16 @@ export const useLayoutStore = create<LayoutState>((set, get) => ({
   loadForceViewPreset: (name) => {
     const nodes = get().forceSavedViews[name]
     if (!nodes || Object.keys(nodes).length === 0) return false
-    const copy = { ...nodes }
+    const sessionForceNodes = { ...nodes }
+    const forceAutoLayout = { ...nodes }
     set({
       activeForceViewName: name,
-      sessionForceNodes: copy,
-      forceAutoLayout: copy,
+      sessionForceNodes,
+      forceAutoLayout,
       forceLayoutRevision: get().forceLayoutRevision + 1,
+      pendingForceFit: true,
     })
-    persistForceViews(get().forceSavedViews, name, copy)
+    persistForceViews(get().forceSavedViews, name, sessionForceNodes)
     return true
   },
   renameForceViewPreset: (oldName, newName) => {

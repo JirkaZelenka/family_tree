@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parsePersonMarkdown, buildFullName } from '@/lib/parser/markdown'
+import { parsePersonMarkdown, buildFullName, formatFamilyNameWithMaiden } from '@/lib/parser/markdown'
 
 const SAMPLE = `---
 id: "a1000001-0001-4000-8000-000000000001"
@@ -59,10 +59,33 @@ sources: []
     expect(record?.frontmatter.slug).toBe('adam-novak')
   })
 
-  it('builds full name', () => {
+  it('formats family name with maiden name for women', () => {
     expect(
-      buildFullName({ givenName: 'Marie', familyName: 'Nováková', maidenName: 'Svobodová' }),
+      formatFamilyNameWithMaiden({
+        gender: 'female',
+        familyName: 'Zelenková',
+        maidenName: 'Spilková',
+      }),
+    ).toBe('Zelenková (Spilková)')
+  })
+
+  it('builds full name with maiden name for women', () => {
+    expect(
+      buildFullName({
+        givenName: 'Marie',
+        familyName: 'Nováková',
+        maidenName: 'Svobodová',
+        gender: 'female',
+      }),
     ).toBe('Marie Nováková (Svobodová)')
+    expect(
+      buildFullName({
+        givenName: 'Jiří',
+        familyName: 'Zelenka',
+        maidenName: 'Zelenka',
+        gender: 'male',
+      }),
+    ).toBe('Jiří Zelenka')
   })
 
   it('accepts birth date as year only (quoted or YAML number)', () => {

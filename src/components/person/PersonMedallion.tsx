@@ -1,5 +1,5 @@
-import { Badge } from '@/components/ui/badge'
-import { formatLifeSpan } from '@/lib/time/dates'
+import { formatFamilyNameWithMaiden } from '@/lib/parser/markdown'
+import { LifeSpanDisplay } from '@/components/person/PersonDateDisplay'
 import type { PersonNode } from '@/types/person'
 import { cn } from '@/lib/utils'
 
@@ -14,6 +14,9 @@ interface PersonMedallionProps {
   color: string
   variant?: 'card' | 'panel'
   className?: string
+  hideLineage?: boolean
+  hideDeathIfUnknown?: boolean
+  displayName?: string
 }
 
 export function PersonMedallion({
@@ -21,70 +24,65 @@ export function PersonMedallion({
   color,
   variant = 'card',
   className,
+  hideDeathIfUnknown = false,
+  displayName,
 }: PersonMedallionProps) {
-  const photo = person.media.find((m) => m.type === 'photo')
   const isPanel = variant === 'panel'
+
+  if (isPanel) {
+    return (
+      <div
+        className={cn(
+          'relative w-full overflow-hidden border-b border-border bg-card',
+          className,
+        )}
+      >
+        <div className="relative px-3 pb-3 pt-3" style={{ backgroundColor: color }}>
+          <div className="absolute right-2 top-2 flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border-2 border-background/90 bg-background/95 text-sm font-semibold text-slate-800 shadow-sm">
+            {personInitials(person)}
+          </div>
+          <div className="min-h-[2.75rem] pr-14">
+            <h2 className="text-base font-semibold leading-tight text-slate-950">
+              {displayName ?? person.fullName}
+            </h2>
+            <p className="mt-0.5 text-xs tabular-nums text-slate-800/85">
+              <LifeSpanDisplay person={person} hideDeathIfUnknown={hideDeathIfUnknown} />
+            </p>
+            {person.birth?.place?.trim() && (
+              <p className="mt-0.5 text-[11px] text-slate-800/75">{person.birth.place}</p>
+            )}
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div
       className={cn(
         'w-full overflow-hidden bg-card',
-        isPanel
-          ? 'border-b border-border shadow-sm'
-          : 'rounded-xl border border-border shadow-sm',
+        'rounded-xl border border-border shadow-sm',
         className,
       )}
     >
       <div
-        className={cn(
-          'relative w-full bg-gradient-to-br from-black/10 to-black/30',
-          isPanel ? 'h-32' : 'h-16',
-        )}
+        className="relative h-16 w-full"
         style={{ backgroundColor: color }}
       >
-        <div
-          className={cn(
-            'absolute left-1/2 flex -translate-x-1/2 items-center justify-center overflow-hidden rounded-full border-4 border-background bg-muted font-semibold text-slate-800 shadow-lg',
-            isPanel ? 'bottom-0 h-24 w-24 translate-y-1/2 text-2xl' : 'top-4 h-16 w-16 text-lg',
-          )}
-        >
-          {photo ? (
-            <img
-              src={photo.path}
-              alt=""
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            personInitials(person)
-          )}
+        <div className="absolute left-1/2 top-4 flex h-16 w-16 -translate-x-1/2 items-center justify-center overflow-hidden rounded-full border-4 border-background bg-muted font-semibold text-lg text-slate-800 shadow-lg">
+          {personInitials(person)}
         </div>
       </div>
-      <div
-        className={cn(
-          'w-full text-center',
-          isPanel ? 'px-4 pb-5 pt-14' : 'px-3 pb-4 pt-9',
-        )}
-      >
-        <h2
-          className={cn(
-            'font-semibold leading-tight',
-            isPanel ? 'text-xl' : 'text-lg',
-          )}
-        >
-          {person.fullName}
+      <div className="w-full px-3 pb-4 pt-9 text-center">
+        <h2 className="text-lg font-semibold leading-tight">
+          {displayName ?? person.fullName}
         </h2>
-        <p className="mt-1.5 text-sm text-muted-foreground tabular-nums">
-          {formatLifeSpan(person.birthYear, person.deathYear)}
+        <p className="mt-1.5 text-sm tabular-nums text-muted-foreground">
+          <LifeSpanDisplay person={person} hideDeathIfUnknown={hideDeathIfUnknown} />
         </p>
-        {person.birth?.place && (
+        {person.birth?.place?.trim() && (
           <p className="mt-1 text-xs text-muted-foreground">{person.birth.place}</p>
         )}
-        <Badge
-          className="mt-3"
-          style={{ backgroundColor: color }}
-        >
-          {person.lineage}
-        </Badge>
       </div>
     </div>
   )

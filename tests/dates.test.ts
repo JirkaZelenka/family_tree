@@ -1,5 +1,15 @@
 import { describe, it, expect } from 'vitest'
-import { parseYear, isAliveAtYear, isBornByYear, radiusFromBirthYear } from '@/lib/time/dates'
+import {
+  parseYear,
+  isAliveAtYear,
+  isBornByYear,
+  radiusFromBirthYear,
+  isUncertainDate,
+  dateDisplayText,
+  lifeSpanSegments,
+  dateFieldSegments,
+  relativeYearSpanSegments,
+} from '@/lib/time/dates'
 
 describe('dates', () => {
   it('parses years', () => {
@@ -14,6 +24,36 @@ describe('dates', () => {
     expect(parseYear(null)).toBeNull()
     expect(parseYear('')).toBeNull()
     expect(parseYear('14.2')).toBeNull()
+  })
+
+  it('parses uncertain dates with leading ?', () => {
+    expect(parseYear('?1925')).toBe(1925)
+    expect(parseYear('?1.2.1690')).toBe(1690)
+    expect(isUncertainDate('?1925')).toBe(true)
+    expect(isUncertainDate('1925')).toBe(false)
+    expect(dateDisplayText('?1.2.1690')).toBe('1.2.1690')
+    expect(dateDisplayText('?1925')).toBe('1925')
+  })
+
+  it('builds life span segments with uncertainty', () => {
+    expect(
+      lifeSpanSegments('?1925', '1940', 1925, 1940).map((s) => ({
+        ...s,
+      })),
+    ).toEqual([
+      { text: '1925', uncertain: true },
+      { text: ' – ', uncertain: false },
+      { text: '1940', uncertain: false },
+    ])
+    expect(dateFieldSegments('?1.2.1690')).toEqual([
+      { text: '1.2.1690', uncertain: true },
+    ])
+  })
+
+  it('relative year span omits unknown death', () => {
+    expect(relativeYearSpanSegments('', '', 1925, null)).toEqual([
+      { text: '1925', uncertain: false },
+    ])
   })
 
   it('checks alive at year', () => {

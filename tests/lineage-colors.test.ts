@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   enrichLineageColors,
   lineageColor,
+  lineageKeyForFamilyName,
   SMALL_LINEAGE_COLOR,
   countAffiliatedLineageMembers,
   personBelongsToLineage,
@@ -63,5 +64,21 @@ describe('rodNamesMatch', () => {
 
   it('nerozpozná nesouvisející jména', () => {
     expect(rodNamesMatch('Novák', 'hynkovi')).toBe(false)
+  })
+})
+
+describe('lineageKeyForFamilyName', () => {
+  it('preferuje spilkovi před aliasem spilka (Spilková)', () => {
+    const keys = ['spilka', 'spilkovi', 'hladikovi', 'hladíkovi']
+    expect(
+      lineageKeyForFamilyName('Spilková', keys, 'unknown', ['spilkovi', 'hladíkovi']),
+    ).toBe('spilkovi')
+  })
+
+  it('preferuje bartonovi před barton (Bartoňová)', () => {
+    const keys = ['barton', 'bartonovi', 'hynkovi']
+    expect(
+      lineageKeyForFamilyName('Bartoňová', keys, 'unknown', ['bartonovi', 'hynkovi']),
+    ).toBe('bartonovi')
   })
 })

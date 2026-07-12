@@ -1,162 +1,194 @@
-import { useState } from 'react'
+import { X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useGraphStore } from '@/stores/graph-store'
 import { useVaultStore } from '@/stores/vault-store'
 import { useViewStore } from '@/stores/view-store'
-import { getContemporaries } from '@/lib/graph/queries'
-import { Badge } from '@/components/ui/badge'
 import { PersonMedallion } from './PersonMedallion'
 import { lineageColor } from '@/lib/vault/lineage-colors'
 import { Separator } from '@/components/ui/separator'
-import { formatLifeSpan } from '@/lib/time/dates'
-import { PersonForm } from './PersonForm'
+import { hasKnownDeath } from '@/lib/time/dates'
+import { formatFamilyNameWithMaiden } from '@/lib/parser/markdown'
+import { siblingIds } from '@/lib/graph/person-links'
+import {
+  DateFieldDisplay,
+  MarriageDateDisplay,
+  RelativeLineYears,
+} from '@/components/person/PersonDateDisplay'
 import { Button } from '@/components/ui/button'
+import type { PersonNode } from '@/types/person'
 
-export function PersonDetailPanel() {
+interface PersonDetailPanelProps {
+  variant?: 'default' | 'sidebar'
+}
+
+function relativeLine(rel: PersonNode | undefined, id: string) {
+  const name = rel?.fullName ?? id
+  return (
+    <>
+      {name} <RelativeLineYears person={rel} />
+    </>
+  )
+}
+
+export function PersonDetailPanel({ variant = 'default' }: PersonDetailPanelProps) {
   const { t } = useTranslation()
-  const [editing, setEditing] = useState(false)
   const profilePersonId = useViewStore((s) => s.profilePersonId)
-  const selectedId = useGraphStore((s) => s.selectedId)
-  const graph = useGraphStore((s) => s.graph)
-  const setHighlightedIds = useGraphStore((s) => s.setHighlightedIds)
+  const setProfilePersonId = useViewStore((s) => s.setProfilePersonId)
   const persons = useGraphStore((s) => s.persons)
   const colors = useVaultStore((s) => s.vault?.config.lineageColors ?? {})
 
   const person = profilePersonId ? persons.get(profilePersonId) : null
+  const isSidebar = variant === 'sidebar'
 
   if (!person || !profilePersonId) {
     return (
-      <div className="flex h-full min-h-[12rem] items-center justify-center p-4 text-sm text-muted-foreground">
-        {t('person.noSelection')}
+      <div className="flex h-full min-h-[12rem] items-center justify-center p-4 text-center text-sm text-muted-foreground">
+        {isSidebar ? t('person.doubleClickHint') : t('person.noSelection')}
       </div>
     )
   }
 
   const color = lineageColor(person.lineage, colors)
-  const canEdit = selectedId === profilePersonId
-
-  const contemporaries =
-    graph && profilePersonId ? getContemporaries(graph, profilePersonId) : []
-
-  const showContemporaries = () => {
-    setHighlightedIds(new Set(contemporaries))
-  }
+  const showDeath = hasKnownDeath(person.death?.date)
+  const displayName = `${person.givenName} ${formatFamilyNameWithMaiden(person)}`.trim()
+  const siblings = siblingIds(person, persons)
+  const note = person.note?.trim() ?? ''
 
   return (
-    <div className="flex h-full min-h-0 flex-col overflow-y-auto">
-      <PersonMedallion person={person} color={color} variant="panel" />
-
-      <div className="space-y-4 p-4">
-        {canEdit && (
-          <div className="flex justify-end">
-            <Button variant="ghost" size="sm" onClick={() => setEditing(true)}>
-              {t('person.edit')}
-            </Button>
-          </div>
-        )}
-
-        <Separator />
-
-        <div className="space-y-2 text-sm">
-          <div>
-            <span className="text-muted-foreground">{t('person.birth')}: </span>
-            {person.birth?.date ?? '?'}
-            {person.birth?.place && ` — ${person.birth.place}`}
-          </div>
-          <div>
-            <span className="text-muted-foreground">{t('person.death')}: </span>
-            {person.death?.date ?? '?'}
-            {person.death?.place && ` — ${person.death.place}`}
-          </div>
-          <div className="text-muted-foreground">
-            {formatLifeSpan(person.birthYear, person.deathYear)}
-          </div>
+    <div className="flex h-full min-h-0 flex-col bg-background">
+      {isSidebar && (
+        <div className="flex shrink-0 items-center justify-end border-b border-border px-2 py-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => setProfilePersonId(null)}
+            aria-label={t('person.closeProfile')}
+          >
+            <X className="h-4 w-4" />
+          </Button>
         </div>
+      )}
 
-        {person.parents.length > 0 && (
-          <div>
-            <h3 className="mb-1 text-sm font-medium">{t('person.parents')}</h3>
-            <ul className="space-y-1 text-sm">
-              {person.parents.map((id) => (
-                <li key={id}>{persons.get(id)?.fullName ?? id}</li>
-              ))}
-            </ul>
-          </div>
-        )}
+      <div className="min-h-0 flex-1 overflow-y-auto bg-background">
+        <PersonMedallion
+          person={person}
+          color={color}
+          variant="panel"
+          hideDeathIfUnknown
+          displayName={displayName}
+        />
 
-        {person.spouses.length > 0 && (
-          <div>
-            <h3 className="mb-1 text-sm font-medium">{t('person.spouses')}</h3>
-            <ul className="space-y-1 text-sm">
-              {person.spouses.map((marriage) => (
-              <li key={marriage.id}>
-                {persons.get(marriage.id)?.fullName ?? marriage.id}
-                {marriage.marriage?.date ? ` — ${marriage.marriage.date}` : ''}
-              </li>
-            ))}
-            </ul>
-          </div>
-        )}
-
-        {person.children.length > 0 && (
-          <div>
-            <h3 className="mb-1 text-sm font-medium">{t('person.children')}</h3>
-            <ul className="space-y-1 text-sm">
-              {person.children.map((id) => (
-                <li key={id}>{persons.get(id)?.fullName ?? id}</li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {person.tags.length > 0 && (
-          <div>
-            <h3 className="mb-1 text-sm font-medium">{t('person.tags')}</h3>
-            <div className="flex flex-wrap gap-1">
-              {person.tags.map((tag) => (
-                <Badge key={tag} variant="outline">
-                  {tag}
-                </Badge>
-              ))}
+        <div className="space-y-4 p-4">
+          <div className="space-y-2 text-sm">
+            <div>
+              <span className="text-muted-foreground">{t('person.birth')}: </span>
+              <DateFieldDisplay date={person.birth?.date} place={person.birth?.place} />
             </div>
+            {showDeath && (
+              <div>
+                <span className="text-muted-foreground">{t('person.death')}: </span>
+                <DateFieldDisplay date={person.death?.date} place={person.death?.place} />
+              </div>
+            )}
           </div>
-        )}
 
-        {person.media.length > 0 && (
-          <div>
-            <h3 className="mb-1 text-sm font-medium">{t('person.media')}</h3>
-            <ul className="space-y-1 text-sm text-muted-foreground">
-              {person.media.map((m, i) => (
-                <li key={i}>
-                  [{m.type}] {m.caption ?? m.path}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
+          {person.parents.length > 0 && (
+            <>
+              <Separator />
+              <div>
+                <h3 className="mb-1 text-sm font-medium">{t('person.parents')}</h3>
+                <ul className="space-y-1 text-sm">
+                  {person.parents.map((id) => (
+                    <li key={id}>{relativeLine(persons.get(id), id)}</li>
+                  ))}
+                </ul>
+              </div>
+            </>
+          )}
 
-        {person.body && (
-          <div className="prose prose-invert prose-sm max-w-none">
-            <pre className="whitespace-pre-wrap font-sans text-sm">{person.body}</pre>
-          </div>
-        )}
+          {siblings.length > 0 && (
+            <>
+              <Separator />
+              <div>
+                <h3 className="mb-1 text-sm font-medium">{t('person.siblings')}</h3>
+                <ul className="space-y-1 text-sm">
+                  {siblings.map((id) => (
+                    <li key={id}>{relativeLine(persons.get(id), id)}</li>
+                  ))}
+                </ul>
+              </div>
+            </>
+          )}
 
-        {contemporaries.length > 0 && (
-          <div>
-            <button
-              type="button"
-              onClick={showContemporaries}
-              className="text-sm text-primary hover:underline"
-            >
-              {t('person.contemporaries')} ({contemporaries.length})
-            </button>
-          </div>
-        )}
+          {person.spouses.length > 0 && (
+            <>
+              <Separator />
+              <div>
+                <h3 className="mb-1 text-sm font-medium">{t('person.spouses')}</h3>
+                <ul className="space-y-1 text-sm">
+                  {person.spouses.map((marriage) => {
+                    const rel = persons.get(marriage.id)
+                    return (
+                      <li key={marriage.id}>
+                        {relativeLine(rel, marriage.id)}
+                        <MarriageDateDisplay date={marriage.marriageDate} />
+                      </li>
+                    )
+                  })}
+                </ul>
+              </div>
+            </>
+          )}
 
-        {canEdit && editing && (
-          <PersonForm person={person} onClose={() => setEditing(false)} />
-        )}
+          {person.children.length > 0 && (
+            <>
+              <Separator />
+              <div>
+                <h3 className="mb-1 text-sm font-medium">{t('person.children')}</h3>
+                <ul className="space-y-1 text-sm">
+                  {person.children.map((id) => (
+                    <li key={id}>{relativeLine(persons.get(id), id)}</li>
+                  ))}
+                </ul>
+              </div>
+            </>
+          )}
+        </div>
       </div>
+
+      {(note || person.links.length > 0) && (
+        <div className="shrink-0 space-y-4 border-t border-border bg-background p-4">
+          {note && (
+            <div>
+              <h3 className="mb-1 text-sm font-medium">{t('person.notes')}</h3>
+              <p className="whitespace-pre-wrap text-sm">{note}</p>
+            </div>
+          )}
+          {person.links.length > 0 && (
+            <div>
+              <h3 className="mb-2 text-sm font-medium">{t('person.links')}</h3>
+              <ul className="space-y-3 text-sm">
+                {person.links.map((item, i) => (
+                  <li key={i}>
+                    {item.popisek?.trim() && (
+                      <div className="mb-0.5 text-muted-foreground">{item.popisek}</div>
+                    )}
+                    <a
+                      href={item.link}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="break-all text-primary hover:underline"
+                    >
+                      {item.link}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }

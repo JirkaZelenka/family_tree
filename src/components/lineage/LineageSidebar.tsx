@@ -103,7 +103,9 @@ export function LineageSidebar() {
                 />
                 <button
                   type="button"
-                  onClick={() => {
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={(e) => {
+                    e.preventDefault()
                     if (isTree) {
                       toggleLineageExpanded(name)
                       setHighlightedIds(new Set())

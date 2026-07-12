@@ -3,12 +3,14 @@ events:
     label: "Revolutiony v Evropě"
     type: world
   - year: 1914
+    endYear: 1918
     label: "Začátek 1. světové války"
     type: world
   - year: 1918
     label: "Konec 1. světové války"
     type: world
   - year: 1939
+    endYear: 1945
     label: "Začátek 2. světové války"
     type: world
   - year: 1945
