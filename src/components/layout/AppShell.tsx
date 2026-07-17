@@ -124,7 +124,7 @@ export function AppShell() {
         </div>
         <TimeSliderBar />
         <CommandPalette />
-        {activeView !== 'tree' && <PersonProfileDialog />}
+        {activeView !== 'tree' && activeView !== 'map' && <PersonProfileDialog />}
         <PersonHoverTooltip />
         <input
           ref={zipInputRef}

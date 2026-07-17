@@ -19,7 +19,15 @@
   "views": {
     "tree": "Strom",
     "timeline": "Časová osa",
-    "calendar": "Kalendář"
+    "calendar": "Kalendář",
+    "map": "Mapa"
+  },
+  "map": {
+    "title": "Bydliště",
+    "subtitle": "Rok {{year}} · {{count}} osob na mapě",
+    "unresolvedTitle": "Nejednoznačná místa",
+    "withoutPlaceCount": "{{count}} osob bez místa na mapě",
+    "unresolvedHint": "Doplň souřadnice v data/.family-tree/places.yaml"
   },
   "calendar": {
     "title": "Narozeniny",

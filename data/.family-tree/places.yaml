@@ -1,0 +1,76 @@
+# Mapování názvů míst z dat osob na souřadnice.
+# Pokud je ambiguous: true a chybí lat/lon, místo se na mapě nezobrazí —
+# doplň souřadnice ručně (nebo ověř suggested a přenes lat/lon nahoru).
+
+places:
+  - name: Praha
+    lat: 50.0755
+    lon: 14.4378
+
+  # Části Prahy — vlastní souřadnice; „Praha - Podolí“ bez záznamu spadne na Praha.
+  - name: Praha - Podolí
+    lat: 50.0515
+    lon: 14.4208
+    aliases:
+      - Podolí
+
+  - name: Brno
+    lat: 49.1951
+    lon: 16.6068
+
+  - name: Krumvíř
+    lat: 48.9914
+    lon: 16.9125
+
+  - name: Brumovice
+    # okres Břeclav (u Krumvíře) — ne Brumovice u Opavy
+    lat: 48.9608
+    lon: 16.8931
+
+  - name: Bošovice
+    lat: 49.0539
+    lon: 16.8369
+
+  - name: Vídeň
+    lat: 48.2082
+    lon: 16.3738
+    aliases:
+      - Wien
+      - Vienna
+
+  - name: Vejvanov, Rokycany
+    lat: 49.8247
+    lon: 13.6608
+    aliases:
+      - Vejvanov / Rokycany
+      - Vejvanov
+
+  - name: Malá Vrbka
+    lat: 48.8731
+    lon: 17.4492
+
+  - name: Jesenice
+    ambiguous: true
+    note: >-
+      V ČR je více obcí Jesenice (např. Praha-západ, Rakovník, Příbram…).
+      Doplň lat/lon podle konkrétní osoby (Marie Zelenková).
+
+  - name: Polepšovice u Uherského Hradiště
+    ambiguous: true
+    note: >-
+      Obecný název v datech pravděpodobně znamená Polešovice
+      (okres Uherské Hradiště). Ověř a přenes souřadnice.
+    suggested:
+      name: Polešovice
+      lat: 49.0339
+      lon: 17.2706
+
+  - name: Nemělkov u Sušic
+    ambiguous: true
+    note: >-
+      Pravděpodobně Nemilkov (část Velhartic), historicky okres Sušice.
+      Ověř a přenes souřadnice.
+    suggested:
+      name: Nemilkov
+      lat: 49.2666
+      lon: 13.3623

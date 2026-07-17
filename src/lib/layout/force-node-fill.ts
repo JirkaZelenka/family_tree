@@ -28,7 +28,7 @@ function colorForLineage(
 }
 
 function pickVisibleSpouse(
-  graph: Graph<PersonNode>,
+  _graph: Graph<PersonNode>,
   person: PersonNode,
   visibleIds: Set<string>,
   positions: Map<string, { x: number; y: number }>,
