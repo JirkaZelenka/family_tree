@@ -63,6 +63,39 @@ export function parseYear(date: string | number | undefined | null): number | nu
   return null
 }
 
+export interface MonthDay {
+  month: number
+  day: number
+}
+
+/** Den a měsíc z data (`14.2.1968`, `1968-02-14`). Jen rok nestačí. */
+export function parseMonthDay(date: string | number | undefined | null): MonthDay | null {
+  if (date === undefined || date === null) return null
+  if (typeof date === 'number') return null
+  const trimmed = stripUncertainty(date)
+  if (!trimmed) return null
+
+  const dotMatch = trimmed.match(DOT_DATE_RE)
+  if (dotMatch) {
+    const day = parseInt(dotMatch[1], 10)
+    const month = parseInt(dotMatch[2], 10)
+    if (!Number.isFinite(day) || !Number.isFinite(month)) return null
+    if (month < 1 || month > 12 || day < 1 || day > 31) return null
+    return { month, day }
+  }
+
+  const isoMatch = trimmed.match(ISO_YEAR_RE)
+  if (isoMatch?.[2] && isoMatch[3]) {
+    const month = parseInt(isoMatch[2], 10)
+    const day = parseInt(isoMatch[3], 10)
+    if (!Number.isFinite(day) || !Number.isFinite(month)) return null
+    if (month < 1 || month > 12 || day < 1 || day > 31) return null
+    return { month, day }
+  }
+
+  return null
+}
+
 export function dateFieldSegments(date: string | undefined | null): DateTextSegment[] {
   const trimmed = date?.trim() ?? ''
   if (!trimmed) return [{ text: '?', uncertain: false }]
@@ -158,6 +191,11 @@ export function formatYearSpan(
 
 export function hasKnownDeath(deathDate: string | undefined): boolean {
   return Boolean(deathDate?.trim())
+}
+
+/** Osoba žije — prázdné datum úmrtí (`""`), ne `?` ani rok. */
+export function isLiving(deathDate: string | undefined | null): boolean {
+  return !hasKnownDeath(deathDate ?? undefined)
 }
 
 /**

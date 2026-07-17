@@ -1,6 +1,6 @@
 import type { LucideIcon } from 'lucide-react'
 
-export type ViewId = 'tree' | 'timeline'
+export type ViewId = 'tree' | 'timeline' | 'calendar'
 
 export interface ViewProps {
   className?: string

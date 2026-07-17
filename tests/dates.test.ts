@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import {
   parseYear,
+  parseMonthDay,
+  isLiving,
   isAliveAtYear,
   isBornByYear,
   radiusFromBirthYear,
@@ -28,6 +30,20 @@ describe('dates', () => {
     expect(parseYear(null)).toBeNull()
     expect(parseYear('')).toBeNull()
     expect(parseYear('14.2')).toBeNull()
+  })
+
+  it('parses month and day', () => {
+    expect(parseMonthDay('1850-03-15')).toEqual({ month: 3, day: 15 })
+    expect(parseMonthDay('14.2.1968')).toEqual({ month: 2, day: 14 })
+    expect(parseMonthDay('04.06.1993')).toEqual({ month: 6, day: 4 })
+    expect(parseMonthDay('1850')).toBeNull()
+    expect(parseMonthDay('14.2')).toBeNull()
+  })
+
+  it('treats empty death as living', () => {
+    expect(isLiving('')).toBe(true)
+    expect(isLiving('?')).toBe(false)
+    expect(isLiving('?1908')).toBe(false)
   })
 
   it('parses uncertain dates with leading ?', () => {

@@ -18,7 +18,30 @@
   },
   "views": {
     "tree": "Strom",
-    "timeline": "Časová osa"
+    "timeline": "Časová osa",
+    "calendar": "Kalendář"
+  },
+  "calendar": {
+    "title": "Narozeniny",
+    "subtitle": "Nadcházející narozeniny žijících osob v zvoleném měsíci.",
+    "prevMonth": "Předchozí měsíc",
+    "nextMonth": "Další měsíc",
+    "milestonesTitle": "Nejbližší kulatiny",
+    "milestonesSubtitle": "Nejbližších 50 kulatin (násobky pěti let).",
+    "colGivenName": "Jméno",
+    "colFamilyName": "Příjmení",
+    "colBirthday": "Narozeniny",
+    "colAge": "Kulatiny",
+    "noMilestones": "Žádné nadcházející kulatiny u žijících osob s úplným datem narození.",
+    "weekdays": {
+      "mon": "Po",
+      "tue": "Út",
+      "wed": "St",
+      "thu": "Čt",
+      "fri": "Pá",
+      "sat": "So",
+      "sun": "Ne"
+    }
   },
   "person": {
     "birth": "Narození",

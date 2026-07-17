@@ -12,7 +12,7 @@ const LEGACY_VIEW_MAP: Record<string, ViewId> = {
 }
 
 function normalizeViewId(view: string): ViewId {
-  if (view === 'tree' || view === 'timeline') return view
+  if (view === 'tree' || view === 'timeline' || view === 'calendar') return view
   return LEGACY_VIEW_MAP[view] ?? 'tree'
 }
 
