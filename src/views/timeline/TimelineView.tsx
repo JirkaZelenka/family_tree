@@ -4,6 +4,7 @@ import { useGraphStore } from '@/stores/graph-store'
 import { useTimeStore } from '@/stores/time-store'
 import { useVaultStore } from '@/stores/vault-store'
 import { useViewStore } from '@/stores/view-store'
+import { effectiveDeathYear } from '@/lib/time/dates'
 import type { ViewProps } from '../types'
 
 export function TimelineView({ className }: ViewProps) {
@@ -37,7 +38,8 @@ export function TimelineView({ className }: ViewProps) {
         <AnimatePresence>
           {bars.map((p) => {
             const start = p.birthYear ?? minYear
-            const end = p.deathYear ?? maxYear
+            const end =
+              effectiveDeathYear(p.birthYear, p.deathYear, p.death?.date) ?? maxYear
             const left = ((start - minYear) / span) * 100
             const width = Math.max(0.5, ((end - start) / span) * 100)
             const color = colors[p.lineage] ?? '#94a3b8'

@@ -3,9 +3,8 @@ import { useTranslation } from 'react-i18next'
 import { Play, Pause } from 'lucide-react'
 import { Slider } from '@/components/ui/slider'
 import { Button } from '@/components/ui/button'
-import { Switch } from '@/components/ui/switch'
-import { Label } from '@/components/ui/label'
 import { useTimeStore } from '@/stores/time-store'
+import { cn } from '@/lib/utils'
 
 export function TimeSliderBar() {
   const { t } = useTranslation()
@@ -13,10 +12,10 @@ export function TimeSliderBar() {
   const minYear = useTimeStore((s) => s.minYear)
   const maxYear = useTimeStore((s) => s.maxYear)
   const animatePlaying = useTimeStore((s) => s.animatePlaying)
-  const showContemporariesOnly = useTimeStore((s) => s.showContemporariesOnly)
+  const showAllPeople = useTimeStore((s) => s.showAllPeople)
   const setCurrentYear = useTimeStore((s) => s.setCurrentYear)
   const setAnimatePlaying = useTimeStore((s) => s.setAnimatePlaying)
-  const setShowContemporariesOnly = useTimeStore((s) => s.setShowContemporariesOnly)
+  const setShowAllPeople = useTimeStore((s) => s.setShowAllPeople)
   const intervalRef = useRef<number | null>(null)
 
   useEffect(() => {
@@ -44,7 +43,14 @@ export function TimeSliderBar() {
       >
         {animatePlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
       </Button>
-      <span className="w-12 font-mono text-sm">{currentYear}</span>
+      <span
+        className={cn(
+          'w-12 font-mono text-sm',
+          showAllPeople && 'text-muted-foreground',
+        )}
+      >
+        {showAllPeople ? t('time.all') : currentYear}
+      </span>
       <Slider
         className="flex-1"
         min={minYear}
@@ -52,17 +58,16 @@ export function TimeSliderBar() {
         step={1}
         value={[currentYear]}
         onValueChange={([v]) => setCurrentYear(v, { fromSlider: true })}
+        disabled={showAllPeople}
       />
-      <div className="flex items-center gap-2">
-        <Switch
-          id="contemporaries"
-          checked={showContemporariesOnly}
-          onCheckedChange={setShowContemporariesOnly}
-        />
-        <Label htmlFor="contemporaries" className="text-xs whitespace-nowrap">
-          {t('time.contemporariesOnly')}
-        </Label>
-      </div>
+      <Button
+        variant={showAllPeople ? 'default' : 'outline'}
+        size="sm"
+        className="shrink-0 text-xs"
+        onClick={() => setShowAllPeople(!showAllPeople)}
+      >
+        {t('time.showAll')}
+      </Button>
     </div>
   )
 }

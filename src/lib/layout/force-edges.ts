@@ -3,6 +3,10 @@ import type { PersonNode } from '@/types/person'
 import { collectFamilyUnits } from '@/lib/layout/sphere-tree'
 import { spouseIds } from '@/lib/graph/person-links'
 import { FORCE_NODE_HEIGHT, FORCE_NODE_WIDTH } from '@/lib/layout/force-layout'
+import {
+  isMarriageVisibleAtYear,
+  resolveMarriageYear,
+} from '@/lib/time/dates'
 
 export type ForceEdgeKind = 'spouse' | 'descent' | 'branch'
 
@@ -15,6 +19,13 @@ export interface ForceEdgeSegment {
   spouseIds?: string[]
   /** Konkrétní dítě u svislé větve hráběte (ne celá rodinná jednotka). */
   targetChildId?: string
+  /** Rok sňatku (odhadnutý), jen u `spouse`. */
+  marriageYear?: number | null
+}
+
+export interface BuildForceEdgeOptions {
+  currentYear?: number
+  showAll?: boolean
 }
 
 function nodeTopCenter(pos: { x: number; y: number }) {
@@ -23,6 +34,62 @@ function nodeTopCenter(pos: { x: number; y: number }) {
 
 function nodeCenter(pos: { x: number; y: number }) {
   return { x: pos.x + FORCE_NODE_WIDTH / 2, y: pos.y + FORCE_NODE_HEIGHT / 2 }
+}
+
+function marriageDateBetween(a: PersonNode, b: PersonNode): string {
+  for (const s of a.spouses) {
+    if (typeof s === 'string') {
+      if (s === b.id) return ''
+      continue
+    }
+    if (s.id === b.id) return s.marriageDate ?? ''
+  }
+  for (const s of b.spouses) {
+    if (typeof s === 'string') {
+      if (s === a.id) return ''
+      continue
+    }
+    if (s.id === a.id) return s.marriageDate ?? ''
+  }
+  return ''
+}
+
+function sharedChildBirthYears(
+  graph: Graph<PersonNode>,
+  a: PersonNode,
+  b: PersonNode,
+): number[] {
+  const years: number[] = []
+  for (const childId of a.children) {
+    if (!b.children.includes(childId) || !graph.hasNode(childId)) continue
+    const y = graph.getNodeAttributes(childId).birthYear
+    if (y !== null) years.push(y)
+  }
+  return years
+}
+
+function marriageYearForCouple(
+  graph: Graph<PersonNode>,
+  idA: string,
+  idB: string,
+): number | null {
+  if (!graph.hasNode(idA) || !graph.hasNode(idB)) return null
+  const a = graph.getNodeAttributes(idA)
+  const b = graph.getNodeAttributes(idB)
+  return resolveMarriageYear(marriageDateBetween(a, b), {
+    birthYearA: a.birthYear,
+    birthYearB: b.birthYear,
+    childBirthYears: sharedChildBirthYears(graph, a, b),
+  })
+}
+
+function shouldShowSpouseAtYear(
+  marriageYear: number | null,
+  opts?: BuildForceEdgeOptions,
+): boolean {
+  if (opts?.showAll) return true
+  if (opts?.currentYear == null) return true
+  return isMarriageVisibleAtYear(marriageYear, opts.currentYear)
 }
 
 function collectVisibleFamilyUnits(
@@ -135,10 +202,40 @@ function buildDescentRake(
   return segments
 }
 
+function pushSpouseSegment(
+  segments: ForceEdgeSegment[],
+  seenSpouse: Set<string>,
+  graph: Graph<PersonNode>,
+  idA: string,
+  idB: string,
+  positions: Map<string, { x: number; y: number }>,
+  opts?: BuildForceEdgeOptions,
+): void {
+  const spouseKey = [idA, idB].sort().join('--')
+  if (seenSpouse.has(spouseKey)) return
+  seenSpouse.add(spouseKey)
+
+  const marriageYear = marriageYearForCouple(graph, idA, idB)
+  if (!shouldShowSpouseAtYear(marriageYear, opts)) return
+
+  const pa = positions.get(idA)
+  const pb = positions.get(idB)
+  if (!pa || !pb) return
+
+  segments.push({
+    id: `spouse-${spouseKey}`,
+    kind: 'spouse',
+    spouseIds: [idA, idB],
+    marriageYear,
+    points: [nodeCenter(pa), nodeCenter(pb)],
+  })
+}
+
 export function buildForceEdgeSegments(
   graph: Graph<PersonNode>,
   visibleIds: Set<string>,
   positions: Map<string, { x: number; y: number }>,
+  opts?: BuildForceEdgeOptions,
 ): ForceEdgeSegment[] {
   const segments: ForceEdgeSegment[] = []
   const seenSpouse = new Set<string>()
@@ -148,20 +245,7 @@ export function buildForceEdgeSegments(
 
     if (unit.parentIds.length === 2) {
       const [a, b] = unit.parentIds
-      const spouseKey = [a, b].sort().join('--')
-      if (!seenSpouse.has(spouseKey)) {
-        seenSpouse.add(spouseKey)
-        const pa = positions.get(a)
-        const pb = positions.get(b)
-        if (pa && pb) {
-          segments.push({
-            id: `spouse-${spouseKey}`,
-            kind: 'spouse',
-            spouseIds: [a, b],
-            points: [nodeCenter(pa), nodeCenter(pb)],
-          })
-        }
-      }
+      pushSpouseSegment(segments, seenSpouse, graph, a, b, positions, opts)
     }
 
     segments.push(...buildDescentRake(unit.parentIds, unit.childIds, positions, unitKey))
@@ -171,20 +255,7 @@ export function buildForceEdgeSegments(
     if (!visibleIds.has(id)) return
     for (const sid of spouseIds(attrs.spouses)) {
       if (!sid || !visibleIds.has(sid)) continue
-      const key = [id, sid].sort().join('--')
-      if (seenSpouse.has(key)) continue
-      seenSpouse.add(key)
-
-      const pa = positions.get(id)
-      const pb = positions.get(sid)
-      if (!pa || !pb) continue
-
-      segments.push({
-        id: `spouse-${key}`,
-        kind: 'spouse',
-        spouseIds: [id, sid],
-        points: [nodeCenter(pa), nodeCenter(pb)],
-      })
+      pushSpouseSegment(segments, seenSpouse, graph, id, sid, positions, opts)
     }
   })
 

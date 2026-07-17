@@ -17,6 +17,8 @@ export function getContemporaries(
         person.deathYear,
         attrs.birthYear,
         attrs.deathYear,
+        person.death?.date,
+        attrs.death?.date,
       )
     ) {
       result.push(id)

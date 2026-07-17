@@ -99,4 +99,49 @@ describe('buildForceEdgeSegments', () => {
     expect(parentChildLike.length).toBeLessThan(6)
     expect(segments.some((s) => s.kind === 'descent')).toBe(true)
   })
+
+  it('ukáže růžovou spojnici až od roku sňatku', () => {
+    const graph = new Graph<PersonNode>()
+    graph.addNode(
+      'dad',
+      person('dad', {
+        spouses: [{ id: 'mom', marriageDate: '1964' }],
+        children: ['c1'],
+        birthYear: 1940,
+      }),
+    )
+    graph.addNode(
+      'mom',
+      person('mom', {
+        lineage: 'bartonovi',
+        spouses: [{ id: 'dad', marriageDate: '1964' }],
+        children: ['c1'],
+        birthYear: 1942,
+      }),
+    )
+    graph.addNode('c1', person('c1', { parents: ['dad', 'mom'], birthYear: 1965 }))
+
+    const visible = new Set(['dad', 'mom', 'c1'])
+    const positions = new Map([
+      ['dad', { x: 100, y: 50 }],
+      ['mom', { x: 280, y: 55 }],
+      ['c1', { x: 180, y: 200 }],
+    ])
+
+    const before = buildForceEdgeSegments(graph, visible, positions, {
+      currentYear: 1963,
+    })
+    expect(before.some((s) => s.kind === 'spouse')).toBe(false)
+
+    const after = buildForceEdgeSegments(graph, visible, positions, {
+      currentYear: 1964,
+    })
+    expect(after.some((s) => s.kind === 'spouse')).toBe(true)
+
+    const showAll = buildForceEdgeSegments(graph, visible, positions, {
+      currentYear: 1963,
+      showAll: true,
+    })
+    expect(showAll.some((s) => s.kind === 'spouse')).toBe(true)
+  })
 })

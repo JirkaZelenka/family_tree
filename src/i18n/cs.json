@@ -55,7 +55,8 @@
     "slider": "Rok",
     "play": "Přehrát",
     "pause": "Pauza",
-    "contemporariesOnly": "Jen současníci",
+    "showAll": "Zobrazit vše",
+    "all": "vše",
     "events": "Historické události"
   },
   "layout": {

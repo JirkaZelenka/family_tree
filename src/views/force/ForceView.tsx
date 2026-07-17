@@ -189,8 +189,8 @@ export function ForceView({ className }: ViewProps) {
   const setHighlightedIds = useGraphStore((s) => s.setHighlightedIds)
   const setProfilePersonId = useViewStore((s) => s.setProfilePersonId)
   const isPersonVisible = useTimeStore((s) => s.isPersonVisible)
-  const showContemporariesOnly = useTimeStore((s) => s.showContemporariesOnly)
   const currentYear = useTimeStore((s) => s.currentYear)
+  const showAllPeople = useTimeStore((s) => s.showAllPeople)
 
   const vaultColors = useVaultStore((s) => s.vault?.config.lineageColors ?? {})
   const lineages = useMemo(
@@ -294,10 +294,10 @@ export function ForceView({ className }: ViewProps) {
       expandedLineages,
       timeVisible: (id) => {
         const p = persons.get(id)
-        return p ? isPersonVisible(p.birthYear, p.deathYear) : false
+        return p ? isPersonVisible(p.birthYear, p.deathYear, p.death?.date) : false
       },
     })
-  }, [graph, persons, expandedLineages, isPersonVisible, currentYear, showContemporariesOnly])
+  }, [graph, persons, expandedLineages, isPersonVisible, currentYear, showAllPeople])
 
   const layout = useMemo(() => {
     if (!graph) return null
@@ -340,8 +340,11 @@ export function ForceView({ className }: ViewProps) {
 
   const edgeSegments = useMemo(() => {
     if (!graph) return []
-    return buildForceEdgeSegments(graph, visibleIds, displayPositions)
-  }, [graph, visibleIds, displayPositions])
+    return buildForceEdgeSegments(graph, visibleIds, displayPositions, {
+      currentYear,
+      showAll: showAllPeople,
+    })
+  }, [graph, visibleIds, displayPositions, currentYear, showAllPeople])
 
   const lineageHighlight = useMemo(() => {
     if (!graph || !selectedId) return null
