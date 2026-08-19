@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import Graph from 'graphology'
 import type { PersonNode } from '@/types/person'
-import { buildForceEdgeSegments } from '@/lib/layout/force-edges'
+import { buildForceEdgeSegments, historicalPathD, offsetSegmentPoints, segmentMidpoint } from '@/lib/layout/force-edges'
 import { FORCE_NODE_HEIGHT, FORCE_NODE_WIDTH } from '@/lib/layout/force-layout'
 
 function person(
@@ -79,6 +79,33 @@ describe('buildForceEdgeSegments', () => {
     const barY = horizontals[0]!.points[0].y
     expect(descent!.points[1].y).toBe(barY)
     expect(horizontals[0]!.points[0].x).not.toBe(horizontals[0]!.points[1].x)
+  })
+
+  it('nakreslí historickou inkoustovou křivku místo rovné linky', () => {
+    const segment = {
+      id: 'descent-demo',
+      kind: 'descent' as const,
+      points: [
+        { x: 10, y: 10 },
+        { x: 10, y: 80 },
+      ],
+    }
+    const d = historicalPathD(segment)
+    expect(d.startsWith('M 10 10')).toBe(true)
+    expect(d).toContain(' C ')
+    expect(d.trim().endsWith('10 80')).toBe(true)
+  })
+
+  it('posune svatební dvojlinku kolmo k ose', () => {
+    const points = [
+      { x: 0, y: 0 },
+      { x: 10, y: 0 },
+    ]
+    const up = offsetSegmentPoints(points, 2)
+    const down = offsetSegmentPoints(points, -2)
+    expect(up[0].y).toBeCloseTo(2)
+    expect(down[0].y).toBeCloseTo(-2)
+    expect(segmentMidpoint({ id: 's', kind: 'spouse', points }).x).toBeCloseTo(5)
   })
 
   it('nepřidá dvojité linky od každého rodiče ke každému dítěti', () => {
