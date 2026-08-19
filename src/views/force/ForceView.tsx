@@ -200,8 +200,8 @@ function HistoricalEdge({
 }) {
   const d = historicalPathD(segment)
   const isSpouse = segment.kind === 'spouse'
-  const opacity = dimmed ? 0.12 : emphasized ? 0.96 : isSpouse ? 0.9 : 0.78
-  const width = emphasized ? 3.1 : isSpouse ? 1.85 : segment.kind === 'descent' ? 2.45 : 1.9
+  const opacity = dimmed ? 0.14 : emphasized ? 0.98 : isSpouse ? 0.95 : 0.88
+  const width = emphasized ? 3.4 : isSpouse ? 2.05 : segment.kind === 'descent' ? 2.8 : 2.15
   const mid = isSpouse ? segmentMidpoint(segment) : null
 
   return (
@@ -210,8 +210,8 @@ function HistoricalEdge({
         d={d}
         fill="none"
         stroke={stroke}
-        strokeWidth={width + 3.6}
-        strokeOpacity={0.16}
+        strokeWidth={width + 4.2}
+        strokeOpacity={0.22}
         strokeLinecap="round"
         strokeLinejoin="round"
       />
@@ -828,8 +828,8 @@ export function ForceView({ className }: ViewProps) {
             <path
               d="M 12 128 C 38 96, 52 108, 70 78 C 88 48, 104 58, 128 18"
               fill="none"
-              stroke="rgba(90,58,36,0.14)"
-              strokeWidth="1.15"
+              stroke="rgba(90,58,36,0.22)"
+              strokeWidth="1.35"
             />
             <path
               d="M 18 42 C 40 28, 58 52, 82 36"
