@@ -18,6 +18,7 @@ import {
 } from '@/lib/layout/sphere'
 import { getYearRange } from '@/lib/time/dates'
 import { buildTreeEdges, styleForTreeEdge } from '@/lib/layout/sphere-edges'
+import { useThemeStore } from '@/stores/theme-store'
 import type { ViewProps } from '../types'
 
 class SphereErrorBoundary extends Component<
@@ -219,6 +220,7 @@ function GraphScene() {
   const isAliveAtYear = useTimeStore((s) => s.isPersonVisible)
   const sphereHighlightByYear = useTimeStore((s) => s.sphereHighlightByYear)
   const setSphereHighlightByYear = useTimeStore((s) => s.setSphereHighlightByYear)
+  const appearance = useThemeStore((s) => s.appearance)
 
   const controlsRef = useRef<OrbitControlsImpl>(null)
   const lineageColors = vault?.config.lineageColors ?? {}
@@ -269,7 +271,7 @@ function GraphScene() {
 
       {edges.map(({ points, crossLineage, active, treeKind }, i) => {
         const styled = treeKind
-          ? styleForTreeEdge(treeKind, active)
+          ? styleForTreeEdge(treeKind, active, appearance)
           : crossLineage
             ? { color: '#a8a29e', lineWidth: active ? 1.2 : 0.7, opacity: active ? 0.5 : 0.22 }
             : { color: '#64748b', lineWidth: active ? 1.1 : 0.5, opacity: active ? 0.55 : 0.12 }
