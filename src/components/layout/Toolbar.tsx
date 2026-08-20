@@ -42,7 +42,10 @@ export function Toolbar({
   const saveStatus = useVaultStore((s) => s.saveStatus)
 
   return (
-    <header className="flex flex-wrap items-center gap-2 border-b border-border px-3 py-2">
+    <header className="flex flex-wrap items-center gap-2 border-b border-border px-3 py-2 heritage-chrome">
+      <h1 className="font-heritage text-[15px] font-semibold tracking-[0.14em] text-primary">
+        {t('app.title')}
+      </h1>
       <Tabs value={activeView} onValueChange={(v) => setActiveView(v as typeof activeView)}>
         <TabsList>
           {viewRegistry.map((view) => (

@@ -56,7 +56,7 @@ export function LineageSidebar() {
 
   if (!lineageSidebarOpen) {
     return (
-      <aside className="flex h-full w-9 shrink-0 flex-col border-l border-border bg-background">
+      <aside className="flex h-full w-9 shrink-0 flex-col border-l border-border heritage-chrome">
         <button
           type="button"
           onClick={() => setLineageSidebarOpen(true)}
@@ -71,10 +71,10 @@ export function LineageSidebar() {
   }
 
   return (
-    <aside className="flex h-full w-72 min-h-0 shrink-0 flex-col overflow-hidden border-l border-border bg-background xl:w-80">
+    <aside className="flex h-full w-72 min-h-0 shrink-0 flex-col overflow-hidden border-l border-border heritage-chrome xl:w-80">
       <div className="shrink-0 border-b border-border px-4 py-3">
         <div className="flex items-center justify-between gap-2">
-          <h2 className="text-sm font-semibold">{t('lineage.panelTitle')}</h2>
+          <h2 className="font-heritage text-sm font-semibold tracking-wide">{t('lineage.panelTitle')}</h2>
           <button
             type="button"
             onClick={() => setLineageSidebarOpen(false)}

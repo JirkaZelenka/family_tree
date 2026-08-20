@@ -29,7 +29,7 @@ export function TimelineView({ className }: ViewProps) {
   )
 
   return (
-    <div className={`relative overflow-auto p-4 ${className ?? ''}`}>
+    <div className={`relative overflow-auto p-4 heritage-canvas ${className ?? ''}`}>
       <div className="relative min-h-[400px]" style={{ minWidth: 800 }}>
         <div
           className="absolute top-0 bottom-0 w-0.5 bg-primary z-10"

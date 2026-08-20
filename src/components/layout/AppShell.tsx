@@ -50,8 +50,8 @@ export function AppShell() {
 
   if (isBootstrapping) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-3 p-8">
-        <h1 className="text-2xl font-bold">{t('app.title')}</h1>
+      <div className="flex min-h-screen flex-col items-center justify-center gap-3 p-8 heritage-canvas">
+        <h1 className="font-heritage text-3xl font-semibold tracking-wide">{t('app.title')}</h1>
         <p className="text-muted-foreground">{t('app.loading')}</p>
       </div>
     )
@@ -59,8 +59,8 @@ export function AppShell() {
 
   if (!vault.loaded) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-4 p-8">
-        <h1 className="text-2xl font-bold">{t('app.title')}</h1>
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 p-8 heritage-canvas">
+        <h1 className="font-heritage text-3xl font-semibold tracking-wide">{t('app.title')}</h1>
         <p className="text-muted-foreground">{t('app.noVault')}</p>
         <div className="flex gap-2">
           <button
