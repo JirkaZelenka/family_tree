@@ -43,5 +43,6 @@ pozn.txt
 data/people/*.md
 data/.family-tree/layout.json
 data/.family-tree/config.yaml
+data/family_files/*
 src/types/vault.ts
 tests/lineage-names.test.ts
