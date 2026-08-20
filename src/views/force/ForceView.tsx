@@ -25,7 +25,6 @@ import {
 } from '@/lib/layout/force-edges'
 import {
   computeForceLayout,
-  birthYearToCenterY,
   FORCE_NODE_HEIGHT,
   FORCE_NODE_WIDTH,
   FORCE_PADDING,
