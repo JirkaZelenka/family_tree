@@ -7,6 +7,7 @@ Tyto soubory jsou **fiktivní ukázky** (Novák / Dvořák). Skutečná data jso
 | Šablona | Zkopírovat do |
 |---------|---------------|
 | `templates/data/people/*.md` | `data/people/*.md` |
+| `templates/data/texts/*.md` | `data/texts/*.md` |
 | `templates/data/.family-tree/config.yaml` | `data/.family-tree/config.yaml` |
 | `templates/data/.family-tree/layout.json` | `data/.family-tree/layout.json` |
 | `templates/src/types/vault.ts` | `src/types/vault.ts` |

@@ -26,6 +26,27 @@ note: "veřejná poznámka o osobě"
 
 Soubor končí YAML frontmatterem (bez markdown těla).
 
+## Texty (`texts/*.md`)
+
+Volné markdown soubory s příběhy, výpisy z matrik nebo poznámkami. Jména a rody se v textu označí složenými závorkami, které se v aplikaci **nezobrazují**.
+
+```md
+---
+title: Svatba Jana a Marie
+date: "11.9.2022"
+---
+
+Ženich [Jan Novák]{1} se oženil s [Marií Dvořákovou]{13}.
+Obřad spojil rodiny Novákovi{novakovi} a Dvořákovi{dvorakovi}.
+```
+
+- `[viditelný text]{id}` — označí více slov (osoba)
+- `Jméno{id}` — označí jedno slovo
+- `{id}` je `id` osoby z `people/`
+- rod: `Novákovi{novakovi}` nebo `Novákovi{rod:novakovi}` (klíč jako v panelu rodů)
+
+Po kliknutí na osobu ve stromu (nebo na rod v pravém panelu) se v bočním panelu ukážou náhledy všech textů, kde je entita označená. Celý text otevře náhled se zvýrazněným jménem.
+
 ## Config
 
 `timeLayers` — radiální vrstvy sféry podle roku narození.

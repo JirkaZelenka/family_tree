@@ -7,6 +7,7 @@ Moderní browser-only aplikace pro vizualizaci genealogických dat inspirovaná 
 - **3D sféra** (React Three Fiber) — osoby podle období narození, shluky rodů
 - **Více pohledů** — Sféra, Strom, Force graf, Časová osa, Mapa
 - **Markdown vault** — jeden člověk = jeden `.md` soubor s YAML frontmatter
+- **Texty** — složka `texts/` se zmínkami `{id}` u osob a rodů, náhledy v bočním panelu
 - **Vyhledávání** (FlexSearch), tooltips, detail osoby, současníci
 - **Časový slider** s animací
 - **Import/Export** ZIP vaultu a GEDCOM
@@ -27,6 +28,7 @@ Otevřete http://localhost:5173 — aplikace automaticky načte ukázková data 
 ```
 data/                          # lokální data (většina v .gitignore)
 ├── people/*.md
+├── texts/*.md                 # příběhy a zmínky o osobách / rodech
 ├── events/world-events.yaml
 └── .family-tree/
     ├── config.yaml

@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { PanelRightClose, PanelRightOpen } from 'lucide-react'
+import { FileText, PanelRightClose, PanelRightOpen, X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useVaultStore } from '@/stores/vault-store'
 import { getLineages } from '@/lib/graph/queries'
@@ -11,7 +11,9 @@ import {
   lineageColor,
   countAffiliatedLineageMembers,
 } from '@/lib/vault/lineage-colors'
+import { findLineageTexts } from '@/lib/texts'
 import { LineageColorPicker } from '@/components/lineage/LineageColorPicker'
+import { MentionedTexts } from '@/components/texts/MentionedTexts'
 import { cn } from '@/lib/utils'
 
 export function LineageSidebar() {
@@ -25,8 +27,11 @@ export function LineageSidebar() {
   const setLineageSort = useViewStore((s) => s.setLineageSort)
   const lineageSidebarOpen = useViewStore((s) => s.lineageSidebarOpen)
   const setLineageSidebarOpen = useViewStore((s) => s.setLineageSidebarOpen)
+  const selectedLineage = useViewStore((s) => s.selectedLineage)
+  const setSelectedLineage = useViewStore((s) => s.setSelectedLineage)
   const expandedLineages = useLayoutStore((s) => s.expandedLineages)
   const toggleLineageExpanded = useLayoutStore((s) => s.toggleLineageExpanded)
+  const texts = useVaultStore((s) => s.vault?.texts ?? [])
 
   const lineages = useMemo(() => (graph ? getLineages(graph) : []), [graph])
 
@@ -49,6 +54,19 @@ export function LineageSidebar() {
     }
     return items.sort((a, b) => a.name.localeCompare(b.name, 'cs'))
   }, [lineages, memberCounts, lineageSort])
+
+  const textCounts = useMemo(() => {
+    const counts: Record<string, number> = {}
+    for (const name of lineages) {
+      counts[name] = findLineageTexts(texts, name).length
+    }
+    return counts
+  }, [lineages, texts])
+
+  const selectedOccurrences = useMemo(
+    () => (selectedLineage ? findLineageTexts(texts, selectedLineage) : []),
+    [selectedLineage, texts],
+  )
 
   const isTree = activeView === 'tree'
 
@@ -117,12 +135,15 @@ export function LineageSidebar() {
         {sortedLineages.map(({ name, count }) => {
           const baseColor = lineageColor(name, colors)
           const expanded = isTree ? expandedLineages.has(name) : true
+          const selected = selectedLineage === name
+          const relatedTextCount = textCounts[name] ?? 0
           return (
             <li key={name}>
               <div
                 className={cn(
                   'flex w-full items-center gap-1 rounded-md px-1 py-1 text-left text-sm transition-colors',
-                  isTree && expanded && 'bg-accent ring-1 ring-primary',
+                  selected && 'bg-accent ring-1 ring-primary',
+                  isTree && expanded && !selected && 'bg-accent/70',
                   isTree && !expanded && 'opacity-80',
                 )}
               >
@@ -136,17 +157,24 @@ export function LineageSidebar() {
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={(e) => {
                     e.preventDefault()
+                    setSelectedLineage(name)
                     if (isTree) {
                       toggleLineageExpanded(name)
                       setHighlightedIds(new Set())
                     }
                   }}
-                  className={cn(
-                    'flex min-w-0 flex-1 items-center gap-2 rounded-md px-1 py-1',
-                    isTree ? 'cursor-pointer hover:bg-accent/80' : 'cursor-default',
-                  )}
+                  className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 rounded-md px-1 py-1 hover:bg-accent/80"
                 >
                   <span className="min-w-0 flex-1 truncate font-medium">{name}</span>
+                  {relatedTextCount > 0 && (
+                    <FileText
+                      className={cn(
+                        'h-3.5 w-3.5 shrink-0',
+                        selected ? 'text-primary' : 'text-muted-foreground',
+                      )}
+                      aria-hidden
+                    />
+                  )}
                   <span className="shrink-0 tabular-nums text-xs text-muted-foreground">
                     {count}
                   </span>
@@ -156,6 +184,31 @@ export function LineageSidebar() {
           )
         })}
       </ul>
+
+      {texts.length > 0 && selectedLineage && (
+        <div className="flex max-h-[42%] min-h-0 shrink-0 flex-col border-t border-border">
+          <div className="flex shrink-0 items-center justify-between gap-2 px-4 py-2">
+            <h3 className="min-w-0 truncate text-sm font-medium">
+              {t('texts.sectionTitle')}
+              <span className="ml-1 font-normal text-muted-foreground">· {selectedLineage}</span>
+            </h3>
+            <button
+              type="button"
+              onClick={() => setSelectedLineage(null)}
+              className="shrink-0 rounded-md p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+              aria-label={t('person.closeProfile')}
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-3">
+            <MentionedTexts
+              occurrences={selectedOccurrences}
+              emptyLabel={t('texts.emptyLineage')}
+            />
+          </div>
+        </div>
+      )}
 
       {isTree && (
         <p className="shrink-0 border-t border-border px-4 py-2 text-[11px] leading-snug text-muted-foreground">

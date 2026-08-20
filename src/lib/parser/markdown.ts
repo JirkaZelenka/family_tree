@@ -74,7 +74,7 @@ function normalizeFrontmatterForYaml(fm: PersonFrontmatter): Record<string, unkn
 }
 
 /** Bez gray-matter — ten v prohlížeči vyžaduje Node.js Buffer. */
-function parseFrontmatter(content: string): { data: unknown; body: string } {
+export function parseFrontmatter(content: string): { data: unknown; body: string } {
   const text = String(content).replace(/^\uFEFF/, '')
   if (!text.startsWith('---')) {
     return { data: {}, body: text.trim() }

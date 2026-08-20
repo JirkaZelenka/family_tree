@@ -5,7 +5,7 @@ Viz hlavní plán projektu. Aplikace je čistě klientská SPA.
 ## Vrstvy
 
 1. **Storage** — File System Access API, IndexedDB cache, ZIP import/export
-2. **Parser** — gray-matter + Zod validace → PersonRecord
+2. **Parser** — YAML frontmatter osob + markdown texty se zmínkami `{id}`
 3. **Graph** — Graphology builder, queries (současníci, předci)
 4. **Layout** — d3-force + ForceAtlas2 na sféře, persistence v layout.json
 5. **Views** — plugin registry (sphere, tree, force, timeline, map)

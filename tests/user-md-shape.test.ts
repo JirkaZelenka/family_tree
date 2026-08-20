@@ -12,7 +12,7 @@ describe('user markdown files', () => {
     expect(errors).toEqual([])
     expect(record?.frontmatter.id).toBe('1')
     expect(record?.frontmatter.spouses).toEqual([
-      { id: '13', marriageDate: '21.9.2024' },
+      { id: '13', marriageDate: '11.9.2022' },
     ])
     expect(record?.frontmatter.links).toEqual([
       {

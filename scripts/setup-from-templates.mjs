@@ -48,11 +48,29 @@ function copyPeopleDir() {
   return n
 }
 
+function copyTextsDir() {
+  const srcDir = path.join(templateRoot, 'data/texts')
+  const destDir = path.join(root, 'data/texts')
+  if (!fs.existsSync(srcDir)) return 0
+  fs.mkdirSync(destDir, { recursive: true })
+  let n = 0
+  for (const name of fs.readdirSync(srcDir)) {
+    if (!name.endsWith('.md')) continue
+    const dest = path.join(destDir, name)
+    if (fs.existsSync(dest) && !force) continue
+    fs.copyFileSync(path.join(srcDir, name), dest)
+    console.log(`${force && fs.existsSync(dest) ? 'Přepsáno' : 'Vytvořeno'}: data/texts/${name}`)
+    n++
+  }
+  return n
+}
+
 let copied = 0
 for (const [from, to] of FILE_COPIES) {
   copied += copyFile(from, to)
 }
 copied += copyPeopleDir()
+copied += copyTextsDir()
 
 if (copied === 0) {
   console.log('Všechny lokální soubory už existují (použij --force pro přepsání).')

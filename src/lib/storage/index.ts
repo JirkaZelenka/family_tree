@@ -62,7 +62,9 @@ export async function loadCachedVaultFiles(): Promise<Map<string, string> | null
   }
 }
 
-export async function importZipVault(file: File): Promise<VaultData> {
+export async function importZipVault(
+  file: File,
+): Promise<{ vault: VaultData; files: Map<string, string> }> {
   const zip = await JSZip.loadAsync(file)
   const files = new Map<string, string>()
   for (const [path, entry] of Object.entries(zip.files)) {
@@ -71,7 +73,8 @@ export async function importZipVault(file: File): Promise<VaultData> {
     files.set(path, content)
   }
   await cacheVaultFiles(files)
-  return loadVaultFromFileMap(files)
+  const vault = await loadVaultFromFileMap(files)
+  return { vault, files }
 }
 
 export async function exportZipVault(
@@ -82,6 +85,10 @@ export async function exportZipVault(
   for (const person of vault.people) {
     const rel = person.filePath.replace(/^.*[/\\]people[/\\]/, 'people/')
     zip.file(rel, serializePersonMarkdown(person))
+  }
+  for (const text of vault.texts) {
+    const rel = text.filePath.replace(/^.*[/\\]texts[/\\]/, 'texts/')
+    zip.file(rel, text.rawContent)
   }
   zip.file('.family-tree/config.yaml', serializeConfig(vault.config))
   zip.file('.family-tree/layout.json', serializeLayout(vault.layout))
@@ -129,10 +136,11 @@ async function readDir(
 
 export async function loadVaultFromDirectory(
   handle: FileSystemDirectoryHandle,
-): Promise<VaultData> {
+): Promise<{ vault: VaultData; files: Map<string, string> }> {
   const files = await readDir(handle)
   await cacheVaultFiles(files)
-  return loadVaultFromFileMap(files)
+  const vault = await loadVaultFromFileMap(files)
+  return { vault, files }
 }
 
 export async function writeTextFile(

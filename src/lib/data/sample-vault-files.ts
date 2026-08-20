@@ -10,6 +10,7 @@ export function vaultRelativePath(importPath: string): string {
   const templateMatch = normalized.match(/(?:^|\/)templates\/data\/(.+)$/)
   if (templateMatch) return templateMatch[1]
   if (normalized.startsWith('people/')) return normalized
+  if (normalized.startsWith('texts/')) return normalized
   return normalized.replace(/^(\.\.\/)+/, '')
 }
 
@@ -57,6 +58,32 @@ const userPeopleGlobs = [
   }),
 ] as Record<string, string>[]
 
+const templateTextsGlobs = [
+  import.meta.glob('../../../templates/data/texts/**/*.md', {
+    query: '?raw',
+    import: 'default',
+    eager: true,
+  }),
+  import.meta.glob('/templates/data/texts/**/*.md', {
+    query: '?raw',
+    import: 'default',
+    eager: true,
+  }),
+] as Record<string, string>[]
+
+const userTextsGlobs = [
+  import.meta.glob('../../../data/texts/**/*.md', {
+    query: '?raw',
+    import: 'default',
+    eager: true,
+  }),
+  import.meta.glob('/data/texts/**/*.md', {
+    query: '?raw',
+    import: 'default',
+    eager: true,
+  }),
+] as Record<string, string>[]
+
 const userConfigGlobs = import.meta.glob('../../../data/.family-tree/config.yaml', {
   query: '?raw',
   import: 'default',
@@ -78,6 +105,9 @@ export function loadTemplateVaultFileMap(): Map<string, string> {
   for (const glob of templatePeopleGlobs) {
     mergeGlobRaw(files, glob)
   }
+  for (const glob of templateTextsGlobs) {
+    mergeGlobRaw(files, glob)
+  }
 
   files.set('.family-tree/config.yaml', templateConfigYaml)
   files.set('.family-tree/layout.json', templateLayoutJson)
@@ -97,6 +127,13 @@ export function loadSampleVaultFileMap(): Map<string, string> {
   }
   if ([...files.keys()].filter((k) => k.startsWith('people/')).length === 0) {
     for (const glob of templatePeopleGlobs) {
+      mergeGlobRaw(files, glob)
+    }
+    for (const glob of templateTextsGlobs) {
+      mergeGlobRaw(files, glob)
+    }
+  } else {
+    for (const glob of userTextsGlobs) {
       mergeGlobRaw(files, glob)
     }
   }

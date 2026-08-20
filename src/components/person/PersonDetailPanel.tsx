@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useGraphStore } from '@/stores/graph-store'
 import { useVaultStore } from '@/stores/vault-store'
@@ -8,6 +9,8 @@ import { Separator } from '@/components/ui/separator'
 import { hasKnownDeath } from '@/lib/time/dates'
 import { formatFamilyNameWithMaiden } from '@/lib/parser/markdown'
 import { siblingIds } from '@/lib/graph/person-links'
+import { findPersonTexts } from '@/lib/texts'
+import { MentionedTexts } from '@/components/texts/MentionedTexts'
 import {
   DateFieldDisplay,
   MarriageDateDisplay,
@@ -33,9 +36,14 @@ export function PersonDetailPanel({ variant = 'default' }: PersonDetailPanelProp
   const profilePersonId = useViewStore((s) => s.profilePersonId)
   const persons = useGraphStore((s) => s.persons)
   const colors = useVaultStore((s) => s.vault?.config.lineageColors ?? {})
+  const texts = useVaultStore((s) => s.vault?.texts ?? [])
 
   const person = profilePersonId ? persons.get(profilePersonId) : null
   const isSidebar = variant === 'sidebar'
+  const occurrences = useMemo(
+    () => (person ? findPersonTexts(texts, person.id) : []),
+    [texts, person],
+  )
 
   if (!person || !profilePersonId) {
     return (
@@ -134,6 +142,19 @@ export function PersonDetailPanel({ variant = 'default' }: PersonDetailPanelProp
                     <li key={id}>{relativeLine(persons.get(id), id)}</li>
                   ))}
                 </ul>
+              </div>
+            </>
+          )}
+
+          {texts.length > 0 && (
+            <>
+              <Separator />
+              <div>
+                <h3 className="mb-2 text-sm font-medium">{t('texts.sectionTitle')}</h3>
+                <MentionedTexts
+                  occurrences={occurrences}
+                  emptyLabel={t('texts.emptyPerson')}
+                />
               </div>
             </>
           )}

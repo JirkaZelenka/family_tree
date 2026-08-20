@@ -40,6 +40,16 @@
     "closeProfile": "Zavřít profil",
     "profileTitle": "Profil osoby"
   },
+  "texts": {
+    "sectionTitle": "Texty",
+    "emptyPerson": "Tato osoba se v textech nevyskytuje",
+    "emptyLineage": "Tento rod se v textech nevyskytuje",
+    "openFull": "Zobrazit celý text",
+    "occurrenceCount_one": "{{count}} výskyt",
+    "occurrenceCount_few": "{{count}} výskyty",
+    "occurrenceCount_many": "{{count}} výskytů",
+    "occurrenceCount_other": "{{count}} výskytů"
+  },
   "lineage": {
     "panelTitle": "Rody",
     "sortByName": "Podle jména",
@@ -59,7 +69,7 @@
     "events": "Historické události"
   },
   "layout": {
-    "treeHint": "Klikněte na rod pro sbalení/rozbalení. Levé tlačítko tažením posouvá graf. Více osob vyberte tlačítkem obdélníkového výběru nahoře vlevo.",
+    "treeHint": "Klikněte na rod pro sbalení/rozbalení a související texty. Levé tlačítko tažením posouvá graf. Více osob vyberte tlačítkem obdélníkového výběru nahoře vlevo.",
     "marqueeSelect": "Výběr obdélníkem",
     "defaultView": "Výchozí pohled",
     "forceViewsTitle": "Uložené pohledy",

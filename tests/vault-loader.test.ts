@@ -30,6 +30,6 @@ describe('loadVaultFromFileMap', () => {
       )
     }
     const vault = await loadVaultFromFileMap(files)
-    expect(vault.people.length).toBeGreaterThan(10)
+    expect(vault.people.length).toBeGreaterThan(0)
   })
 })

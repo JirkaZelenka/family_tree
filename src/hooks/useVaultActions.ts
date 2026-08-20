@@ -65,14 +65,13 @@ export function useVaultActions() {
     const handle = await pickVaultDirectory()
     if (!handle) return
     useVaultStore.getState().setDirectoryHandle(handle)
-    const data = await loadVaultFromDirectory(handle)
-    const files = useVaultStore.getState().fileMap
-    applyVault(data, files)
+    const { vault, files } = await loadVaultFromDirectory(handle)
+    applyVault(vault, files)
   }, [])
 
   const importZip = useCallback(async (file: File) => {
-    const data = await importZipVault(file)
-    applyVault(data, useVaultStore.getState().fileMap)
+    const { vault, files } = await importZipVault(file)
+    applyVault(vault, files)
   }, [])
 
   const exportZip = useCallback(async () => {

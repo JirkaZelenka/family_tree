@@ -10,11 +10,14 @@ import {
   type HistoricalEvent,
 } from '@/types/vault'
 import type { PersonRecord } from '@/types/person'
+import type { TextDocument } from '@/types/text'
 import { parsePersonMarkdown } from '@/lib/parser/markdown'
+import { isTextMarkdownPath, parseTextMarkdown } from '@/lib/parser/text-markdown'
 import { enrichLineageColors, countLineageMembers } from '@/lib/vault/lineage-colors'
 
 export interface VaultData {
   people: PersonRecord[]
+  texts: TextDocument[]
   config: VaultConfig
   layout: LayoutFile
   events: HistoricalEvent[]
@@ -26,6 +29,7 @@ export async function loadVaultFromFileMap(
 ): Promise<VaultData> {
   const diagnostics: string[] = []
   const people: PersonRecord[] = []
+  const textFiles: Array<{ path: string; content: string }> = []
 
   let config: VaultConfig = {
     timeLayers: DEFAULT_TIME_LAYERS,
@@ -45,6 +49,8 @@ export async function loadVaultFromFileMap(
       const result = parsePersonMarkdown(content, path)
       diagnostics.push(...result.errors)
       if (result.record) people.push(result.record)
+    } else if (isTextMarkdownPath(normalized)) {
+      textFiles.push({ path, content })
     } else if (normalized.endsWith('.family-tree/config.yaml')) {
       try {
         const parsed = VaultConfigSchema.safeParse(parseYaml(content))
@@ -77,6 +83,10 @@ export async function loadVaultFromFileMap(
   }
 
   const lineages = people.map((p) => p.frontmatter.lineage)
+  const personIds = people.map((p) => p.frontmatter.id)
+  const texts = textFiles.map(({ path, content }) =>
+    parseTextMarkdown(content, path, personIds, lineages),
+  )
   config = {
     ...config,
     lineageColors: enrichLineageColors(
@@ -86,7 +96,7 @@ export async function loadVaultFromFileMap(
     ),
   }
 
-  return { people, config, layout, events, diagnostics }
+  return { people, texts, config, layout, events, diagnostics }
 }
 
 export function serializeConfig(config: VaultConfig): string {
