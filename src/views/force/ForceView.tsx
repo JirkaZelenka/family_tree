@@ -13,17 +13,18 @@ import { useTimeStore } from '@/stores/time-store'
 import { useVaultStore } from '@/stores/vault-store'
 import { useLayoutStore } from '@/stores/layout-store'
 import { useViewStore } from '@/stores/view-store'
+import { useThemeStore } from '@/stores/theme-store'
 import { computeForceVisibility } from '@/lib/layout/force-visibility'
 import {
   buildForceEdgeSegments,
   historicalOffsetPathD,
   historicalPathD,
   segmentMidpoint,
+  segmentPathD,
   type ForceEdgeSegment,
 } from '@/lib/layout/force-edges'
 import {
   computeForceLayout,
-  birthYearToCenterY,
   FORCE_NODE_HEIGHT,
   FORCE_NODE_WIDTH,
   FORCE_PADDING,
@@ -82,6 +83,7 @@ function PersonNodeCard({
   selected,
   highlighted,
   dragging,
+  heritage,
   onSelect,
   onOpenProfile,
   onDragStart,
@@ -94,6 +96,7 @@ function PersonNodeCard({
   selected: boolean
   highlighted: boolean
   dragging: boolean
+  heritage: boolean
   onSelect: (additive: boolean) => void
   onOpenProfile: () => void
   onDragStart: (e: ReactPointerEvent<SVGGElement>) => void
@@ -109,10 +112,16 @@ function PersonNodeCard({
       : highlighted
         ? accent
         : muted
-          ? 'rgba(120,96,72,0.38)'
-          : 'rgba(64,44,28,0.55)'
+          ? heritage
+            ? 'rgba(120,96,72,0.38)'
+            : 'rgba(148,163,184,0.45)'
+          : heritage
+            ? 'rgba(64,44,28,0.55)'
+            : 'rgba(15,23,42,0.35)'
 
   const gradientId = `force-split-${person.id.replace(/[^a-zA-Z0-9_-]/g, '_')}`
+  const cardRx = heritage ? 8 : 14
+  const haloRx = heritage ? 10 : 18
 
   return (
     <g
@@ -127,7 +136,7 @@ function PersonNodeCard({
           y={-5}
           width={FORCE_NODE_WIDTH + 10}
           height={FORCE_NODE_HEIGHT + 10}
-          rx={10}
+          rx={haloRx}
           fill="none"
           stroke="var(--force-selection-stroke)"
           strokeWidth={2.5}
@@ -146,29 +155,31 @@ function PersonNodeCard({
       <rect
         width={FORCE_NODE_WIDTH}
         height={FORCE_NODE_HEIGHT}
-        rx={8}
+        rx={cardRx}
         fill={nodeFill.type === 'split' ? `url(#${gradientId})` : nodeFill.color}
         stroke={stroke}
-        strokeWidth={boundary ? 2.5 : selected ? 2.5 : highlighted ? 2 : 1.35}
+        strokeWidth={boundary ? 2.5 : selected ? 2.5 : highlighted ? 2 : heritage ? 1.35 : 1.25}
         opacity={1}
         filter={dragging ? undefined : boundary ? 'url(#force-boundary-glow)' : 'url(#force-node-shadow)'}
       />
-      <rect
-        x={3.5}
-        y={3.5}
-        width={FORCE_NODE_WIDTH - 7}
-        height={FORCE_NODE_HEIGHT - 7}
-        rx={5}
-        fill="none"
-        stroke="rgba(64,44,28,0.28)"
-        strokeWidth={0.75}
-        style={{ pointerEvents: 'none' }}
-      />
+      {heritage && (
+        <rect
+          x={3.5}
+          y={3.5}
+          width={FORCE_NODE_WIDTH - 7}
+          height={FORCE_NODE_HEIGHT - 7}
+          rx={5}
+          fill="none"
+          stroke="rgba(64,44,28,0.28)"
+          strokeWidth={0.75}
+          style={{ pointerEvents: 'none' }}
+        />
+      )}
       <text
         x={FORCE_NODE_WIDTH / 2}
         y={20}
         textAnchor="middle"
-        className="fill-slate-950 text-[13px] font-semibold font-heritage"
+        className={heritage ? 'fill-slate-950 text-[13px] font-semibold font-heritage' : 'fill-slate-950 text-[12px] font-semibold'}
         style={{ pointerEvents: 'none' }}
       >
         {person.givenName}
@@ -177,7 +188,7 @@ function PersonNodeCard({
         x={FORCE_NODE_WIDTH / 2}
         y={36}
         textAnchor="middle"
-        className="fill-slate-800 text-[11px] font-serif-body"
+        className={heritage ? 'fill-slate-800 text-[11px] font-serif-body' : 'fill-slate-800 text-[10px]'}
         style={{ pointerEvents: 'none' }}
       >
         {formatFamilyNameWithMaiden(person)}
@@ -270,8 +281,34 @@ function HistoricalEdge({
   )
 }
 
+function ModernEdge({
+  segment,
+  stroke,
+  dimmed,
+  emphasized,
+}: {
+  segment: ForceEdgeSegment
+  stroke: string
+  dimmed: boolean
+  emphasized: boolean
+}) {
+  return (
+    <path
+      d={segmentPathD(segment)}
+      fill="none"
+      stroke={stroke}
+      strokeWidth={emphasized ? 3 : segment.kind === 'spouse' ? 2 : 1.5}
+      strokeOpacity={dimmed ? 0.1 : emphasized ? 0.92 : segment.kind === 'spouse' ? 0.8 : 0.55}
+      strokeDasharray={segment.kind === 'spouse' && !emphasized ? '6 4' : undefined}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  )
+}
+
 export function ForceView({ className }: ViewProps) {
   const { t } = useTranslation()
+  const isHeritage = useThemeStore((s) => s.appearance === 'heritage')
   const personSidebarOpen = useViewStore((s) => s.personSidebarOpen)
   const lineageSidebarOpen = useViewStore((s) => s.lineageSidebarOpen)
   const toggleTreeFullscreen = useViewStore((s) => s.toggleTreeFullscreen)
@@ -744,7 +781,7 @@ export function ForceView({ className }: ViewProps) {
   if (!graph || !layout) {
     return (
       <div className={`relative h-full w-full heritage-canvas ${className ?? ''}`}>
-        <svg ref={svgRef} className="h-full w-full bg-transparent" />
+        <svg ref={svgRef} className={`h-full w-full ${isHeritage ? 'bg-transparent' : 'bg-background'}`} />
       </div>
     )
   }
@@ -803,7 +840,7 @@ export function ForceView({ className }: ViewProps) {
 
       <svg
         ref={svgRef}
-        className="h-full w-full touch-none select-none bg-transparent"
+        className={`h-full w-full touch-none select-none ${isHeritage ? 'bg-transparent' : 'bg-background'}`}
         onPointerDown={onSvgPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
@@ -811,39 +848,68 @@ export function ForceView({ className }: ViewProps) {
       >
         <defs>
           <filter id="force-node-shadow" x="-30%" y="-30%" width="160%" height="160%">
-            <feDropShadow dx="0" dy="2" stdDeviation="2.4" floodColor="#4a3426" floodOpacity="0.28" />
+            {isHeritage ? (
+              <feDropShadow dx="0" dy="2" stdDeviation="2.4" floodColor="#4a3426" floodOpacity="0.28" />
+            ) : (
+              <feDropShadow dx="0" dy="2" stdDeviation="3" floodOpacity="0.28" />
+            )}
           </filter>
           <filter id="force-boundary-glow" x="-50%" y="-50%" width="200%" height="200%">
             <feDropShadow dx="0" dy="0" stdDeviation="5" floodColor="var(--force-glow-color)" floodOpacity="0.85" />
-            <feDropShadow dx="0" dy="0" stdDeviation="10" floodColor="#c4a35a" floodOpacity="0.4" />
-          </filter>
-          <filter id="heritage-grain" x="0" y="0" width="100%" height="100%">
-            <feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="4" stitchTiles="stitch" result="noise" />
-            <feColorMatrix type="saturate" values="0" />
-            <feComponentTransfer>
-              <feFuncA type="table" tableValues="0 0.08" />
-            </feComponentTransfer>
-          </filter>
-          <pattern id="heritage-vines" width="140" height="140" patternUnits="userSpaceOnUse">
-            <path
-              d="M 12 128 C 38 96, 52 108, 70 78 C 88 48, 104 58, 128 18"
-              fill="none"
-              stroke="rgba(90,58,36,0.22)"
-              strokeWidth="1.35"
+            <feDropShadow
+              dx="0"
+              dy="0"
+              stdDeviation="10"
+              floodColor={isHeritage ? '#c4a35a' : '#38bdf8'}
+              floodOpacity={isHeritage ? 0.4 : 0.45}
             />
-            <path
-              d="M 18 42 C 40 28, 58 52, 82 36"
-              fill="none"
-              stroke="rgba(120,72,42,0.1)"
-              strokeWidth="0.9"
-            />
-            <circle cx="70" cy="78" r="2.2" fill="rgba(143,59,76,0.16)" />
-            <circle cx="104" cy="52" r="1.5" fill="rgba(196,163,90,0.22)" />
-          </pattern>
+          </filter>
+          {isHeritage ? (
+            <>
+              <filter id="heritage-grain" x="0" y="0" width="100%" height="100%">
+                <feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="4" stitchTiles="stitch" result="noise" />
+                <feColorMatrix type="saturate" values="0" />
+                <feComponentTransfer>
+                  <feFuncA type="table" tableValues="0 0.08" />
+                </feComponentTransfer>
+              </filter>
+              <pattern id="heritage-vines" width="140" height="140" patternUnits="userSpaceOnUse">
+                <path
+                  d="M 12 128 C 38 96, 52 108, 70 78 C 88 48, 104 58, 128 18"
+                  fill="none"
+                  stroke="rgba(90,58,36,0.22)"
+                  strokeWidth="1.35"
+                />
+                <path
+                  d="M 18 42 C 40 28, 58 52, 82 36"
+                  fill="none"
+                  stroke="rgba(120,72,42,0.1)"
+                  strokeWidth="0.9"
+                />
+                <circle cx="70" cy="78" r="2.2" fill="rgba(143,59,76,0.16)" />
+                <circle cx="104" cy="52" r="1.5" fill="rgba(196,163,90,0.22)" />
+              </pattern>
+            </>
+          ) : (
+            <pattern id="force-grid" width={32} height={32} patternUnits="userSpaceOnUse">
+              <path
+                d="M 32 0 L 0 0 0 32"
+                fill="none"
+                stroke="rgba(148,163,184,0.08)"
+                strokeWidth="1"
+              />
+            </pattern>
+          )}
         </defs>
 
-        <rect width="100%" height="100%" fill="url(#heritage-vines)" />
-        <rect width="100%" height="100%" fill="var(--background)" filter="url(#heritage-grain)" opacity="0.22" />
+        {isHeritage ? (
+          <>
+            <rect width="100%" height="100%" fill="url(#heritage-vines)" />
+            <rect width="100%" height="100%" fill="var(--background)" filter="url(#heritage-grain)" opacity="0.22" />
+          </>
+        ) : (
+          <rect width="100%" height="100%" fill="url(#force-grid)" />
+        )}
 
         <g transform={`translate(${transform.x},${transform.y}) scale(${transform.k})`}>
           <rect
@@ -860,15 +926,19 @@ export function ForceView({ className }: ViewProps) {
                 y1={tick.y}
                 x2={layout.contentWidth}
                 y2={tick.y}
-                stroke="rgba(90,58,36,0.28)"
+                stroke={isHeritage ? 'rgba(90,58,36,0.28)' : 'rgba(148,163,184,0.2)'}
                 strokeWidth={1}
-                strokeDasharray="3 7"
+                strokeDasharray={isHeritage ? '3 7' : '4 6'}
               />
               <text
                 x={FORCE_TIMELINE_WIDTH - 10}
                 y={tick.y + 4}
                 textAnchor="end"
-                className="fill-[color:var(--muted-foreground)] text-[11px] tabular-nums font-serif-body"
+                className={
+                  isHeritage
+                    ? 'fill-[color:var(--muted-foreground)] text-[11px] tabular-nums font-serif-body'
+                    : 'fill-slate-500 text-[10px] tabular-nums'
+                }
               >
                 {tick.label}
               </text>
@@ -880,8 +950,8 @@ export function ForceView({ className }: ViewProps) {
             y1={FORCE_PADDING - 8}
             x2={FORCE_TIMELINE_WIDTH}
             y2={layout.height - FORCE_PADDING}
-            stroke="rgba(90,58,36,0.55)"
-            strokeWidth={1.8}
+            stroke={isHeritage ? 'rgba(90,58,36,0.55)' : 'rgba(148,163,184,0.45)'}
+            strokeWidth={isHeritage ? 1.8 : 1.5}
           />
 
           <g>
@@ -889,7 +959,13 @@ export function ForceView({ className }: ViewProps) {
               const dir = lineageHighlight
                 ? classifySegmentHighlight(segment, lineageHighlight)
                 : null
-              const baseStroke = segment.kind === 'spouse' ? 'var(--spouse-line)' : 'var(--ink-line)'
+              const baseStroke = isHeritage
+                ? segment.kind === 'spouse'
+                  ? 'var(--spouse-line)'
+                  : 'var(--ink-line)'
+                : segment.kind === 'spouse'
+                  ? '#f472b6'
+                  : '#64748b'
               const stroke =
                 dir === 'up'
                   ? lineageHighlight!.upColor
@@ -897,8 +973,9 @@ export function ForceView({ className }: ViewProps) {
                     ? lineageHighlight!.downColor
                     : baseStroke
               const dimmed = lineageHighlight !== null && dir === null
+              const Edge = isHeritage ? HistoricalEdge : ModernEdge
               return (
-                <HistoricalEdge
+                <Edge
                   key={segment.id}
                   segment={segment}
                   stroke={stroke}
@@ -942,6 +1019,7 @@ export function ForceView({ className }: ViewProps) {
                   selected={isSelected}
                   highlighted={highlightedIds.has(id) || onLineagePath}
                   dragging={liveDragXs !== null && id in liveDragXs}
+                  heritage={isHeritage}
                   onSelect={(additive) => {
                     if (additive) {
                       const next = new Set(selectedIds)

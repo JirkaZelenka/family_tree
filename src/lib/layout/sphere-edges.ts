@@ -5,6 +5,7 @@ import type { LineagePlane, SpherePosition } from '@/lib/layout/sphere'
 import { layoutPointTo3D } from '@/lib/layout/sphere'
 import { resolveCouplePlane } from '@/lib/layout/sphere-tree'
 import { spouseIds } from '@/lib/graph/person-links'
+import type { Appearance } from '@/lib/theme'
 
 export type TreeEdgeKind = 'spouse' | 'descent' | 'branch'
 
@@ -159,17 +160,32 @@ export function buildTreeEdges(
   return segments
 }
 
-function edgeStyle(kind: TreeEdgeKind, active: boolean) {
+function edgeStyle(kind: TreeEdgeKind, active: boolean, appearance: Appearance) {
+  if (appearance === 'heritage') {
+    switch (kind) {
+      case 'spouse':
+        return { color: '#c45c72', lineWidth: active ? 2.2 : 1.2, opacity: active ? 0.9 : 0.45 }
+      case 'descent':
+        return { color: '#d7c4a3', lineWidth: active ? 1.7 : 1.0, opacity: active ? 0.92 : 0.42 }
+      case 'branch':
+        return { color: '#c4a35a', lineWidth: active ? 1.35 : 0.8, opacity: active ? 0.88 : 0.36 }
+    }
+  }
+
   switch (kind) {
     case 'spouse':
-      return { color: '#c45c72', lineWidth: active ? 2.2 : 1.2, opacity: active ? 0.9 : 0.45 }
+      return { color: '#f43f5e', lineWidth: active ? 2.2 : 1.2, opacity: active ? 0.9 : 0.4 }
     case 'descent':
-      return { color: '#d7c4a3', lineWidth: active ? 1.7 : 1.0, opacity: active ? 0.92 : 0.42 }
+      return { color: '#f8fafc', lineWidth: active ? 1.5 : 0.8, opacity: active ? 0.9 : 0.35 }
     case 'branch':
-      return { color: '#c4a35a', lineWidth: active ? 1.35 : 0.8, opacity: active ? 0.88 : 0.36 }
+      return { color: '#e2e8f0', lineWidth: active ? 1.2 : 0.7, opacity: active ? 0.85 : 0.3 }
   }
 }
 
-export function styleForTreeEdge(kind: TreeEdgeKind, active: boolean) {
-  return edgeStyle(kind, active)
+export function styleForTreeEdge(
+  kind: TreeEdgeKind,
+  active: boolean,
+  appearance: Appearance = 'heritage',
+) {
+  return edgeStyle(kind, active, appearance)
 }

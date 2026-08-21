@@ -15,6 +15,8 @@ import { useVaultStore } from '@/stores/vault-store'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { KinshipDialog } from '@/components/person/KinshipDialog'
 import { ThemeToggle } from '@/components/layout/ThemeToggle'
+import { useThemeStore } from '@/stores/theme-store'
+import { cn } from '@/lib/utils'
 
 interface ToolbarProps {
   onOpenFolder: () => void
@@ -40,10 +42,18 @@ export function Toolbar({
   const setActiveView = useViewStore((s) => s.setActiveView)
   const setCommandOpen = useSearchStore((s) => s.setCommandOpen)
   const saveStatus = useVaultStore((s) => s.saveStatus)
+  const isHeritage = useThemeStore((s) => s.appearance === 'heritage')
 
   return (
     <header className="flex flex-wrap items-center gap-2 border-b border-border px-3 py-2 heritage-chrome">
-      <h1 className="font-heritage text-[15px] font-semibold tracking-[0.14em] text-primary">
+      <h1
+        className={cn(
+          'font-semibold text-primary',
+          isHeritage
+            ? 'font-heritage text-[15px] tracking-[0.14em]'
+            : 'text-sm tracking-tight',
+        )}
+      >
         {t('app.title')}
       </h1>
       <Tabs value={activeView} onValueChange={(v) => setActiveView(v as typeof activeView)}>

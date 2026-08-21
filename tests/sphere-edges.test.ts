@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import Graph from 'graphology'
-import { buildTreeEdges } from '@/lib/layout/sphere-edges'
+import { buildTreeEdges, styleForTreeEdge } from '@/lib/layout/sphere-edges'
 import type { LineagePlane } from '@/lib/layout/sphere'
 
 const plane: LineagePlane = {
@@ -48,5 +48,12 @@ describe('buildTreeEdges', () => {
     expect(spouse).toHaveLength(1)
     expect(spouse[0].points[0].x).toBeCloseTo(-0.06)
     expect(spouse[0].points[1].x).toBeCloseTo(0.06)
+  })
+
+  it('přepíná barvy hran mezi historickým a moderním režimem', () => {
+    expect(styleForTreeEdge('spouse', true, 'modern').color).toBe('#f43f5e')
+    expect(styleForTreeEdge('descent', true, 'modern').color).toBe('#f8fafc')
+    expect(styleForTreeEdge('spouse', true, 'heritage').color).toBe('#c45c72')
+    expect(styleForTreeEdge('descent', true, 'heritage').color).toBe('#d7c4a3')
   })
 })

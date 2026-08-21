@@ -13,9 +13,13 @@
     />
     <script>
       (function () {
+        var root = document.documentElement
         var theme = localStorage.getItem('family-tree-theme')
-        if (theme === 'light') document.documentElement.classList.remove('dark')
-        else document.documentElement.classList.add('dark')
+        var appearance = localStorage.getItem('family-tree-appearance')
+        if (theme === 'light') root.classList.remove('dark')
+        else root.classList.add('dark')
+        if (appearance === 'modern') root.classList.remove('heritage')
+        else root.classList.add('heritage')
       })()
     </script>
   </head>

@@ -13,8 +13,12 @@
     "search": "Hledat…",
     "shareUrl": "Sdílet pohled",
     "saveLayout": "Uložit layout",
-    "lightMode": "Světlý režim",
-    "darkMode": "Tmavý režim"
+    "lightMode": "Světlý",
+    "darkMode": "Tmavý",
+    "appearance": "Vzhled",
+    "appearanceOld": "Starý",
+    "appearanceModern": "Moderní",
+    "colorScheme": "Barva"
   },
   "views": {
     "tree": "Strom",

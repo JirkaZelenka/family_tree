@@ -2,6 +2,7 @@
 @import "leaflet/dist/leaflet.css";
 
 @custom-variant dark (&:is(.dark *));
+@custom-variant heritage (&:is(.heritage *));
 
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
@@ -29,9 +30,65 @@
 }
 
 :root {
-  --radius: 0.4rem;
+  --radius: 0.5rem;
   --font-heritage: "Cinzel", Palatino, "Palatino Linotype", "Book Antiqua", Georgia, serif;
   --font-serif: "Cormorant Garamond", "Source Serif 4", Palatino, Georgia, serif;
+  --background: oklch(0.985 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.55 0.19 255);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.96 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.96 0 0);
+  --muted-foreground: oklch(0.5 0 0);
+  --accent: oklch(0.94 0.02 255);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.55 0.22 25);
+  --border: oklch(0.9 0 0);
+  --input: oklch(0.9 0 0);
+  --ring: oklch(0.55 0.19 255);
+  --force-selection-stroke: oklch(0.3 0 0);
+  --force-glow-color: oklch(0.35 0 0);
+  --wash-wine: transparent;
+  --wash-gold: transparent;
+  --wash-sage: transparent;
+  --wash-terra: transparent;
+  --wash-center: transparent;
+  --ink-line: #64748b;
+  --spouse-line: #f472b6;
+  --marriage-knot: #f472b6;
+  --toolbar-wash: color-mix(in oklab, var(--background) 90%, transparent);
+}
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.18 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.18 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.62 0.19 255);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.25 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.25 0 0);
+  --muted-foreground: oklch(0.65 0 0);
+  --accent: oklch(0.28 0.02 255);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.55 0.22 25);
+  --border: oklch(0.3 0 0);
+  --input: oklch(0.3 0 0);
+  --ring: oklch(0.62 0.19 255);
+  --force-selection-stroke: #f8fafc;
+  --force-glow-color: #f8fafc;
+}
+
+.heritage {
+  --radius: 0.4rem;
   --background: oklch(0.93 0.035 85);
   --foreground: oklch(0.28 0.045 50);
   --card: oklch(0.965 0.02 85);
@@ -63,7 +120,7 @@
   --toolbar-wash: color-mix(in oklab, var(--card) 78%, transparent);
 }
 
-.dark {
+.heritage.dark {
   --background: oklch(0.19 0.04 38);
   --foreground: oklch(0.93 0.03 85);
   --card: oklch(0.23 0.035 40);
@@ -102,7 +159,12 @@
 body {
   margin: 0;
   min-height: 100vh;
+  background: var(--background);
   color: var(--foreground);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+.heritage body {
   font-family: var(--font-serif);
   background-color: var(--background);
   background-image:
@@ -118,7 +180,12 @@ body {
   min-height: 100vh;
 }
 
-.heritage-canvas {
+.heritage-chrome {
+  background: var(--toolbar-wash);
+  backdrop-filter: blur(8px);
+}
+
+.heritage .heritage-canvas {
   background-color: transparent;
   background-image:
     radial-gradient(ellipse 85% 65% at 12% 18%, var(--wash-wine), transparent 58%),
@@ -127,15 +194,14 @@ body {
     radial-gradient(ellipse 58% 48% at 16% 88%, var(--wash-terra), transparent 52%);
 }
 
-.heritage-chrome {
-  background: var(--toolbar-wash);
+.heritage .heritage-chrome {
   backdrop-filter: blur(10px);
 }
 
-.font-heritage {
+.heritage .font-heritage {
   font-family: var(--font-heritage);
 }
 
-.font-serif-body {
+.heritage .font-serif-body {
   font-family: var(--font-serif);
 }
