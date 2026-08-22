@@ -3,6 +3,10 @@ import type { PersonNode } from '@/types/person'
 import { collectFamilyUnits } from '@/lib/layout/sphere-tree'
 import { spouseIds } from '@/lib/graph/person-links'
 import { FORCE_NODE_HEIGHT, FORCE_NODE_WIDTH } from '@/lib/layout/force-layout'
+import {
+  isMarriageVisibleAtYear,
+  resolveMarriageYear,
+} from '@/lib/time/dates'
 
 export type ForceEdgeKind = 'spouse' | 'descent' | 'branch'
 
@@ -15,6 +19,13 @@ export interface ForceEdgeSegment {
   spouseIds?: string[]
   /** Konkrétní dítě u svislé větve hráběte (ne celá rodinná jednotka). */
   targetChildId?: string
+  /** Rok sňatku (odhadnutý), jen u `spouse`. */
+  marriageYear?: number | null
+}
+
+export interface BuildForceEdgeOptions {
+  currentYear?: number
+  showAll?: boolean
 }
 
 function nodeTopCenter(pos: { x: number; y: number }) {
@@ -23,6 +34,62 @@ function nodeTopCenter(pos: { x: number; y: number }) {
 
 function nodeCenter(pos: { x: number; y: number }) {
   return { x: pos.x + FORCE_NODE_WIDTH / 2, y: pos.y + FORCE_NODE_HEIGHT / 2 }
+}
+
+function marriageDateBetween(a: PersonNode, b: PersonNode): string {
+  for (const s of a.spouses) {
+    if (typeof s === 'string') {
+      if (s === b.id) return ''
+      continue
+    }
+    if (s.id === b.id) return s.marriageDate ?? ''
+  }
+  for (const s of b.spouses) {
+    if (typeof s === 'string') {
+      if (s === a.id) return ''
+      continue
+    }
+    if (s.id === a.id) return s.marriageDate ?? ''
+  }
+  return ''
+}
+
+function sharedChildBirthYears(
+  graph: Graph<PersonNode>,
+  a: PersonNode,
+  b: PersonNode,
+): number[] {
+  const years: number[] = []
+  for (const childId of a.children) {
+    if (!b.children.includes(childId) || !graph.hasNode(childId)) continue
+    const y = graph.getNodeAttributes(childId).birthYear
+    if (y !== null) years.push(y)
+  }
+  return years
+}
+
+function marriageYearForCouple(
+  graph: Graph<PersonNode>,
+  idA: string,
+  idB: string,
+): number | null {
+  if (!graph.hasNode(idA) || !graph.hasNode(idB)) return null
+  const a = graph.getNodeAttributes(idA)
+  const b = graph.getNodeAttributes(idB)
+  return resolveMarriageYear(marriageDateBetween(a, b), {
+    birthYearA: a.birthYear,
+    birthYearB: b.birthYear,
+    childBirthYears: sharedChildBirthYears(graph, a, b),
+  })
+}
+
+function shouldShowSpouseAtYear(
+  marriageYear: number | null,
+  opts?: BuildForceEdgeOptions,
+): boolean {
+  if (opts?.showAll) return true
+  if (opts?.currentYear == null) return true
+  return isMarriageVisibleAtYear(marriageYear, opts.currentYear)
 }
 
 function collectVisibleFamilyUnits(
@@ -135,10 +202,40 @@ function buildDescentRake(
   return segments
 }
 
+function pushSpouseSegment(
+  segments: ForceEdgeSegment[],
+  seenSpouse: Set<string>,
+  graph: Graph<PersonNode>,
+  idA: string,
+  idB: string,
+  positions: Map<string, { x: number; y: number }>,
+  opts?: BuildForceEdgeOptions,
+): void {
+  const spouseKey = [idA, idB].sort().join('--')
+  if (seenSpouse.has(spouseKey)) return
+  seenSpouse.add(spouseKey)
+
+  const marriageYear = marriageYearForCouple(graph, idA, idB)
+  if (!shouldShowSpouseAtYear(marriageYear, opts)) return
+
+  const pa = positions.get(idA)
+  const pb = positions.get(idB)
+  if (!pa || !pb) return
+
+  segments.push({
+    id: `spouse-${spouseKey}`,
+    kind: 'spouse',
+    spouseIds: [idA, idB],
+    marriageYear,
+    points: [nodeCenter(pa), nodeCenter(pb)],
+  })
+}
+
 export function buildForceEdgeSegments(
   graph: Graph<PersonNode>,
   visibleIds: Set<string>,
   positions: Map<string, { x: number; y: number }>,
+  opts?: BuildForceEdgeOptions,
 ): ForceEdgeSegment[] {
   const segments: ForceEdgeSegment[] = []
   const seenSpouse = new Set<string>()
@@ -148,20 +245,7 @@ export function buildForceEdgeSegments(
 
     if (unit.parentIds.length === 2) {
       const [a, b] = unit.parentIds
-      const spouseKey = [a, b].sort().join('--')
-      if (!seenSpouse.has(spouseKey)) {
-        seenSpouse.add(spouseKey)
-        const pa = positions.get(a)
-        const pb = positions.get(b)
-        if (pa && pb) {
-          segments.push({
-            id: `spouse-${spouseKey}`,
-            kind: 'spouse',
-            spouseIds: [a, b],
-            points: [nodeCenter(pa), nodeCenter(pb)],
-          })
-        }
-      }
+      pushSpouseSegment(segments, seenSpouse, graph, a, b, positions, opts)
     }
 
     segments.push(...buildDescentRake(unit.parentIds, unit.childIds, positions, unitKey))
@@ -171,20 +255,7 @@ export function buildForceEdgeSegments(
     if (!visibleIds.has(id)) return
     for (const sid of spouseIds(attrs.spouses)) {
       if (!sid || !visibleIds.has(sid)) continue
-      const key = [id, sid].sort().join('--')
-      if (seenSpouse.has(key)) continue
-      seenSpouse.add(key)
-
-      const pa = positions.get(id)
-      const pb = positions.get(sid)
-      if (!pa || !pb) continue
-
-      segments.push({
-        id: `spouse-${key}`,
-        kind: 'spouse',
-        spouseIds: [id, sid],
-        points: [nodeCenter(pa), nodeCenter(pb)],
-      })
+      pushSpouseSegment(segments, seenSpouse, graph, id, sid, positions, opts)
     }
   })
 
@@ -200,4 +271,97 @@ function segmentToPath(points: Array<{ x: number; y: number }>): string {
 
 export function segmentPathD(segment: ForceEdgeSegment): string {
   return segmentToPath(segment.points)
+}
+
+function hash01(seed: string): number {
+  let h = 2166136261
+  for (let i = 0; i < seed.length; i++) {
+    h ^= seed.charCodeAt(i)
+    h = Math.imul(h, 16777619)
+  }
+  return (h >>> 0) / 4294967295
+}
+
+/** Mírně prohnutá inkoustová křivka místo rovných hrábí. */
+export function historicalPathD(segment: ForceEdgeSegment): string {
+  const points = segment.points
+  if (points.length < 2) return ''
+
+  let d = `M ${points[0].x} ${points[0].y}`
+  for (let i = 1; i < points.length; i++) {
+    const a = points[i - 1]
+    const b = points[i]
+    const dx = b.x - a.x
+    const dy = b.y - a.y
+    const len = Math.hypot(dx, dy)
+    if (len < 0.5) {
+      d += ` L ${b.x} ${b.y}`
+      continue
+    }
+    const nx = -dy / len
+    const ny = dx / len
+    const bowSign = hash01(`${segment.id}:${i}`) > 0.5 ? 1 : -1
+    const bow = bowSign * Math.min(16, Math.max(5, len * 0.1))
+    const c1x = a.x + dx * 0.33 + nx * bow
+    const c1y = a.y + dy * 0.33 + ny * bow
+    const c2x = a.x + dx * 0.67 + nx * bow
+    const c2y = a.y + dy * 0.67 + ny * bow
+    d += ` C ${c1x} ${c1y} ${c2x} ${c2y} ${b.x} ${b.y}`
+  }
+  return d
+}
+
+export function offsetSegmentPoints(
+  points: Array<{ x: number; y: number }>,
+  offset: number,
+): Array<{ x: number; y: number }> {
+  if (points.length < 2) return points
+  const result: Array<{ x: number; y: number }> = []
+  for (let i = 0; i < points.length; i++) {
+    const prev = points[Math.max(0, i - 1)]
+    const next = points[Math.min(points.length - 1, i + 1)]
+    const dx = next.x - prev.x
+    const dy = next.y - prev.y
+    const len = Math.hypot(dx, dy) || 1
+    result.push({
+      x: points[i].x + (-dy / len) * offset,
+      y: points[i].y + (dx / len) * offset,
+    })
+  }
+  return result
+}
+
+export function historicalOffsetPathD(segment: ForceEdgeSegment, offset: number): string {
+  return historicalPathD({
+    ...segment,
+    points: offsetSegmentPoints(segment.points, offset),
+  })
+}
+
+export function segmentMidpoint(segment: ForceEdgeSegment): { x: number; y: number } {
+  const pts = segment.points
+  if (pts.length === 0) return { x: 0, y: 0 }
+  if (pts.length === 1) return pts[0]
+
+  let total = 0
+  const lens: number[] = []
+  for (let i = 1; i < pts.length; i++) {
+    const length = Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y)
+    lens.push(length)
+    total += length
+  }
+
+  let remain = total / 2
+  for (let i = 1; i < pts.length; i++) {
+    const length = lens[i - 1]
+    if (remain <= length || i === pts.length - 1) {
+      const t = length === 0 ? 0 : remain / length
+      return {
+        x: pts[i - 1].x + (pts[i].x - pts[i - 1].x) * t,
+        y: pts[i - 1].y + (pts[i].y - pts[i - 1].y) * t,
+      }
+    }
+    remain -= length
+  }
+  return pts[pts.length - 1]
 }

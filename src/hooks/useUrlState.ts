@@ -8,11 +8,17 @@ import type { ViewId } from '@/views/types'
 const LEGACY_VIEW_MAP: Record<string, ViewId> = {
   sphere: 'tree',
   force: 'tree',
-  map: 'tree',
 }
 
 function normalizeViewId(view: string): ViewId {
-  if (view === 'tree' || view === 'timeline') return view
+  if (
+    view === 'tree' ||
+    view === 'timeline' ||
+    view === 'calendar' ||
+    view === 'map'
+  ) {
+    return view
+  }
   return LEGACY_VIEW_MAP[view] ?? 'tree'
 }
 

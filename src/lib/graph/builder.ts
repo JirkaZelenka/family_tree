@@ -3,7 +3,7 @@ import type { Attributes } from 'graphology-types'
 import type { PersonNode, PersonRecord, GraphEdgeAttributes } from '@/types/person'
 import { buildFullName } from '@/lib/parser/markdown'
 import { parseYear } from '@/lib/time/dates'
-import { deriveChildren, spouseIds } from '@/lib/graph/person-links'
+import { deriveChildren } from '@/lib/graph/person-links'
 
 export interface GraphDiagnostic {
   level: 'error' | 'warning'

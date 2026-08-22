@@ -18,7 +18,38 @@
   },
   "views": {
     "tree": "Strom",
-    "timeline": "Časová osa"
+    "timeline": "Časová osa",
+    "calendar": "Kalendář",
+    "map": "Mapa"
+  },
+  "map": {
+    "title": "Bydliště",
+    "subtitle": "Rok {{year}} · {{count}} osob na mapě",
+    "unresolvedTitle": "Nejednoznačná místa",
+    "withoutPlaceCount": "{{count}} osob bez místa na mapě",
+    "unresolvedHint": "Doplň souřadnice v data/.family-tree/places.yaml"
+  },
+  "calendar": {
+    "title": "Narozeniny",
+    "subtitle": "Nadcházející narozeniny žijících osob v zvoleném měsíci.",
+    "prevMonth": "Předchozí měsíc",
+    "nextMonth": "Další měsíc",
+    "milestonesTitle": "Nejbližší kulatiny",
+    "milestonesSubtitle": "Nejbližších 50 kulatin (násobky pěti let).",
+    "colGivenName": "Jméno",
+    "colFamilyName": "Příjmení",
+    "colBirthday": "Narozeniny",
+    "colAge": "Kulatiny",
+    "noMilestones": "Žádné nadcházející kulatiny u žijících osob s úplným datem narození.",
+    "weekdays": {
+      "mon": "Po",
+      "tue": "Út",
+      "wed": "St",
+      "thu": "Čt",
+      "fri": "Pá",
+      "sat": "So",
+      "sun": "Ne"
+    }
   },
   "person": {
     "birth": "Narození",
@@ -65,7 +96,8 @@
     "slider": "Rok",
     "play": "Přehrát",
     "pause": "Pauza",
-    "contemporariesOnly": "Jen současníci",
+    "showAll": "Zobrazit vše",
+    "all": "vše",
     "events": "Historické události"
   },
   "layout": {

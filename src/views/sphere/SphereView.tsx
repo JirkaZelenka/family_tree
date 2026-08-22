@@ -289,7 +289,7 @@ function GraphScene() {
         const pos = positions.get(id)
         if (!pos) return null
 
-        const aliveAtYear = isAliveAtYear(person.birthYear, person.deathYear)
+        const aliveAtYear = isAliveAtYear(person.birthYear, person.deathYear, person.death?.date)
         const emphasized = !sphereHighlightByYear || aliveAtYear
         const baseColor = lineageColors[person.lineage] ?? '#94a3b8'
         const color = shadeLineageColor(baseColor, pos.bandIndex)

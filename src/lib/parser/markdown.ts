@@ -50,8 +50,9 @@ function linksToYamlMap(
 }
 
 function normalizeFrontmatterForYaml(fm: PersonFrontmatter): Record<string, unknown> {
+  const { moving, ...rest } = fm
   return {
-    ...fm,
+    ...rest,
     birth: {
       date: fm.birth?.date ?? '',
       place: fm.birth?.place ?? '',
@@ -69,6 +70,15 @@ function normalizeFrontmatterForYaml(fm: PersonFrontmatter): Record<string, unkn
       marriageDate: spouse.marriageDate ?? '',
       ...(spouse.marriagePlace ? { marriagePlace: spouse.marriagePlace } : {}),
     })),
+    ...(moving?.length
+      ? {
+          moving: moving.map((m) => ({
+            date: m.date ?? '',
+            ...(m.from ? { from: m.from } : {}),
+            to: m.to,
+          })),
+        }
+      : {}),
     links: linksToYamlMap(fm.links),
   }
 }

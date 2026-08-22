@@ -14,10 +14,15 @@ import { useVaultStore } from '@/stores/vault-store'
 import { useLayoutStore } from '@/stores/layout-store'
 import { useViewStore } from '@/stores/view-store'
 import { computeForceVisibility } from '@/lib/layout/force-visibility'
-import { buildForceEdgeSegments, segmentPathD } from '@/lib/layout/force-edges'
+import {
+  buildForceEdgeSegments,
+  historicalOffsetPathD,
+  historicalPathD,
+  segmentMidpoint,
+  type ForceEdgeSegment,
+} from '@/lib/layout/force-edges'
 import {
   computeForceLayout,
-  birthYearToCenterY,
   FORCE_NODE_HEIGHT,
   FORCE_NODE_WIDTH,
   FORCE_PADDING,
@@ -103,8 +108,8 @@ function PersonNodeCard({
       : highlighted
         ? accent
         : muted
-          ? 'rgba(148,163,184,0.45)'
-          : 'rgba(15,23,42,0.35)'
+          ? 'rgba(120,96,72,0.38)'
+          : 'rgba(64,44,28,0.55)'
 
   const gradientId = `force-split-${person.id.replace(/[^a-zA-Z0-9_-]/g, '_')}`
 
@@ -121,7 +126,7 @@ function PersonNodeCard({
           y={-5}
           width={FORCE_NODE_WIDTH + 10}
           height={FORCE_NODE_HEIGHT + 10}
-          rx={18}
+          rx={10}
           fill="none"
           stroke="var(--force-selection-stroke)"
           strokeWidth={2.5}
@@ -140,18 +145,29 @@ function PersonNodeCard({
       <rect
         width={FORCE_NODE_WIDTH}
         height={FORCE_NODE_HEIGHT}
-        rx={14}
+        rx={8}
         fill={nodeFill.type === 'split' ? `url(#${gradientId})` : nodeFill.color}
         stroke={stroke}
-        strokeWidth={boundary ? 2.5 : selected ? 2.5 : highlighted ? 2 : 1.25}
+        strokeWidth={boundary ? 2.5 : selected ? 2.5 : highlighted ? 2 : 1.35}
         opacity={1}
         filter={dragging ? undefined : boundary ? 'url(#force-boundary-glow)' : 'url(#force-node-shadow)'}
+      />
+      <rect
+        x={3.5}
+        y={3.5}
+        width={FORCE_NODE_WIDTH - 7}
+        height={FORCE_NODE_HEIGHT - 7}
+        rx={5}
+        fill="none"
+        stroke="rgba(64,44,28,0.28)"
+        strokeWidth={0.75}
+        style={{ pointerEvents: 'none' }}
       />
       <text
         x={FORCE_NODE_WIDTH / 2}
         y={20}
         textAnchor="middle"
-        className="fill-slate-950 text-[12px] font-semibold"
+        className="fill-slate-950 text-[13px] font-semibold font-heritage"
         style={{ pointerEvents: 'none' }}
       >
         {person.givenName}
@@ -160,12 +176,95 @@ function PersonNodeCard({
         x={FORCE_NODE_WIDTH / 2}
         y={36}
         textAnchor="middle"
-        className="fill-slate-800 text-[10px]"
+        className="fill-slate-800 text-[11px] font-serif-body"
         style={{ pointerEvents: 'none' }}
       >
         {formatFamilyNameWithMaiden(person)}
       </text>
       <LifeSpanSvg person={person} x={FORCE_NODE_WIDTH / 2} y={48} />
+    </g>
+  )
+}
+
+function HistoricalEdge({
+  segment,
+  stroke,
+  dimmed,
+  emphasized,
+}: {
+  segment: ForceEdgeSegment
+  stroke: string
+  dimmed: boolean
+  emphasized: boolean
+}) {
+  const d = historicalPathD(segment)
+  const isSpouse = segment.kind === 'spouse'
+  const opacity = dimmed ? 0.14 : emphasized ? 0.98 : isSpouse ? 0.95 : 0.88
+  const width = emphasized ? 3.4 : isSpouse ? 2.05 : segment.kind === 'descent' ? 2.8 : 2.15
+  const mid = isSpouse ? segmentMidpoint(segment) : null
+
+  return (
+    <g opacity={opacity}>
+      <path
+        d={d}
+        fill="none"
+        stroke={stroke}
+        strokeWidth={width + 4.2}
+        strokeOpacity={0.22}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      {isSpouse ? (
+        <>
+          <path
+            d={historicalOffsetPathD(segment, 2.35)}
+            fill="none"
+            stroke={stroke}
+            strokeWidth={emphasized ? 2.2 : 1.7}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <path
+            d={historicalOffsetPathD(segment, -2.35)}
+            fill="none"
+            stroke={stroke}
+            strokeWidth={emphasized ? 2.2 : 1.7}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          {mid && (
+            <g transform={`translate(${mid.x}, ${mid.y})`}>
+              <polygon
+                points="0,-5.5 5.5,0 0,5.5 -5.5,0"
+                fill="var(--marriage-knot)"
+                stroke={stroke}
+                strokeWidth={0.9}
+              />
+            </g>
+          )}
+        </>
+      ) : (
+        <>
+          <path
+            d={d}
+            fill="none"
+            stroke={stroke}
+            strokeWidth={width}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          {segment.kind === 'descent' && segment.points.length >= 2 && (
+            <circle
+              cx={segment.points[segment.points.length - 1].x}
+              cy={segment.points[segment.points.length - 1].y}
+              r={2.6}
+              fill="var(--marriage-knot)"
+              stroke={stroke}
+              strokeWidth={0.8}
+            />
+          )}
+        </>
+      )}
     </g>
   )
 }
@@ -189,8 +288,8 @@ export function ForceView({ className }: ViewProps) {
   const setHighlightedIds = useGraphStore((s) => s.setHighlightedIds)
   const setProfilePersonId = useViewStore((s) => s.setProfilePersonId)
   const isPersonVisible = useTimeStore((s) => s.isPersonVisible)
-  const showContemporariesOnly = useTimeStore((s) => s.showContemporariesOnly)
   const currentYear = useTimeStore((s) => s.currentYear)
+  const showAllPeople = useTimeStore((s) => s.showAllPeople)
 
   const vaultColors = useVaultStore((s) => s.vault?.config.lineageColors ?? {})
   const lineages = useMemo(
@@ -294,10 +393,10 @@ export function ForceView({ className }: ViewProps) {
       expandedLineages,
       timeVisible: (id) => {
         const p = persons.get(id)
-        return p ? isPersonVisible(p.birthYear, p.deathYear) : false
+        return p ? isPersonVisible(p.birthYear, p.deathYear, p.death?.date) : false
       },
     })
-  }, [graph, persons, expandedLineages, isPersonVisible, currentYear, showContemporariesOnly])
+  }, [graph, persons, expandedLineages, isPersonVisible, currentYear, showAllPeople])
 
   const layout = useMemo(() => {
     if (!graph) return null
@@ -340,8 +439,11 @@ export function ForceView({ className }: ViewProps) {
 
   const edgeSegments = useMemo(() => {
     if (!graph) return []
-    return buildForceEdgeSegments(graph, visibleIds, displayPositions)
-  }, [graph, visibleIds, displayPositions])
+    return buildForceEdgeSegments(graph, visibleIds, displayPositions, {
+      currentYear,
+      showAll: showAllPeople,
+    })
+  }, [graph, visibleIds, displayPositions, currentYear, showAllPeople])
 
   const lineageHighlight = useMemo(() => {
     if (!graph || !selectedId) return null
@@ -643,8 +745,8 @@ export function ForceView({ className }: ViewProps) {
 
   if (!graph || !layout) {
     return (
-      <div className={`relative h-full w-full ${className ?? ''}`}>
-        <svg ref={svgRef} className="h-full w-full bg-background" />
+      <div className={`relative h-full w-full heritage-canvas ${className ?? ''}`}>
+        <svg ref={svgRef} className="h-full w-full bg-transparent" />
       </div>
     )
   }
@@ -652,7 +754,7 @@ export function ForceView({ className }: ViewProps) {
   return (
     <div
       ref={containerRef}
-      className={`relative h-full w-full select-none overscroll-contain touch-none ${
+      className={`relative h-full w-full select-none overscroll-contain touch-none heritage-canvas ${
         isPanning ? 'cursor-grabbing' : marqueeMode ? 'cursor-crosshair' : 'cursor-grab'
       } ${className ?? ''}`}
       onPointerDown={() => window.getSelection()?.removeAllRanges()}
@@ -667,7 +769,7 @@ export function ForceView({ className }: ViewProps) {
           }}
           title={t('layout.marqueeSelect')}
           aria-pressed={marqueeMode}
-          className={`rounded-md border border-border bg-background/90 p-1.5 shadow-sm backdrop-blur hover:bg-accent ${
+          className={`rounded-md border border-border heritage-chrome p-1.5 shadow-sm hover:bg-accent ${
             marqueeMode ? 'bg-accent ring-1 ring-primary' : ''
           }`}
         >
@@ -676,7 +778,7 @@ export function ForceView({ className }: ViewProps) {
         <button
           type="button"
           onClick={handleResetLayout}
-          className="rounded-md border border-border bg-background/90 px-3 py-1.5 text-xs font-medium shadow-sm backdrop-blur hover:bg-accent"
+          className="rounded-md border border-border heritage-chrome px-3 py-1.5 text-xs font-medium shadow-sm hover:bg-accent"
         >
           {t('layout.defaultView')}
         </button>
@@ -686,7 +788,7 @@ export function ForceView({ className }: ViewProps) {
           onClick={toggleTreeFullscreen}
           title={isTreeFullscreenActive ? t('layout.exitFullscreen') : t('layout.enterFullscreen')}
           aria-pressed={isTreeFullscreenActive}
-          className={`rounded-md border border-border bg-background/90 px-3 py-1.5 text-xs font-medium shadow-sm backdrop-blur hover:bg-accent ${
+          className={`rounded-md border border-border heritage-chrome px-3 py-1.5 text-xs font-medium shadow-sm hover:bg-accent ${
             isTreeFullscreenActive ? 'bg-accent ring-1 ring-primary' : ''
           }`}
         >
@@ -703,7 +805,7 @@ export function ForceView({ className }: ViewProps) {
 
       <svg
         ref={svgRef}
-        className="h-full w-full touch-none select-none bg-background"
+        className="h-full w-full touch-none select-none bg-transparent"
         onPointerDown={onSvgPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
@@ -711,23 +813,39 @@ export function ForceView({ className }: ViewProps) {
       >
         <defs>
           <filter id="force-node-shadow" x="-30%" y="-30%" width="160%" height="160%">
-            <feDropShadow dx="0" dy="2" stdDeviation="3" floodOpacity="0.28" />
+            <feDropShadow dx="0" dy="2" stdDeviation="2.4" floodColor="#4a3426" floodOpacity="0.28" />
           </filter>
           <filter id="force-boundary-glow" x="-50%" y="-50%" width="200%" height="200%">
             <feDropShadow dx="0" dy="0" stdDeviation="5" floodColor="var(--force-glow-color)" floodOpacity="0.85" />
-            <feDropShadow dx="0" dy="0" stdDeviation="10" floodColor="#38bdf8" floodOpacity="0.45" />
+            <feDropShadow dx="0" dy="0" stdDeviation="10" floodColor="#c4a35a" floodOpacity="0.4" />
           </filter>
-          <pattern id="force-grid" width={32} height={32} patternUnits="userSpaceOnUse">
+          <filter id="heritage-grain" x="0" y="0" width="100%" height="100%">
+            <feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="4" stitchTiles="stitch" result="noise" />
+            <feColorMatrix type="saturate" values="0" />
+            <feComponentTransfer>
+              <feFuncA type="table" tableValues="0 0.08" />
+            </feComponentTransfer>
+          </filter>
+          <pattern id="heritage-vines" width="140" height="140" patternUnits="userSpaceOnUse">
             <path
-              d="M 32 0 L 0 0 0 32"
+              d="M 12 128 C 38 96, 52 108, 70 78 C 88 48, 104 58, 128 18"
               fill="none"
-              stroke="rgba(148,163,184,0.08)"
-              strokeWidth="1"
+              stroke="rgba(90,58,36,0.22)"
+              strokeWidth="1.35"
             />
+            <path
+              d="M 18 42 C 40 28, 58 52, 82 36"
+              fill="none"
+              stroke="rgba(120,72,42,0.1)"
+              strokeWidth="0.9"
+            />
+            <circle cx="70" cy="78" r="2.2" fill="rgba(143,59,76,0.16)" />
+            <circle cx="104" cy="52" r="1.5" fill="rgba(196,163,90,0.22)" />
           </pattern>
         </defs>
 
-        <rect width="100%" height="100%" fill="url(#force-grid)" />
+        <rect width="100%" height="100%" fill="url(#heritage-vines)" />
+        <rect width="100%" height="100%" fill="var(--background)" filter="url(#heritage-grain)" opacity="0.22" />
 
         <g transform={`translate(${transform.x},${transform.y}) scale(${transform.k})`}>
           <rect
@@ -744,15 +862,15 @@ export function ForceView({ className }: ViewProps) {
                 y1={tick.y}
                 x2={layout.contentWidth}
                 y2={tick.y}
-                stroke="rgba(148,163,184,0.2)"
+                stroke="rgba(90,58,36,0.28)"
                 strokeWidth={1}
-                strokeDasharray="4 6"
+                strokeDasharray="3 7"
               />
               <text
                 x={FORCE_TIMELINE_WIDTH - 10}
                 y={tick.y + 4}
                 textAnchor="end"
-                className="fill-slate-500 text-[10px] tabular-nums"
+                className="fill-[color:var(--muted-foreground)] text-[11px] tabular-nums font-serif-body"
               >
                 {tick.label}
               </text>
@@ -764,8 +882,8 @@ export function ForceView({ className }: ViewProps) {
             y1={FORCE_PADDING - 8}
             x2={FORCE_TIMELINE_WIDTH}
             y2={layout.height - FORCE_PADDING}
-            stroke="rgba(148,163,184,0.45)"
-            strokeWidth={1.5}
+            stroke="rgba(90,58,36,0.55)"
+            strokeWidth={1.8}
           />
 
           <g>
@@ -773,7 +891,7 @@ export function ForceView({ className }: ViewProps) {
               const dir = lineageHighlight
                 ? classifySegmentHighlight(segment, lineageHighlight)
                 : null
-              const baseStroke = segment.kind === 'spouse' ? '#f472b6' : '#64748b'
+              const baseStroke = segment.kind === 'spouse' ? 'var(--spouse-line)' : 'var(--ink-line)'
               const stroke =
                 dir === 'up'
                   ? lineageHighlight!.upColor
@@ -782,16 +900,12 @@ export function ForceView({ className }: ViewProps) {
                     : baseStroke
               const dimmed = lineageHighlight !== null && dir === null
               return (
-                <path
+                <HistoricalEdge
                   key={segment.id}
-                  d={segmentPathD(segment)}
-                  fill="none"
+                  segment={segment}
                   stroke={stroke}
-                  strokeWidth={dir ? 3 : segment.kind === 'spouse' ? 2 : 1.5}
-                  strokeOpacity={dimmed ? 0.1 : dir ? 0.92 : segment.kind === 'spouse' ? 0.8 : 0.55}
-                  strokeDasharray={segment.kind === 'spouse' && !dir ? '6 4' : undefined}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
+                  dimmed={dimmed}
+                  emphasized={Boolean(dir)}
                 />
               )
             })}

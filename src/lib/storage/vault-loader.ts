@@ -14,6 +14,7 @@ import type { TextDocument } from '@/types/text'
 import { parsePersonMarkdown } from '@/lib/parser/markdown'
 import { isTextMarkdownPath, parseTextMarkdown } from '@/lib/parser/text-markdown'
 import { enrichLineageColors, countLineageMembers } from '@/lib/vault/lineage-colors'
+import { parsePlacesFile, type PlaceEntry } from '@/lib/map/places'
 
 export interface VaultData {
   people: PersonRecord[]
@@ -21,6 +22,7 @@ export interface VaultData {
   config: VaultConfig
   layout: LayoutFile
   events: HistoricalEvent[]
+  places: PlaceEntry[]
   diagnostics: string[]
 }
 
@@ -37,6 +39,7 @@ export async function loadVaultFromFileMap(
   }
   let layout: LayoutFile = { version: 1, views: {} }
   let events: HistoricalEvent[] = []
+  let places: PlaceEntry[] = []
 
   for (const [path, content] of files) {
     const normalized = path.replace(/\\/g, '/')
@@ -67,6 +70,12 @@ export async function loadVaultFromFileMap(
       } catch {
         diagnostics.push('Chyba parsování layout.json')
       }
+    } else if (normalized.endsWith('.family-tree/places.yaml')) {
+      try {
+        places = parsePlacesFile(parseYaml(content)).places
+      } catch {
+        diagnostics.push('Chyba parsování places.yaml')
+      }
     } else if (
       (normalized.includes('/events/') ||
         normalized.startsWith('events/') ||
@@ -96,7 +105,7 @@ export async function loadVaultFromFileMap(
     ),
   }
 
-  return { people, texts, config, layout, events, diagnostics }
+  return { people, texts, config, layout, events, places, diagnostics }
 }
 
 export function serializeConfig(config: VaultConfig): string {

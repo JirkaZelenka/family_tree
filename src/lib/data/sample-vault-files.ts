@@ -96,6 +96,14 @@ const userLayoutGlobs = import.meta.glob('../../../data/.family-tree/layout.json
   eager: true,
 }) as Record<string, string>
 
+const userPlacesGlobs = import.meta.glob('../../../data/.family-tree/places.yaml', {
+  query: '?raw',
+  import: 'default',
+  eager: true,
+}) as Record<string, string>
+
+const emptyPlacesYaml = 'places: []\n'
+
 /**
  * Načte pouze šablonový vault (pro testy a čistý clone bez lokálních dat).
  */
@@ -111,6 +119,7 @@ export function loadTemplateVaultFileMap(): Map<string, string> {
 
   files.set('.family-tree/config.yaml', templateConfigYaml)
   files.set('.family-tree/layout.json', templateLayoutJson)
+  files.set('.family-tree/places.yaml', emptyPlacesYaml)
   files.set('events/world-events.yaml', eventsYaml)
 
   return files
@@ -140,9 +149,11 @@ export function loadSampleVaultFileMap(): Map<string, string> {
 
   const configYaml = pickRawModule(userConfigGlobs, templateConfigYaml)
   const layoutJson = pickRawModule(userLayoutGlobs, templateLayoutJson)
+  const placesYaml = pickRawModule(userPlacesGlobs, emptyPlacesYaml)
 
   files.set('.family-tree/config.yaml', configYaml)
   files.set('.family-tree/layout.json', layoutJson)
+  files.set('.family-tree/places.yaml', placesYaml)
   files.set('events/world-events.yaml', eventsYaml)
 
   return files

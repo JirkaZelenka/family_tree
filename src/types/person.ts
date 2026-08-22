@@ -54,6 +54,15 @@ export const MarriageSchema = z.object({
 
 export type Marriage = z.infer<typeof MarriageSchema>
 
+/** Explicitní stěhování: od data bydlí v `to` (volitelně odkud `from`). */
+export const MovingSchema = z.object({
+  date: StoredDateSchema.default(''),
+  from: z.string().optional(),
+  to: z.string().min(1),
+})
+
+export type Moving = z.infer<typeof MovingSchema>
+
 const SpousesSchema = z.preprocess((val) => {
   if (!Array.isArray(val)) return []
   return val
@@ -132,6 +141,7 @@ const PersonFrontmatterFieldsSchema = z.object({
   death: LifeEventSchema.default({ date: '', place: '' }),
   parents: PersonIdListSchema,
   spouses: SpousesSchema,
+  moving: z.array(MovingSchema).default([]),
   links: LinksSchema,
   internal_note: z.string().default(''),
   note: z.string().default(''),

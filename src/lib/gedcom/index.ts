@@ -85,10 +85,11 @@ export function importGedcomToRecords(text: string): PersonRecord[] {
         lineage: familyName
           ? familyName.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
           : 'unknown',
-        birth: birth ? { date: birth } : undefined,
-        death: death ? { date: death } : undefined,
+        birth: { date: birth ?? '', place: '' },
+        death: { date: death ?? '', place: '' },
         parents: [],
         spouses: [],
+        moving: [],
         links: [],
         internal_note: 'Importováno z GEDCOM',
         note: '',

@@ -1,6 +1,11 @@
 @import "tailwindcss";
 @import "leaflet/dist/leaflet.css";
 
+.family-map-dot {
+  background: transparent !important;
+  border: none !important;
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
@@ -29,50 +34,70 @@
 }
 
 :root {
-  --radius: 0.5rem;
-  --background: oklch(0.985 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.55 0.19 255);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.96 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.96 0 0);
-  --muted-foreground: oklch(0.5 0 0);
-  --accent: oklch(0.94 0.02 255);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.55 0.22 25);
-  --border: oklch(0.9 0 0);
-  --input: oklch(0.9 0 0);
-  --ring: oklch(0.55 0.19 255);
-  --force-selection-stroke: oklch(0.3 0 0);
-  --force-glow-color: oklch(0.35 0 0);
+  --radius: 0.4rem;
+  --font-heritage: "Cinzel", Palatino, "Palatino Linotype", "Book Antiqua", Georgia, serif;
+  --font-serif: "Cormorant Garamond", "Source Serif 4", Palatino, Georgia, serif;
+  --background: oklch(0.93 0.035 85);
+  --foreground: oklch(0.28 0.045 50);
+  --card: oklch(0.965 0.02 85);
+  --card-foreground: oklch(0.28 0.045 50);
+  --popover: oklch(0.97 0.018 85);
+  --popover-foreground: oklch(0.28 0.045 50);
+  --primary: oklch(0.44 0.12 22);
+  --primary-foreground: oklch(0.97 0.02 85);
+  --secondary: oklch(0.88 0.045 80);
+  --secondary-foreground: oklch(0.28 0.045 50);
+  --muted: oklch(0.89 0.03 80);
+  --muted-foreground: oklch(0.46 0.04 55);
+  --accent: oklch(0.86 0.08 82);
+  --accent-foreground: oklch(0.28 0.05 50);
+  --destructive: oklch(0.52 0.18 25);
+  --border: oklch(0.76 0.055 75);
+  --input: oklch(0.76 0.055 75);
+  --ring: oklch(0.62 0.12 75);
+  --force-selection-stroke: oklch(0.32 0.07 48);
+  --force-glow-color: oklch(0.62 0.12 75);
+  --wash-wine: rgba(176, 42, 72, 0.4);
+  --wash-gold: rgba(228, 168, 42, 0.46);
+  --wash-sage: rgba(46, 128, 84, 0.36);
+  --wash-terra: rgba(214, 92, 36, 0.36);
+  --wash-center: rgba(255, 232, 186, 0.5);
+  --ink-line: #4a3426;
+  --spouse-line: #8f3b4c;
+  --marriage-knot: #c4a35a;
+  --toolbar-wash: color-mix(in oklab, var(--card) 78%, transparent);
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.18 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.18 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.62 0.19 255);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.25 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.25 0 0);
-  --muted-foreground: oklch(0.65 0 0);
-  --accent: oklch(0.28 0.02 255);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.55 0.22 25);
-  --border: oklch(0.3 0 0);
-  --input: oklch(0.3 0 0);
-  --ring: oklch(0.62 0.19 255);
-  --force-selection-stroke: #f8fafc;
-  --force-glow-color: #f8fafc;
+  --background: oklch(0.19 0.04 38);
+  --foreground: oklch(0.93 0.03 85);
+  --card: oklch(0.23 0.035 40);
+  --card-foreground: oklch(0.93 0.03 85);
+  --popover: oklch(0.23 0.035 40);
+  --popover-foreground: oklch(0.93 0.03 85);
+  --primary: oklch(0.74 0.12 80);
+  --primary-foreground: oklch(0.22 0.04 45);
+  --secondary: oklch(0.28 0.04 40);
+  --secondary-foreground: oklch(0.93 0.03 85);
+  --muted: oklch(0.28 0.035 40);
+  --muted-foreground: oklch(0.72 0.04 75);
+  --accent: oklch(0.32 0.055 32);
+  --accent-foreground: oklch(0.93 0.03 85);
+  --destructive: oklch(0.58 0.18 25);
+  --border: oklch(0.38 0.05 50);
+  --input: oklch(0.38 0.05 50);
+  --ring: oklch(0.74 0.12 80);
+  --force-selection-stroke: #f4e4c1;
+  --force-glow-color: #e4c36a;
+  --wash-wine: rgba(148, 32, 68, 0.62);
+  --wash-gold: rgba(214, 154, 46, 0.36);
+  --wash-sage: rgba(28, 108, 96, 0.4);
+  --wash-terra: rgba(168, 64, 32, 0.34);
+  --wash-center: rgba(42, 22, 18, 0.42);
+  --ink-line: #d7c4a3;
+  --spouse-line: #e08aa0;
+  --marriage-knot: #e4c36a;
+  --toolbar-wash: color-mix(in oklab, var(--card) 82%, transparent);
 }
 
 * {
@@ -82,11 +107,40 @@
 body {
   margin: 0;
   min-height: 100vh;
-  background: var(--background);
   color: var(--foreground);
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--font-serif);
+  background-color: var(--background);
+  background-image:
+    radial-gradient(ellipse 90% 70% at 8% 10%, var(--wash-wine), transparent 56%),
+    radial-gradient(ellipse 80% 62% at 94% 8%, var(--wash-gold), transparent 52%),
+    radial-gradient(ellipse 72% 58% at 88% 90%, var(--wash-sage), transparent 56%),
+    radial-gradient(ellipse 62% 50% at 10% 92%, var(--wash-terra), transparent 52%),
+    radial-gradient(ellipse 55% 45% at 50% 48%, var(--wash-center), transparent 70%);
+  background-attachment: fixed;
 }
 
 #root {
   min-height: 100vh;
+}
+
+.heritage-canvas {
+  background-color: transparent;
+  background-image:
+    radial-gradient(ellipse 85% 65% at 12% 18%, var(--wash-wine), transparent 58%),
+    radial-gradient(ellipse 75% 58% at 88% 12%, var(--wash-gold), transparent 54%),
+    radial-gradient(ellipse 68% 52% at 82% 86%, var(--wash-sage), transparent 56%),
+    radial-gradient(ellipse 58% 48% at 16% 88%, var(--wash-terra), transparent 52%);
+}
+
+.heritage-chrome {
+  background: var(--toolbar-wash);
+  backdrop-filter: blur(10px);
+}
+
+.font-heritage {
+  font-family: var(--font-heritage);
+}
+
+.font-serif-body {
+  font-family: var(--font-serif);
 }

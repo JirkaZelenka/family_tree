@@ -1,4 +1,3 @@
-import { formatFamilyNameWithMaiden } from '@/lib/parser/markdown'
 import { LifeSpanDisplay } from '@/components/person/PersonDateDisplay'
 import type { PersonNode } from '@/types/person'
 import { cn } from '@/lib/utils'
@@ -28,6 +27,9 @@ export function PersonMedallion({
   displayName,
 }: PersonMedallionProps) {
   const isPanel = variant === 'panel'
+  const name = displayName ?? person.fullName
+  const nameWithYear =
+    person.birthYear != null ? `${name} (${person.birthYear})` : name
 
   if (isPanel) {
     return (
@@ -43,7 +45,7 @@ export function PersonMedallion({
           </div>
           <div className="min-h-[2.75rem] pr-14">
             <h2 className="text-base font-semibold leading-tight text-slate-950">
-              {displayName ?? person.fullName}
+              {nameWithYear}
             </h2>
             <p className="mt-0.5 text-xs tabular-nums text-slate-800/85">
               <LifeSpanDisplay person={person} hideDeathIfUnknown={hideDeathIfUnknown} />
@@ -75,7 +77,7 @@ export function PersonMedallion({
       </div>
       <div className="w-full px-3 pb-4 pt-9 text-center">
         <h2 className="text-lg font-semibold leading-tight">
-          {displayName ?? person.fullName}
+          {nameWithYear}
         </h2>
         <p className="mt-1.5 text-sm tabular-nums text-muted-foreground">
           <LifeSpanDisplay person={person} hideDeathIfUnknown={hideDeathIfUnknown} />
