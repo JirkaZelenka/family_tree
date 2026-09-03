@@ -40,7 +40,7 @@ export function lineageToMaidenName(lineage: string, gender: Gender): string {
     return gender === 'female' ? known.female : known.male
   }
 
-  let stem = key.replace(/ovi$/, '').replace(/ova$/, '').replace(/ove$/, '')
+  const stem = key.replace(/ovi$/, '').replace(/ova$/, '').replace(/ove$/, '')
   if (stem.endsWith('ec')) {
     return gender === 'female'
       ? capitalizeWord(stem) + 'ová'
