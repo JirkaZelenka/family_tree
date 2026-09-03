@@ -30,8 +30,13 @@ test-results/
 
 # Python legacy
 venv/
+.venv/
 __pycache__/
 *.pyc
+
+# Django
+backend/db.sqlite3
+backend/staticfiles/
 
 # Local
 *.local

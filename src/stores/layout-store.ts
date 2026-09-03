@@ -6,6 +6,7 @@ import type {
 } from '@/lib/layout/sphere'
 import type { ForceNodeLayout, ForceSavedViews, ViewLayout } from '@/types/vault'
 import { useVaultStore } from '@/stores/vault-store'
+import { useAuthStore } from '@/stores/auth-store'
 import { serializeLayout } from '@/lib/storage/vault-loader'
 import { persistVaultMetaPaths } from '@/lib/storage/vault-persist'
 import type { LayoutFile } from '@/types/vault'
@@ -196,6 +197,7 @@ export const useLayoutStore = create<LayoutState>((set, get) => ({
     persistForceViews(get().forceSavedViews, null, {})
   },
   saveForceViewPreset: (name) => {
+    if (!useAuthStore.getState().user?.canEditSavedViews) return false
     const trimmed = name.trim()
     if (!trimmed) return false
     const merged = mergeForcePositions(get().forceAutoLayout, get().sessionForceNodes)
@@ -229,6 +231,7 @@ export const useLayoutStore = create<LayoutState>((set, get) => ({
     return true
   },
   renameForceViewPreset: (oldName, newName) => {
+    if (!useAuthStore.getState().user?.canEditSavedViews) return false
     const trimmed = newName.trim()
     if (!trimmed || oldName === trimmed) return false
     const views = get().forceSavedViews
@@ -243,6 +246,7 @@ export const useLayoutStore = create<LayoutState>((set, get) => ({
     return true
   },
   deleteForceViewPreset: (name) => {
+    if (!useAuthStore.getState().user?.canEditSavedViews) return
     const views = { ...get().forceSavedViews }
     if (!views[name]) return
     delete views[name]

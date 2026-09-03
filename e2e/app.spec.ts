@@ -1,4 +1,9 @@
 import { test, expect } from '@playwright/test'
+import { mockLoggedIn } from './auth'
+
+test.beforeEach(async ({ page }) => {
+  await mockLoggedIn(page)
+})
 
 test('loads app with sample data', async ({ page }) => {
   await page.goto('/')
