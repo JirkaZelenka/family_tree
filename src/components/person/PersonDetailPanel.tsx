@@ -22,11 +22,11 @@ interface PersonDetailPanelProps {
   variant?: 'default' | 'sidebar'
 }
 
-function relativeLine(rel: PersonNode | undefined, id: string) {
-  const name = rel?.fullName ?? id
+function relativeLine(rel: PersonNode | undefined, _id: string) {
+  const name = rel?.redacted ? 'X' : (rel?.fullName ?? 'X')
   return (
     <>
-      {name} <RelativeLineYears person={rel} />
+      {name} {rel && !rel.redacted ? <RelativeLineYears person={rel} /> : null}
     </>
   )
 }
@@ -36,12 +36,12 @@ export function PersonDetailPanel({ variant = 'default' }: PersonDetailPanelProp
   const profilePersonId = useViewStore((s) => s.profilePersonId)
   const persons = useGraphStore((s) => s.persons)
   const colors = useVaultStore((s) => s.vault?.config.lineageColors ?? {})
-  const texts = useVaultStore((s) => s.vault?.texts ?? [])
+  const texts = useVaultStore((s) => s.displayTexts)
 
   const person = profilePersonId ? persons.get(profilePersonId) : null
   const isSidebar = variant === 'sidebar'
   const occurrences = useMemo(
-    () => (person ? findPersonTexts(texts, person.id) : []),
+    () => (person && !person.redacted ? findPersonTexts(texts, person.id) : []),
     [texts, person],
   )
 

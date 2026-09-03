@@ -3,6 +3,9 @@ import type { VaultData } from '@/lib/storage/vault-loader'
 import { serializeConfig } from '@/lib/storage/vault-loader'
 import { persistVaultMetaPaths } from '@/lib/storage/vault-persist'
 import { parseColorInput } from '@/lib/vault/color-input'
+import { useAuthStore } from '@/stores/auth-store'
+import { lineageAccessFromUser, redactTextDocuments } from '@/auth/lineage-visibility'
+import type { TextDocument } from '@/types/text'
 
 export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
 
@@ -13,6 +16,7 @@ interface VaultState {
   saveStatus: SaveStatus
   isDirty: boolean
   isBootstrapping: boolean
+  displayTexts: TextDocument[]
   setVault: (vault: VaultData, fileMap?: Map<string, string>) => void
   setDirectoryHandle: (handle: FileSystemDirectoryHandle | null) => void
   setSaveStatus: (status: SaveStatus) => void
@@ -30,12 +34,16 @@ export const useVaultStore = create<VaultState>((set, get) => ({
   saveStatus: 'idle',
   isDirty: false,
   isBootstrapping: true,
-  setVault: (vault, fileMap) =>
+  displayTexts: [],
+  setVault: (vault, fileMap) => {
+    const access = lineageAccessFromUser(useAuthStore.getState().user)
     set({
       vault,
       fileMap: fileMap ?? get().fileMap,
       isDirty: false,
-    }),
+      displayTexts: redactTextDocuments(vault.texts, access, vault.people),
+    })
+  },
   setDirectoryHandle: (handle) => set({ directoryHandle: handle }),
   setSaveStatus: (status) => set({ saveStatus: status }),
   setDirty: (dirty) => set({ isDirty: dirty }),

@@ -16,6 +16,20 @@
     "lightMode": "Světlý režim",
     "darkMode": "Tmavý režim"
   },
+  "auth": {
+    "subtitle": "Přihlaste se jménem a heslem",
+    "username": "Jméno",
+    "password": "Heslo",
+    "submit": "Přihlásit se",
+    "submitting": "Přihlašuji…",
+    "logout": "Odhlásit se",
+    "admin": "Administrace",
+    "role": {
+      "readonly": "pouze čtení",
+      "editor": "editor",
+      "admin": "admin"
+    }
+  },
   "views": {
     "tree": "Strom",
     "timeline": "Časová osa",
@@ -116,6 +130,7 @@
     "forceViewOverwrite": "Pohled „{{name}}“ už existuje. Chcete ho přepsat?",
     "forceViewNameTaken": "Pohled „{{name}}“ už existuje.",
     "forceViewEmpty": "Zatím nemáte žádný uložený pohled.",
+    "forceViewReadOnly": "Máte oprávnění pouze ke čtení. Uložené pohledy lze otevřít, ale neukládat ani mazat.",
     "fullscreen": "Celá obrazovka",
     "enterFullscreen": "Sbalit oba panely",
     "exitFullscreen": "Rozbalit oba panely",

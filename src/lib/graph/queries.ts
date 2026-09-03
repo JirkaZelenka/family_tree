@@ -69,6 +69,9 @@ export function getDescendants(
 
 export function getLineages(graph: Graph<PersonNode>): string[] {
   const lineages = new Set<string>()
-  graph.forEachNode((_, attrs) => lineages.add(attrs.lineage))
+  graph.forEachNode((_, attrs) => {
+    if (attrs.redacted) return
+    lineages.add(attrs.lineage)
+  })
   return [...lineages].sort()
 }

@@ -133,9 +133,9 @@ function uOnSphere(
   plane: LineagePlane,
 ): { x: number; y: number; z: number } {
   const anchor = sphericalToCartesian(plane.anchorTheta, plane.anchorPhi, 1)
-  let x = anchor.x + plane.tangentU[0] * u
-  let y = anchor.y + plane.tangentU[1] * u
-  let z = anchor.z + plane.tangentU[2] * u
+  const x = anchor.x + plane.tangentU[0] * u
+  const y = anchor.y + plane.tangentU[1] * u
+  const z = anchor.z + plane.tangentU[2] * u
   const len = Math.sqrt(x * x + y * y + z * z) || 1
   const scale = radius / len
   return { x: x * scale, y: y * scale, z: z * scale }

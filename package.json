@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:backend": "python3 backend/manage.py runserver 8000",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",

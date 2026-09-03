@@ -18,10 +18,31 @@ Moderní browser-only aplikace pro vizualizaci genealogických dat inspirovaná 
 
 ```bash
 npm install
-npm run dev
+python3 -m pip install -r backend/requirements.txt
+python3 backend/manage.py migrate
+python3 backend/manage.py createsuperuser   # admin účet (přístup na /admin)
 ```
 
-Otevřete http://localhost:5173 — aplikace automaticky načte ukázková data z `data/`.
+Ve dvou terminálech:
+
+```bash
+npm run dev:backend    # Django na :8000 (session, /admin)
+npm run dev             # Vite na :5173
+```
+
+Otevřete http://localhost:5173 — nejdřív se přihlásíte, potom aplikace načte ukázková data z `data/`.
+
+### Účty
+
+Účty se spravují v Django adminu (`http://localhost:5173/admin/` nebo `:8000/admin/`).
+
+| Role | Jak vznikne | Oprávnění |
+|------|-------------|-----------|
+| **admin** | `createsuperuser` nebo zaškrtnutí *Personál webu* / *Superuser* | `/admin` + vše, co umí editor |
+| **editor** | uživatel v adminu s rolí *Editor* | ukládání a mazání uložených pohledů |
+| **read only** | uživatel v adminu s rolí *Pouze čtení* (výchozí) | pohledy jen otevře, neuloží ani nesmaže |
+
+U editora a read-only účtu admin v profilu zaškrtne **viditelné rody**. Nezaškrtnuté lineage v grafu nejsou; u příbuzných a v textech je místo nich `X`. Admin vidí všechny rody.
 
 ## Vault struktura
 
@@ -43,7 +64,8 @@ Po čistém clone spusťte `npm run setup:local` — zkopíruje šablony do `dat
 
 | Příkaz | Popis |
 |--------|-------|
-| `npm run dev` | Vývojový server |
+| `npm run dev` | Vývojový server (Vite, :5173) |
+| `npm run dev:backend` | Django (:8000) — přihlášení a `/admin` |
 | `npm run build` | Produkční build |
 | `npm run test` | Unit testy (Vitest) |
 | `npm run test:e2e` | E2E testy (Playwright) |
