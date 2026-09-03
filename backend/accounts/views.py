@@ -14,13 +14,16 @@ def user_payload(user) -> dict:
     profile_role = profile.role if profile else UserProfile.Role.READONLY
     if is_admin:
         role = "admin"
+        allowed_lineages = None
     else:
         role = profile_role
+        allowed_lineages = list(getattr(profile, "allowed_lineages", None) or [])
     return {
         "username": user.username,
         "role": role,
         "isAdmin": is_admin,
         "canEditSavedViews": is_admin or profile_role == UserProfile.Role.EDITOR,
+        "allowedLineages": allowed_lineages,
     }
 
 

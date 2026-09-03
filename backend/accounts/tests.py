@@ -5,6 +5,7 @@ from django.test import Client, TestCase
 
 from .models import UserProfile
 from .views import user_payload
+from .lineages import discover_lineage_keys
 
 
 class AuthApiTests(TestCase):
@@ -49,6 +50,7 @@ class AuthApiTests(TestCase):
         self.assertEqual(body["role"], "readonly")
         self.assertFalse(body["canEditSavedViews"])
         self.assertFalse(body["isAdmin"])
+        self.assertEqual(body["allowedLineages"], [])
 
         me = self.client.get("/api/auth/me")
         self.assertEqual(me.status_code, 200)
@@ -61,12 +63,14 @@ class AuthApiTests(TestCase):
         self.assertEqual(body["role"], "editor")
         self.assertTrue(body["canEditSavedViews"])
         self.assertFalse(body["isAdmin"])
+        self.assertEqual(body["allowedLineages"], [])
 
     def test_admin_payload_and_admin_page(self) -> None:
         payload = user_payload(self.admin)
         self.assertEqual(payload["role"], "admin")
         self.assertTrue(payload["isAdmin"])
         self.assertTrue(payload["canEditSavedViews"])
+        self.assertIsNone(payload["allowedLineages"])
 
         response = self._login("admin")
         self.assertEqual(response.status_code, 200)
@@ -89,3 +93,18 @@ class AuthApiTests(TestCase):
         user = User.objects.create_user("fresh", password="secret")
         self.assertTrue(UserProfile.objects.filter(user=user).exists())
         self.assertEqual(user.profile.role, UserProfile.Role.READONLY)
+        self.assertEqual(user.profile.allowed_lineages, [])
+
+    def test_allowed_lineages_in_me_payload(self) -> None:
+        self.editor.profile.allowed_lineages = ["novakovi"]
+        self.editor.profile.save()
+        response = self._login("editor")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["allowedLineages"], ["novakovi"])
+
+
+class LineageDiscoveryTests(TestCase):
+    def test_discovers_keys_from_vault_or_templates(self) -> None:
+        keys = discover_lineage_keys()
+        self.assertIn("novakovi", keys)
+        self.assertIn("dvorakovi", keys)

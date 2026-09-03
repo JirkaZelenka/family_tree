@@ -42,6 +42,8 @@ Otevřete http://localhost:5173 — nejdřív se přihlásíte, potom aplikace n
 | **editor** | uživatel v adminu s rolí *Editor* | ukládání a mazání uložených pohledů |
 | **read only** | uživatel v adminu s rolí *Pouze čtení* (výchozí) | pohledy jen otevře, neuloží ani nesmaže |
 
+U editora a read-only účtu admin v profilu zaškrtne **viditelné rody**. Nezaškrtnuté lineage v grafu nejsou; u příbuzných a v textech je místo nich `X`. Admin vidí všechny rody.
+
 ## Vault struktura
 
 ```

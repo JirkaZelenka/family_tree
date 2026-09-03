@@ -6,6 +6,7 @@ export const editorUser: AuthUser = {
   role: 'editor',
   isAdmin: false,
   canEditSavedViews: true,
+  allowedLineages: null,
 }
 
 export async function mockLoggedIn(page: Page, user: AuthUser = editorUser) {

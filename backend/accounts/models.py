@@ -18,6 +18,11 @@ class UserProfile(models.Model):
         default=Role.READONLY,
         help_text="Role v aplikaci. Admin vzniká zaškrtnutím „Personál webu“ / superuser.",
     )
+    allowed_lineages = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="Klíče rodů, které uživatel vidí (např. novakovi). Prázdné = nevidí žádný rod. Admin vidí všechny.",
+    )
 
     class Meta:
         verbose_name = "Profil"

@@ -28,7 +28,7 @@ export function KinshipDialog() {
   const [personB, setPersonB] = useState('')
   const [result, setResult] = useState<string | null>(null)
 
-  const personList = [...persons.values()]
+  const personList = [...persons.values()].filter((p) => !p.redacted)
 
   const calculate = () => {
     if (!graph || !personA || !personB) return

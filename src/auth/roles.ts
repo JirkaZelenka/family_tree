@@ -5,6 +5,8 @@ export interface AuthUser {
   role: AppRole
   isAdmin: boolean
   canEditSavedViews: boolean
+  /** `null` = všechny rody (admin). Prázdné pole = žádný rod. */
+  allowedLineages?: string[] | null
 }
 
 export function canEditSavedViews(user: Pick<AuthUser, 'role' | 'isAdmin' | 'canEditSavedViews'> | null | undefined): boolean {

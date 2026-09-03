@@ -173,6 +173,8 @@ export interface PersonRecord {
   frontmatter: PersonFrontmatter
   body: string
   filePath: string
+  /** Skrytá osoba z jiného rodu, v UI jen jako X. */
+  redacted?: boolean
 }
 
 export interface PersonNode extends PersonFrontmatter {
@@ -183,6 +185,8 @@ export interface PersonNode extends PersonFrontmatter {
   deathYear: number | null
   body: string
   filePath: string
+  /** Osoba z nepovoleného rodu, zobrazená jen jako zástupný X. */
+  redacted?: boolean
 }
 
 export type EdgeType = 'parent-child' | 'spouse' | 'sibling' | 'same-lineage'
