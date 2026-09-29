@@ -42,8 +42,13 @@ pozn.txt
 # Real people data
 data/people/*.md
 data/texts/*.md
-data/.family-tree/layout.json
-data/.family-tree/config.yaml
+data/.family-tree/*
 data/family_files/*
+data/texts/*
+
 src/types/vault.ts
 tests/lineage-names.test.ts
+
+.project.json
+.github/workflows/ci.yml
+.vscode/*
