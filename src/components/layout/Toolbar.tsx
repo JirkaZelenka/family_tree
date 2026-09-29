@@ -1,41 +1,15 @@
 import { useTranslation } from 'react-i18next'
-import {
-  FolderOpen,
-  FileArchive,
-  Search,
-  Share2,
-  Save,
-  Upload,
-} from 'lucide-react'
+import { Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { viewRegistry } from '@/views/registry'
 import { useViewStore } from '@/stores/view-store'
 import { useSearchStore } from '@/stores/search-store'
 import { useVaultStore } from '@/stores/vault-store'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { KinshipDialog } from '@/components/person/KinshipDialog'
 import { ThemeToggle } from '@/components/layout/ThemeToggle'
 import { AuthMenu } from '@/components/auth/AuthMenu'
 
-interface ToolbarProps {
-  onOpenFolder: () => void
-  onImportZip: () => void
-  onExportZip: () => void
-  onImportGedcom: () => void
-  onExportGedcom: () => void
-  onSaveLayout: () => void
-  onShareUrl: () => void
-}
-
-export function Toolbar({
-  onOpenFolder,
-  onImportZip,
-  onExportZip,
-  onImportGedcom,
-  onExportGedcom,
-  onSaveLayout,
-  onShareUrl,
-}: ToolbarProps) {
+export function Toolbar() {
   const { t } = useTranslation()
   const activeView = useViewStore((s) => s.activeView)
   const setActiveView = useViewStore((s) => s.setActiveView)
@@ -65,28 +39,6 @@ export function Toolbar({
           <Search className="h-4 w-4" />
           <span className="hidden md:inline text-xs text-muted-foreground">Ctrl+K</span>
         </Button>
-        <Button variant="ghost" size="icon" onClick={onOpenFolder} title={t('toolbar.openFolder')}>
-          <FolderOpen className="h-4 w-4" />
-        </Button>
-        <Button variant="ghost" size="icon" onClick={onImportZip} title={t('toolbar.importZip')}>
-          <Upload className="h-4 w-4" />
-        </Button>
-        <Button variant="ghost" size="icon" onClick={onExportZip} title={t('toolbar.exportZip')}>
-          <FileArchive className="h-4 w-4" />
-        </Button>
-        <Button variant="ghost" size="sm" onClick={onImportGedcom}>
-          GEDCOM ↓
-        </Button>
-        <Button variant="ghost" size="sm" onClick={onExportGedcom}>
-          GEDCOM ↑
-        </Button>
-        <Button variant="ghost" size="icon" onClick={onSaveLayout} title={t('toolbar.saveLayout')}>
-          <Save className="h-4 w-4" />
-        </Button>
-        <Button variant="ghost" size="icon" onClick={onShareUrl} title={t('toolbar.shareUrl')}>
-          <Share2 className="h-4 w-4" />
-        </Button>
-        <KinshipDialog />
         {saveStatus !== 'idle' && (
           <span className="text-xs text-muted-foreground">
             {t(`save.${saveStatus}`)}

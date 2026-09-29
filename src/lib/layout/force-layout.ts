@@ -4,7 +4,7 @@ import type { ForceNodeLayout } from '@/types/vault'
 import { layoutVisiblePedigreeU } from '@/lib/layout/force-structure'
 import { BIRTH_BAND_SIZE } from '@/lib/layout/sphere-bands'
 
-export const FORCE_HORIZONTAL_SCALE = 172
+export const FORCE_HORIZONTAL_SCALE = 192
 export const FORCE_PADDING = 40
 /** Levý pás: historické události + popisky roků + svislá osa. */
 export const FORCE_EVENTS_WIDTH = 148
@@ -16,8 +16,8 @@ export const FORCE_EVENT_LABEL_TOP_OFFSET = 8
 export const FORCE_EVENT_LABEL_HEIGHT = 22
 /** Mezera mezi spojnicí a textem (px). */
 export const FORCE_EVENT_LABEL_GAP = 4
-export const FORCE_NODE_WIDTH = 148
-export const FORCE_NODE_HEIGHT = 52
+export const FORCE_NODE_WIDTH = 168
+export const FORCE_NODE_HEIGHT = 68
 export const FORCE_PIXELS_PER_YEAR = 5
 export const FORCE_MIN_TIMELINE_HEIGHT = 360
 export const FORCE_NODE_GAP_X = 24

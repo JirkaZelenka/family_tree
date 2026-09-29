@@ -7,20 +7,14 @@ import {
   pickVaultDirectory,
   loadVaultFromDirectory,
   importZipVault,
-  exportZipVault,
   loadCachedVaultFiles,
   cacheVaultFiles,
   clearCachedVault,
 } from '@/lib/storage'
 import { mergeVaultMetaFiles } from '@/lib/storage/vault-merge'
-import { persistVaultFileMap, readDevVaultMetaFiles } from '@/lib/storage/vault-persist'
+import { readDevVaultMetaFiles } from '@/lib/storage/vault-persist'
 import { loadVaultFromFileMap } from '@/lib/storage/vault-loader'
 import { getYearRange, parseYear } from '@/lib/time/dates'
-import { applyStateToUrl } from '@/lib/url/serialize'
-import { useViewStore } from '@/stores/view-store'
-import { importGedcomToRecords, exportRecordsToGedcom } from '@/lib/gedcom'
-import { serializeLayout } from '@/lib/storage/vault-loader'
-import { serializePersonMarkdown } from '@/lib/parser/markdown'
 import { loadSampleVaultFileMap } from '@/lib/data/sample-vault-files'
 
 async function loadSampleFiles(): Promise<Map<string, string>> {
@@ -56,10 +50,6 @@ function applyVault(vault: Awaited<ReturnType<typeof loadVaultFromFileMap>>, fil
 
 export function useVaultActions() {
   const vault = useVaultStore((s) => s.vault)
-  const savedLayout = useLayoutStore((s) => s.savedLayout)
-  const sessionForceNodes = useLayoutStore((s) => s.sessionForceNodes)
-  const forceSavedViews = useLayoutStore((s) => s.forceSavedViews)
-  const activeForceViewName = useLayoutStore((s) => s.activeForceViewName)
 
   const openFolder = useCallback(async () => {
     const handle = await pickVaultDirectory()
@@ -72,93 +62,6 @@ export function useVaultActions() {
   const importZip = useCallback(async (file: File) => {
     const { vault, files } = await importZipVault(file)
     applyVault(vault, files)
-  }, [])
-
-  const exportZip = useCallback(async () => {
-    const v = useVaultStore.getState().vault
-    if (!v) return
-    const layout = {
-      ...v.layout,
-      views: {
-        ...v.layout.views,
-        sphere: savedLayout,
-        force: {
-          nodes: {},
-          lineageOffsets: {},
-          forceNodes: sessionForceNodes,
-          forceSavedView:
-            activeForceViewName && forceSavedViews[activeForceViewName]
-              ? forceSavedViews[activeForceViewName]
-              : {},
-          forceSavedViews,
-        },
-      },
-    }
-    const blob = await exportZipVault({ ...v, layout })
-    const a = document.createElement('a')
-    a.href = URL.createObjectURL(blob)
-    a.download = 'family-tree-vault.zip'
-    a.click()
-  }, [savedLayout, sessionForceNodes, forceSavedViews, activeForceViewName])
-
-  const importGedcom = useCallback(async (file: File) => {
-    const text = await file.text()
-    const records = importGedcomToRecords(text)
-    const fileMap = new Map<string, string>()
-    for (const r of records) {
-      fileMap.set(r.filePath, serializePersonMarkdown(r))
-    }
-    const vaultData = await loadVaultFromFileMap(fileMap)
-    applyVault(vaultData, fileMap)
-  }, [])
-
-  const exportGedcom = useCallback(() => {
-    const v = useVaultStore.getState().vault
-    if (!v) return
-    const gedcom = exportRecordsToGedcom(v.people)
-    const blob = new Blob([gedcom], { type: 'text/plain' })
-    const a = document.createElement('a')
-    a.href = URL.createObjectURL(blob)
-    a.download = 'family-tree.ged'
-    a.click()
-  }, [])
-
-  const saveLayout = useCallback(async () => {
-    const v = useVaultStore.getState().vault
-    if (!v) return
-    const layout = {
-      version: 1 as const,
-      views: {
-        ...v.layout.views,
-        sphere: savedLayout,
-        force: {
-          nodes: {},
-          lineageOffsets: {},
-          forceNodes: sessionForceNodes,
-          forceSavedView:
-            activeForceViewName && forceSavedViews[activeForceViewName]
-              ? forceSavedViews[activeForceViewName]
-              : {},
-          forceSavedViews,
-        },
-      },
-    }
-    const content = serializeLayout(layout)
-    useVaultStore.getState().updateLayout(content)
-    useVaultStore.setState({ vault: { ...v, layout } })
-    await persistVaultFileMap(useVaultStore.getState().fileMap)
-  }, [savedLayout, sessionForceNodes, forceSavedViews, activeForceViewName])
-
-  const shareUrl = useCallback(() => {
-    const activeView = useViewStore.getState().activeView
-    const sel = useGraphStore.getState().selectedId
-    const year = useTimeStore.getState().currentYear
-    applyStateToUrl({
-      view: activeView,
-      sel: sel ?? undefined,
-      year,
-    })
-    navigator.clipboard.writeText(window.location.href)
   }, [])
 
   const loadSampleData = useCallback(async (clearCache = true): Promise<{
@@ -221,11 +124,6 @@ export function useVaultActions() {
     loaded: !!vault,
     openFolder,
     importZip,
-    exportZip,
-    importGedcom,
-    exportGedcom,
-    saveLayout,
-    shareUrl,
     loadSampleData,
     tryLoadCache,
   }

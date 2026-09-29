@@ -166,7 +166,7 @@ function PersonNodeCard({
       />
       <text
         x={FORCE_NODE_WIDTH / 2}
-        y={20}
+        y={22}
         textAnchor="middle"
         className="fill-slate-950 text-[13px] font-semibold font-heritage"
         style={{ pointerEvents: 'none' }}
@@ -175,14 +175,14 @@ function PersonNodeCard({
       </text>
       <text
         x={FORCE_NODE_WIDTH / 2}
-        y={36}
+        y={40}
         textAnchor="middle"
         className="fill-slate-800 text-[11px] font-serif-body"
         style={{ pointerEvents: 'none' }}
       >
         {formatFamilyNameWithMaiden(person)}
       </text>
-      <LifeSpanSvg person={person} x={FORCE_NODE_WIDTH / 2} y={48} />
+      <LifeSpanSvg person={person} x={FORCE_NODE_WIDTH / 2} y={56} />
     </g>
   )
 }

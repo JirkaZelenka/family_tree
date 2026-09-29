@@ -234,11 +234,6 @@ export function LineageSidebar() {
         </div>
       )}
 
-      {isTree && (
-        <p className="shrink-0 border-t border-border px-4 py-2 text-[11px] leading-snug text-muted-foreground">
-          {t('layout.treeHint')}
-        </p>
-      )}
     </aside>
   )
 }

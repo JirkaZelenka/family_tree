@@ -24,7 +24,6 @@ export function AppShell() {
   useAutoSave()
 
   const zipInputRef = useRef<HTMLInputElement>(null)
-  const gedcomInputRef = useRef<HTMLInputElement>(null)
   const [sampleLoading, setSampleLoading] = useState(false)
   const [sampleError, setSampleError] = useState<string | null>(null)
 
@@ -42,10 +41,6 @@ export function AppShell() {
 
   const handleImportZip = useCallback(() => {
     zipInputRef.current?.click()
-  }, [])
-
-  const handleImportGedcom = useCallback(() => {
-    gedcomInputRef.current?.click()
   }, [])
 
   if (isBootstrapping) {
@@ -106,15 +101,7 @@ export function AppShell() {
   return (
     <TooltipProvider>
       <div className="flex h-screen flex-col overflow-hidden">
-        <Toolbar
-          onOpenFolder={vault.openFolder}
-          onImportZip={handleImportZip}
-          onExportZip={vault.exportZip}
-          onImportGedcom={handleImportGedcom}
-          onExportGedcom={vault.exportGedcom}
-          onSaveLayout={vault.saveLayout}
-          onShareUrl={vault.shareUrl}
-        />
+        <Toolbar />
         <div className="flex min-h-0 flex-1">
           {activeView === 'tree' && <PersonTreeSidebar />}
           <main className="relative min-w-0 flex-1">
@@ -126,26 +113,6 @@ export function AppShell() {
         <CommandPalette />
         {activeView !== 'tree' && activeView !== 'map' && <PersonProfileDialog />}
         <PersonHoverTooltip />
-        <input
-          ref={zipInputRef}
-          type="file"
-          accept=".zip"
-          className="hidden"
-          onChange={(e) => {
-            const f = e.target.files?.[0]
-            if (f) vault.importZip(f)
-          }}
-        />
-        <input
-          ref={gedcomInputRef}
-          type="file"
-          accept=".ged,.gedcom"
-          className="hidden"
-          onChange={(e) => {
-            const f = e.target.files?.[0]
-            if (f) vault.importGedcom(f)
-          }}
-        />
       </div>
     </TooltipProvider>
   )
