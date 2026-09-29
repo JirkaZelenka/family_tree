@@ -31,7 +31,7 @@ export function LineageSidebar() {
   const setSelectedLineage = useViewStore((s) => s.setSelectedLineage)
   const expandedLineages = useLayoutStore((s) => s.expandedLineages)
   const toggleLineageExpanded = useLayoutStore((s) => s.toggleLineageExpanded)
-  const texts = useVaultStore((s) => s.vault?.texts ?? [])
+  const texts = useVaultStore((s) => s.displayTexts)
 
   const lineages = useMemo(() => (graph ? getLineages(graph) : []), [graph])
 

@@ -3,7 +3,7 @@ import {
   nodeIntersectsGraphRect,
   nodesInGraphRect,
 } from '@/lib/layout/force-marquee'
-import { FORCE_NODE_HEIGHT, FORCE_NODE_WIDTH } from '@/lib/layout/force-layout'
+import { FORCE_NODE_WIDTH } from '@/lib/layout/force-layout'
 
 describe('force-marquee', () => {
   it('detekuje průnik uzlu s výběrovým obdélníkem', () => {

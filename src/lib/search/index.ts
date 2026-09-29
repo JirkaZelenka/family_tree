@@ -26,6 +26,7 @@ export function buildSearchIndex(persons: Map<string, PersonNode>) {
   const docs = new Map<string, SearchDocument>()
 
   for (const [id, p] of persons) {
+    if (p.redacted) continue
     const doc: SearchDocument = {
       id,
       fullName: p.fullName,

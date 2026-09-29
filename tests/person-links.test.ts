@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest'
 import { spouseIds, deriveChildren } from '@/lib/graph/person-links'
-import { buildGraphFromRecords } from '@/lib/graph/builder'
 import type { PersonNode } from '@/types/person'
 
 describe('person-links', () => {

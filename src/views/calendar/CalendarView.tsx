@@ -62,7 +62,7 @@ export function CalendarView({ className }: ViewProps) {
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
 
   const living = useMemo(
-    () => collectLivingBirthdays(persons.values()),
+    () => collectLivingBirthdays([...persons.values()].filter((p) => !p.redacted)),
     [persons],
   )
 

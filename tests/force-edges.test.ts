@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import Graph from 'graphology'
 import type { PersonNode } from '@/types/person'
 import { buildForceEdgeSegments, historicalPathD, offsetSegmentPoints, segmentMidpoint } from '@/lib/layout/force-edges'
-import { FORCE_NODE_HEIGHT, FORCE_NODE_WIDTH } from '@/lib/layout/force-layout'
+import { FORCE_NODE_HEIGHT } from '@/lib/layout/force-layout'
 
 function person(
   id: string,

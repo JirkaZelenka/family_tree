@@ -5,6 +5,8 @@ import type { GraphDiagnostic } from '@/lib/graph/builder'
 import { buildGraphFromRecords } from '@/lib/graph/builder'
 import { buildSearchIndex, type SearchDocument } from '@/lib/search/index'
 import type { Index } from 'flexsearch'
+import { useAuthStore } from '@/stores/auth-store'
+import { applyPersonVisibility, lineageAccessFromUser } from '@/auth/lineage-visibility'
 
 interface GraphState {
   graph: Graph<PersonNode, GraphEdgeAttributes> | null
@@ -36,7 +38,9 @@ export const useGraphStore = create<GraphState>((set, get) => ({
   searchDocs: new Map(),
   loadFromRecords: (records) => {
     try {
-      const { graph, diagnostics, persons } = buildGraphFromRecords(records)
+      const access = lineageAccessFromUser(useAuthStore.getState().user)
+      const visibleRecords = applyPersonVisibility(records, access)
+      const { graph, diagnostics, persons } = buildGraphFromRecords(visibleRecords)
       const { index, docs } = buildSearchIndex(persons)
       set({
         graph,

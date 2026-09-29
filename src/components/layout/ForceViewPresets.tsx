@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from 'react'
 import { Bookmark, Pencil, Trash2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useLayoutStore } from '@/stores/layout-store'
+import { useAuthStore } from '@/stores/auth-store'
 import {
   Dialog,
   DialogContent,
@@ -23,6 +24,7 @@ export function ForceViewPresets({ onLoaded }: ForceViewPresetsProps) {
   const loadForceViewPreset = useLayoutStore((s) => s.loadForceViewPreset)
   const renameForceViewPreset = useLayoutStore((s) => s.renameForceViewPreset)
   const deleteForceViewPreset = useLayoutStore((s) => s.deleteForceViewPreset)
+  const canEditSavedViews = useAuthStore((s) => s.user?.canEditSavedViews ?? false)
 
   const presetNames = useMemo(
     () => Object.keys(forceSavedViews).sort((a, b) => a.localeCompare(b, 'cs')),
@@ -105,22 +107,26 @@ export function ForceViewPresets({ onLoaded }: ForceViewPresetsProps) {
           </DialogHeader>
 
           <div className="space-y-4">
-            <div className="space-y-2">
-              <p className="text-sm text-muted-foreground">{t('layout.forceViewSaveHint')}</p>
-              <div className="flex gap-2">
-                <Input
-                  value={saveName}
-                  onChange={(e) => setSaveName(e.target.value)}
-                  placeholder={t('layout.forceViewNamePlaceholder')}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleSave()
-                  }}
-                />
-                <Button type="button" size="sm" onClick={handleSave}>
-                  {t('layout.forceViewSave')}
-                </Button>
+            {canEditSavedViews ? (
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">{t('layout.forceViewSaveHint')}</p>
+                <div className="flex gap-2">
+                  <Input
+                    value={saveName}
+                    onChange={(e) => setSaveName(e.target.value)}
+                    placeholder={t('layout.forceViewNamePlaceholder')}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleSave()
+                    }}
+                  />
+                  <Button type="button" size="sm" onClick={handleSave}>
+                    {t('layout.forceViewSave')}
+                  </Button>
+                </div>
               </div>
-            </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">{t('layout.forceViewReadOnly')}</p>
+            )}
 
             {presetNames.length > 0 ? (
               <ul className="max-h-64 space-y-1 overflow-y-auto rounded-md border p-2">
@@ -139,25 +145,29 @@ export function ForceViewPresets({ onLoaded }: ForceViewPresetsProps) {
                     >
                       {name}
                     </button>
-                    <button
-                      type="button"
-                      className="rounded p-1 hover:bg-background"
-                      title={t('layout.forceViewRename')}
-                      onClick={() => {
-                        setRenameTarget(name)
-                        setRenameValue(name)
-                      }}
-                    >
-                      <Pencil className="h-3.5 w-3.5" aria-hidden />
-                    </button>
-                    <button
-                      type="button"
-                      className="rounded p-1 hover:bg-background"
-                      title={t('layout.forceViewDelete')}
-                      onClick={() => handleDelete(name)}
-                    >
-                      <Trash2 className="h-3.5 w-3.5 text-destructive" aria-hidden />
-                    </button>
+                    {canEditSavedViews ? (
+                      <>
+                        <button
+                          type="button"
+                          className="rounded p-1 hover:bg-background"
+                          title={t('layout.forceViewRename')}
+                          onClick={() => {
+                            setRenameTarget(name)
+                            setRenameValue(name)
+                          }}
+                        >
+                          <Pencil className="h-3.5 w-3.5" aria-hidden />
+                        </button>
+                        <button
+                          type="button"
+                          className="rounded p-1 hover:bg-background"
+                          title={t('layout.forceViewDelete')}
+                          onClick={() => handleDelete(name)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5 text-destructive" aria-hidden />
+                        </button>
+                      </>
+                    ) : null}
                   </li>
                 ))}
               </ul>

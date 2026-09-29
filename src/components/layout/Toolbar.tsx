@@ -15,6 +15,7 @@ import { useVaultStore } from '@/stores/vault-store'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { KinshipDialog } from '@/components/person/KinshipDialog'
 import { ThemeToggle } from '@/components/layout/ThemeToggle'
+import { AuthMenu } from '@/components/auth/AuthMenu'
 
 interface ToolbarProps {
   onOpenFolder: () => void
@@ -58,6 +59,7 @@ export function Toolbar({
       </Tabs>
 
       <div className="ml-auto flex flex-wrap items-center gap-1">
+        <AuthMenu />
         <ThemeToggle />
         <Button variant="ghost" size="sm" onClick={() => setCommandOpen(true)}>
           <Search className="h-4 w-4" />

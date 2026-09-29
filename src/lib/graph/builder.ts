@@ -22,11 +22,12 @@ function recordToNode(record: PersonRecord): PersonNode {
   return {
     ...fm,
     children: [],
-    fullName: buildFullName(fm),
+    fullName: record.redacted ? 'X' : buildFullName(fm),
     birthYear: parseYear(fm.birth?.date),
     deathYear: parseYear(fm.death?.date),
     body: record.body,
     filePath: record.filePath,
+    redacted: record.redacted === true,
   }
 }
 

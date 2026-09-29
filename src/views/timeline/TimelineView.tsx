@@ -23,7 +23,7 @@ export function TimelineView({ className }: ViewProps) {
   const bars = useMemo(
     () =>
       [...persons.values()]
-        .filter((p) => p.birthYear !== null || p.deathYear !== null)
+        .filter((p) => !p.redacted && (p.birthYear !== null || p.deathYear !== null))
         .sort((a, b) => (a.birthYear ?? 0) - (b.birthYear ?? 0)),
     [persons],
   )

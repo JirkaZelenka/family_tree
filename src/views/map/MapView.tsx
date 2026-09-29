@@ -125,6 +125,7 @@ export function MapView({ className }: ViewProps) {
     }
 
     for (const person of persons.values()) {
+      if (person.redacted) continue
       if (!isPersonVisible(person.birthYear, person.deathYear, person.death?.date)) {
         continue
       }
