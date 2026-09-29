@@ -87,11 +87,21 @@ CSRF_COOKIE_SAMESITE = "Lax"
 CSRF_COOKIE_HTTPONLY = False
 SESSION_COOKIE_HTTPONLY = True
 
+# Vite may bump to 5174+ when 5173 is busy; include a small port range for local login.
+_default_csrf_origins = [
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+    *[
+        f"http://{host}:{port}"
+        for host in ("localhost", "127.0.0.1")
+        for port in range(5173, 5181)
+    ],
+]
 CSRF_TRUSTED_ORIGINS = [
     origin.strip()
     for origin in os.environ.get(
         "DJANGO_CSRF_TRUSTED_ORIGINS",
-        "http://localhost:5173,http://127.0.0.1:5173,http://localhost:8000,http://127.0.0.1:8000",
+        ",".join(_default_csrf_origins),
     ).split(",")
     if origin.strip()
 ]

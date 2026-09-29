@@ -231,6 +231,71 @@ export function resolveGivenName(raw: string): { nominative: string; gender: Gen
   return GIVEN_LOOKUP.get(foldKey(raw)) ?? null
 }
 
+/** Nominativ + známé / heuristické pády křestního jména (pro redakci zmínek v textech). */
+export function givenNameForms(nominative: string): string[] {
+  const n = nfc(nominative).trim()
+  if (!n) return []
+  const forms = new Set<string>([n])
+  for (const entry of GIVEN_ENTRIES) {
+    if (foldKey(entry.nominative) !== foldKey(n)) continue
+    for (const form of entry.forms) forms.add(form)
+    break
+  }
+  if (/ová$/i.test(n)) {
+    // unlikely for given names; keep nominative only
+  } else if (/a$/i.test(n)) {
+    const stem = n.slice(0, -1)
+    for (const s of [`${stem}y`, `${stem}ě`, `${stem}e`, `${stem}u`, `${stem}ou`]) forms.add(s)
+  } else if (/ie$/i.test(n)) {
+    const stem = n.slice(0, -1)
+    forms.add(`${stem}i`)
+    forms.add(`${stem}í`)
+  } else if (/e$/i.test(n)) {
+    const stem = n.slice(0, -1)
+    forms.add(`${stem}i`)
+    forms.add(`${stem}í`)
+  } else {
+    for (const s of [`${n}a`, `${n}u`, `${n}e`, `${n}ovi`, `${n}em`]) forms.add(s)
+  }
+  return [...forms]
+}
+
+export function surnameForms(nominative: string): string[] {
+  const n = nfc(nominative).trim()
+  if (!n) return []
+  return inflectSurname(n)
+}
+
+/** True, pokud token odpovídá křestnímu jménu nebo příjmení (včetně běžných pádů). */
+export function tokenMatchesPersonName(
+  token: string,
+  names: { givenName?: string; familyName?: string; maidenName?: string | null; gender?: GenderHint },
+): boolean {
+  const raw = nfc(token).replace(/[.,;:]+$/g, '').trim()
+  if (!raw) return false
+  const key = foldKey(raw)
+
+  const given = names.givenName?.trim() ?? ''
+  if (given) {
+    if (foldKey(given) === key) return true
+    if (givenNameForms(given).some((form) => foldKey(form) === key)) return true
+    const resolved = resolveGivenName(raw)
+    if (resolved && foldKey(resolved.nominative) === foldKey(given)) return true
+  }
+
+  const gender: GenderHint =
+    names.gender === 'female' || names.gender === 'male' ? names.gender : 'unknown'
+  for (const surname of [names.familyName, names.maidenName]) {
+    const nom = surname?.trim() ?? ''
+    if (!nom) continue
+    if (foldKey(nom) === key) return true
+    if (surnameForms(nom).some((form) => foldKey(form) === key)) return true
+    if (foldKey(resolveSurname(raw, gender)) === foldKey(nom)) return true
+  }
+
+  return false
+}
+
 function escapeRegExp(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }

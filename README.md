@@ -42,7 +42,7 @@ Otevřete http://localhost:5173 — nejdřív se přihlásíte, potom aplikace n
 | **editor** | uživatel v adminu s rolí *Editor* | ukládání a mazání uložených pohledů |
 | **read only** | uživatel v adminu s rolí *Pouze čtení* (výchozí) | pohledy jen otevře, neuloží ani nesmaže |
 
-U editora a read-only účtu admin v profilu zaškrtne **viditelné rody**. Nezaškrtnuté lineage v grafu nejsou; u příbuzných a v textech je místo nich `X`. Admin vidí všechny rody.
+U editora a read-only účtu admin v profilu zaškrtne **viditelné rody**. Nezaškrtnuté lineage v grafu nejsou; u příbuzných (předci/potomci/partneři) zůstane vazba jako `X` s rokem narození/úmrtí (bez dne, měsíce, jména a rodu). V panelu rodů je na konci skupina **Rody bez přístupu** — kliknutím je na ploše zapnete/vypnete. Admin vidí všechny rody.
 
 ## Vault struktura
 
@@ -55,7 +55,7 @@ data/                          # lokální data (většina v .gitignore)
     ├── config.yaml
     └── layout.json
 
-templates/data/                # fiktivní ukázky (Novák / Dvořák) — v gitu
+templates/data/                # fiktivní ukázky (Novák / Dvořák) — jen pro setup:local, ne do živé app
 ```
 
 Po čistém clone spusťte `npm run setup:local` — zkopíruje šablony do `data/` a dalších gitignorovaných cest. Viz [templates/README.md](templates/README.md).

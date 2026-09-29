@@ -126,7 +126,8 @@ export function loadTemplateVaultFileMap(): Map<string, string> {
 }
 
 /**
- * Načte ukázkový vault — lokální data/ má přednost, jinak šablony z templates/data/.
+ * Načte živý vault jen z `data/` — šablony z `templates/data/` se sem nedostanou.
+ * (Šablony slouží pro `npm run setup:local` a testy přes `loadTemplateVaultFileMap`.)
  */
 export function loadSampleVaultFileMap(): Map<string, string> {
   const files = new Map<string, string>()
@@ -134,17 +135,8 @@ export function loadSampleVaultFileMap(): Map<string, string> {
   for (const glob of userPeopleGlobs) {
     mergeGlobRaw(files, glob)
   }
-  if ([...files.keys()].filter((k) => k.startsWith('people/')).length === 0) {
-    for (const glob of templatePeopleGlobs) {
-      mergeGlobRaw(files, glob)
-    }
-    for (const glob of templateTextsGlobs) {
-      mergeGlobRaw(files, glob)
-    }
-  } else {
-    for (const glob of userTextsGlobs) {
-      mergeGlobRaw(files, glob)
-    }
+  for (const glob of userTextsGlobs) {
+    mergeGlobRaw(files, glob)
   }
 
   const configYaml = pickRawModule(userConfigGlobs, templateConfigYaml)

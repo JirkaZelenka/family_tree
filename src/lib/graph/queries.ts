@@ -1,6 +1,7 @@
 import type Graph from 'graphology'
 import type { PersonNode } from '@/types/person'
 import { lifeSpanOverlap } from '@/lib/time/dates'
+import { NO_ACCESS_LINEAGE, isNoAccessLineage } from '@/auth/lineage-visibility'
 
 export function getContemporaries(
   graph: Graph<PersonNode>,
@@ -67,11 +68,18 @@ export function getDescendants(
   return descendants
 }
 
+/** Viditelné rody + na konci syntetická skupina anonymizovaných (pokud existuje). */
 export function getLineages(graph: Graph<PersonNode>): string[] {
   const lineages = new Set<string>()
+  let hasNoAccess = false
   graph.forEachNode((_, attrs) => {
-    if (attrs.redacted) return
-    lineages.add(attrs.lineage)
+    if (attrs.redacted || isNoAccessLineage(attrs.lineage)) {
+      hasNoAccess = true
+      return
+    }
+    if (attrs.lineage) lineages.add(attrs.lineage)
   })
-  return [...lineages].sort()
+  const list = [...lineages].sort((a, b) => a.localeCompare(b, 'cs'))
+  if (hasNoAccess) list.push(NO_ACCESS_LINEAGE)
+  return list
 }

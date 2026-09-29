@@ -3,6 +3,7 @@ import { FileText, PanelRightClose, PanelRightOpen, X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useVaultStore } from '@/stores/vault-store'
 import { getLineages } from '@/lib/graph/queries'
+import { isNoAccessLineage } from '@/auth/lineage-visibility'
 import { useGraphStore } from '@/stores/graph-store'
 import { useViewStore } from '@/stores/view-store'
 import { useLayoutStore } from '@/stores/layout-store'
@@ -47,28 +48,36 @@ export function LineageSidebar() {
 
   const sortedLineages = useMemo(() => {
     const items = lineages.map((name) => ({ name, count: memberCounts[name] ?? 0 }))
+    const accessible = items.filter((item) => !isNoAccessLineage(item.name))
+    const noAccess = items.filter((item) => isNoAccessLineage(item.name))
     if (lineageSort === 'members') {
-      return items.sort(
-        (a, b) => b.count - a.count || a.name.localeCompare(b.name, 'cs'),
-      )
+      accessible.sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, 'cs'))
+    } else {
+      accessible.sort((a, b) => a.name.localeCompare(b.name, 'cs'))
     }
-    return items.sort((a, b) => a.name.localeCompare(b.name, 'cs'))
+    return [...accessible, ...noAccess]
   }, [lineages, memberCounts, lineageSort])
 
   const textCounts = useMemo(() => {
     const counts: Record<string, number> = {}
     for (const name of lineages) {
-      counts[name] = findLineageTexts(texts, name).length
+      counts[name] = isNoAccessLineage(name) ? 0 : findLineageTexts(texts, name).length
     }
     return counts
   }, [lineages, texts])
 
   const selectedOccurrences = useMemo(
-    () => (selectedLineage ? findLineageTexts(texts, selectedLineage) : []),
+    () =>
+      selectedLineage && !isNoAccessLineage(selectedLineage)
+        ? findLineageTexts(texts, selectedLineage)
+        : [],
     [selectedLineage, texts],
   )
 
   const isTree = activeView === 'tree'
+
+  const lineageLabel = (name: string) =>
+    isNoAccessLineage(name) ? t('lineage.noAccess') : name
 
   if (!graph) return null
 
@@ -137,6 +146,7 @@ export function LineageSidebar() {
           const expanded = isTree ? expandedLineages.has(name) : true
           const selected = selectedLineage === name
           const relatedTextCount = textCounts[name] ?? 0
+          const noAccess = isNoAccessLineage(name)
           return (
             <li key={name}>
               <div
@@ -145,13 +155,25 @@ export function LineageSidebar() {
                   selected && 'bg-accent ring-1 ring-primary',
                   isTree && expanded && !selected && 'bg-accent/70',
                   isTree && !expanded && 'opacity-80',
+                  noAccess && 'mt-1 border-t border-border/60 pt-2',
                 )}
               >
-                <LineageColorPicker
-                  lineage={name}
-                  color={baseColor}
-                  muted={isTree && !expanded}
-                />
+                {noAccess ? (
+                  <span
+                    className={cn(
+                      'ml-1 h-4 w-4 shrink-0 rounded-full border border-border',
+                      isTree && !expanded && 'opacity-50',
+                    )}
+                    style={{ backgroundColor: baseColor }}
+                    title={t('lineage.noAccess')}
+                  />
+                ) : (
+                  <LineageColorPicker
+                    lineage={name}
+                    color={baseColor}
+                    muted={isTree && !expanded}
+                  />
+                )}
                 <button
                   type="button"
                   onMouseDown={(e) => e.preventDefault()}
@@ -165,7 +187,7 @@ export function LineageSidebar() {
                   }}
                   className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 rounded-md px-1 py-1 hover:bg-accent/80"
                 >
-                  <span className="min-w-0 flex-1 truncate font-medium">{name}</span>
+                  <span className="min-w-0 flex-1 truncate font-medium">{lineageLabel(name)}</span>
                   {relatedTextCount > 0 && (
                     <FileText
                       className={cn(
@@ -185,12 +207,14 @@ export function LineageSidebar() {
         })}
       </ul>
 
-      {texts.length > 0 && selectedLineage && (
+      {texts.length > 0 && selectedLineage && !isNoAccessLineage(selectedLineage) && (
         <div className="flex max-h-[42%] min-h-0 shrink-0 flex-col border-t border-border">
           <div className="flex shrink-0 items-center justify-between gap-2 px-4 py-2">
             <h3 className="min-w-0 truncate text-sm font-medium">
               {t('texts.sectionTitle')}
-              <span className="ml-1 font-normal text-muted-foreground">· {selectedLineage}</span>
+              <span className="ml-1 font-normal text-muted-foreground">
+                · {lineageLabel(selectedLineage)}
+              </span>
             </h3>
             <button
               type="button"

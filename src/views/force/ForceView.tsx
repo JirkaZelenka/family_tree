@@ -30,6 +30,7 @@ import {
   type ForceNodePosition,
 } from '@/lib/layout/force-layout'
 import { enrichLineageColors, lineageColor, countLineageMembers } from '@/lib/vault/lineage-colors'
+import { getLineages } from '@/lib/graph/queries'
 import { resolveForceNodeFill, type ForceNodeFill } from '@/lib/layout/force-node-fill'
 import { graphRectFromClients, nodesInGraphRect } from '@/lib/layout/force-marquee'
 import {
@@ -292,13 +293,7 @@ export function ForceView({ className }: ViewProps) {
   const showAllPeople = useTimeStore((s) => s.showAllPeople)
 
   const vaultColors = useVaultStore((s) => s.vault?.config.lineageColors ?? {})
-  const lineages = useMemo(
-    () =>
-      graph
-        ? [...new Set(graph.nodes().map((id) => graph.getNodeAttributes(id).lineage))].sort()
-        : [],
-    [graph],
-  )
+  const lineages = useMemo(() => (graph ? getLineages(graph) : []), [graph])
 
   const expandedLineages = useLayoutStore((s) => s.expandedLineages)
   const sessionForceNodes = useLayoutStore((s) => s.sessionForceNodes)

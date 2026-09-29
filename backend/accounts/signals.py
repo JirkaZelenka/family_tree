@@ -7,7 +7,5 @@ from .models import UserProfile
 
 @receiver(post_save, sender=User)
 def ensure_user_profile(sender, instance: User, created: bool, **kwargs) -> None:
-    if created:
-        UserProfile.objects.create(user=instance)
-    else:
-        UserProfile.objects.get_or_create(user=instance)
+    # Always get_or_create: admin UserProfileInline may also insert on the same save.
+    UserProfile.objects.get_or_create(user=instance)

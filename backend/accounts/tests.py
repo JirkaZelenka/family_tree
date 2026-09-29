@@ -95,6 +95,34 @@ class AuthApiTests(TestCase):
         self.assertEqual(user.profile.role, UserProfile.Role.READONLY)
         self.assertEqual(user.profile.allowed_lineages, [])
 
+    def test_admin_can_add_user_with_profile_inline(self) -> None:
+        """Signal + admin inline must not double-insert UserProfile."""
+        self.client.force_login(self.admin)
+        add_page = self.client.get("/admin/auth/user/add/")
+        self.assertEqual(add_page.status_code, 200)
+        csrf = self.client.cookies["csrftoken"].value
+        response = self.client.post(
+            "/admin/auth/user/add/",
+            {
+                "csrfmiddlewaretoken": csrf,
+                "username": "tester",
+                "password1": "complex-pass-123",
+                "password2": "complex-pass-123",
+                "profile-TOTAL_FORMS": "1",
+                "profile-INITIAL_FORMS": "0",
+                "profile-MIN_NUM_FORMS": "0",
+                "profile-MAX_NUM_FORMS": "1",
+                "profile-0-role": UserProfile.Role.EDITOR,
+                "profile-0-allowed_lineages": ["novakovi"],
+                "_save": "Save",
+            },
+        )
+        self.assertEqual(response.status_code, 302, response.content.decode()[:500])
+        user = User.objects.get(username="tester")
+        self.assertEqual(UserProfile.objects.filter(user=user).count(), 1)
+        self.assertEqual(user.profile.role, UserProfile.Role.EDITOR)
+        self.assertEqual(user.profile.allowed_lineages, ["novakovi"])
+
     def test_allowed_lineages_in_me_payload(self) -> None:
         self.editor.profile.allowed_lineages = ["novakovi"]
         self.editor.profile.save()
@@ -104,7 +132,41 @@ class AuthApiTests(TestCase):
 
 
 class LineageDiscoveryTests(TestCase):
-    def test_discovers_keys_from_vault_or_templates(self) -> None:
+    def test_discovers_keys_from_live_data_only(self) -> None:
         keys = discover_lineage_keys()
-        self.assertIn("novakovi", keys)
-        self.assertIn("dvorakovi", keys)
+        folds = {key.casefold() for key in keys}
+        self.assertIn("zelenkovi", folds)
+        # Šablonové Novák/Dvořák se do adminu nesmí dostat.
+        self.assertNotIn("novakovi", folds)
+        self.assertNotIn("dvorakovi", folds)
+
+    def test_discover_has_no_case_duplicates(self) -> None:
+        keys = discover_lineage_keys()
+        folds = [key.casefold() for key in keys]
+        self.assertEqual(len(folds), len(set(folds)))
+
+    def test_canonicalize_prefers_vault_casing(self) -> None:
+        from .lineages import canonicalize_lineage_keys, dedupe_lineage_keys
+
+        merged = dedupe_lineage_keys(["zelenkovi", "Zelenkovi", "spilkovi"])
+        self.assertEqual(merged, ["spilkovi", "Zelenkovi"])
+        canon = canonicalize_lineage_keys(
+            ["zelenkovi", "SPILKOVI"],
+            ["Zelenkovi", "Spilkovi"],
+        )
+        self.assertEqual(canon, ["Spilkovi", "Zelenkovi"])
+
+    def test_czech_alphabet_sort_order(self) -> None:
+        from .lineages import sort_lineage_keys
+
+        keys = sort_lineage_keys(
+            ["Zelenkovi", "Spilkovi", "Špičkovi", "Hynkovi", "Chudobovi", "Bartoňovi"],
+        )
+        self.assertEqual(
+            keys,
+            ["Bartoňovi", "Hynkovi", "Chudobovi", "Spilkovi", "Špičkovi", "Zelenkovi"],
+        )
+        self.assertLess(keys.index("Spilkovi"), keys.index("Špičkovi"))
+        self.assertLess(keys.index("Špičkovi"), keys.index("Zelenkovi"))
+        self.assertLess(keys.index("Hynkovi"), keys.index("Chudobovi"))
+

@@ -1,7 +1,11 @@
 import { DEFAULT_LINEAGE_COLORS } from '@/types/vault'
+import { isNoAccessLineage } from '@/auth/lineage-visibility'
 
 /** Jednočlenné rody (typicky manžel/ka bez vlastní větve). */
 export const SMALL_LINEAGE_COLOR = '#fde68a'
+
+/** Anonymizované osoby z rodů bez přístupu. */
+export const NO_ACCESS_LINEAGE_COLOR = '#94a3b8'
 
 export const LINEAGE_COLOR_PALETTE = [
   '#4ade80',
@@ -32,8 +36,9 @@ function hashLineage(lineage: string): number {
   return Math.abs(h)
 }
 
-function autoColor(lineage: string): string {
+export function autoColor(lineage: string): string {
   if (lineage === 'unknown') return '#94a3b8'
+  if (isNoAccessLineage(lineage)) return NO_ACCESS_LINEAGE_COLOR
   return PALETTE[hashLineage(lineage) % PALETTE.length]
 }
 
@@ -187,6 +192,7 @@ export function enrichLineageColors(
   }
   if (memberCounts) {
     for (const lineage of lineages) {
+      if (isNoAccessLineage(lineage)) continue
       if (memberCounts[lineage] === 1 && !fromConfig[lineage]) {
         merged[lineage] = SMALL_LINEAGE_COLOR
       }

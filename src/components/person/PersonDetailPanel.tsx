@@ -26,7 +26,7 @@ function relativeLine(rel: PersonNode | undefined, _id: string) {
   const name = rel?.redacted ? 'X' : (rel?.fullName ?? 'X')
   return (
     <>
-      {name} {rel && !rel.redacted ? <RelativeLineYears person={rel} /> : null}
+      {name} {rel ? <RelativeLineYears person={rel} /> : null}
     </>
   )
 }

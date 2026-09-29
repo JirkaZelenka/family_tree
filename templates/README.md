@@ -27,6 +27,7 @@ node scripts/setup-from-templates.mjs --force
 
 ## Dev / CI
 
-- Aplikace a testy načítají ukázková data z `templates/data/`.
-- Pokud máte vlastní soubory v `data/`, mají přednost (lidské soubory přepíší šablony se stejným názvem).
+- Živá aplikace a Django admin berou osoby/rody **jen z `data/`**.
+- `templates/data/` je jen šablona pro `npm run setup:local` (a pro testy přes `loadTemplateVaultFileMap`).
+- Pokud máte vlastní soubory v `data/`, setup je nepřepisuje (bez `--force`).
 - `src/types/vault.ts` a `tests/lineage-names.test.ts` musíte mít lokálně — buď zkopírujte ze šablony, nebo spusťte setup skript.

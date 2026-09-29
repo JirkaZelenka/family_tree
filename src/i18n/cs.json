@@ -99,6 +99,7 @@
     "panelTitle": "Rody",
     "sortByName": "Podle jména",
     "sortByMembers": "Podle počtu",
+    "noAccess": "Rody bez přístupu",
     "changeColor": "Změnit barvu",
     "changeColorFor": "Barva rodu {{name}}",
     "colorInput": "Vlastní barva",

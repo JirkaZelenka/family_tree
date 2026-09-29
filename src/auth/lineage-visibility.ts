@@ -1,9 +1,21 @@
 import { normalizeLineageKey } from '@/lib/vault/lineage-names'
+import {
+  parseYear,
+  uncertaintyPrefixLength,
+} from '@/lib/time/dates'
+import { tokenMatchesPersonName } from '@/lib/extract/czech-morphology'
 import type { PersonRecord } from '@/types/person'
 import type { TextDocument, TextMention } from '@/types/text'
 import type { AuthUser } from '@/auth/roles'
 
 export const REDACTED_LABEL = 'X'
+
+/** Interní klíč syntetického rodu pro anonymizované osoby z nepovolených rodů. */
+export const NO_ACCESS_LINEAGE = '__no_access__'
+
+export function isNoAccessLineage(lineage: string): boolean {
+  return lineage === NO_ACCESS_LINEAGE
+}
 
 export interface LineageAccess {
   seeAll: boolean
@@ -23,44 +35,31 @@ export function lineageAccessFromUser(user: AuthUser | null | undefined): Lineag
 
 export function canSeeLineage(access: LineageAccess, lineage: string): boolean {
   if (access.seeAll) return true
+  if (isNoAccessLineage(lineage)) return false
   return access.allowed.has(normalizeLineageKey(lineage))
 }
 
-function emptyLifeEvent() {
-  return { date: '', place: '' }
+/** Den/měsíc pryč, rok (včetně ? / ??) zůstane; místo se nezveřejní. */
+export function yearOnlyDate(date: string | undefined | null): string {
+  if (date == null) return ''
+  const trimmed = date.trim()
+  if (!trimmed) return ''
+  const year = parseYear(trimmed)
+  if (year === null) {
+    const prefixes = uncertaintyPrefixLength(trimmed)
+    return prefixes > 0 && trimmed.replace(/^\?+/, '') === '' ? trimmed : ''
+  }
+  const prefixes = uncertaintyPrefixLength(trimmed)
+  if (prefixes >= 2) return `??${year}`
+  if (prefixes === 1) return `?${year}`
+  return String(year)
 }
 
-function visibleLineageForStub(
-  record: PersonRecord,
-  byId: Map<string, PersonRecord>,
-  visibleIds: Set<string>,
-): string {
-  for (const parentId of record.frontmatter.parents) {
-    if (visibleIds.has(parentId)) return byId.get(parentId)?.frontmatter.lineage ?? ''
-  }
-  for (const spouse of record.frontmatter.spouses) {
-    if (visibleIds.has(spouse.id)) return byId.get(spouse.id)?.frontmatter.lineage ?? ''
-  }
-  for (const other of byId.values()) {
-    if (!visibleIds.has(other.frontmatter.id)) continue
-    if (other.frontmatter.parents.includes(record.frontmatter.id)) {
-      return other.frontmatter.lineage
-    }
-    if (other.frontmatter.spouses.some((spouse) => spouse.id === record.frontmatter.id)) {
-      return other.frontmatter.lineage
-    }
-    if (other.frontmatter.parents.some((parentId) => record.frontmatter.parents.includes(parentId))) {
-      return other.frontmatter.lineage
-    }
-  }
-  return ''
+function yearOnlyLifeEvent(event: { date: string; place: string }) {
+  return { date: yearOnlyDate(event.date), place: '' }
 }
 
-function redactFrontmatter(
-  record: PersonRecord,
-  keepIds: Set<string>,
-  displayLineage: string,
-): PersonRecord {
+function redactFrontmatter(record: PersonRecord, keepIds: Set<string>): PersonRecord {
   const fm = record.frontmatter
   return {
     ...record,
@@ -75,13 +74,16 @@ function redactFrontmatter(
       internal_note: '',
       links: [],
       moving: [],
-      lineage: displayLineage,
-      birth: emptyLifeEvent(),
-      death: emptyLifeEvent(),
+      lineage: NO_ACCESS_LINEAGE,
+      birth: yearOnlyLifeEvent(fm.birth),
+      death: yearOnlyLifeEvent(fm.death),
       parents: fm.parents.filter((id) => keepIds.has(id)),
       spouses: fm.spouses
         .filter((spouse) => keepIds.has(spouse.id))
-        .map((spouse) => ({ id: spouse.id, marriageDate: spouse.marriageDate })),
+        .map((spouse) => ({
+          id: spouse.id,
+          marriageDate: yearOnlyDate(spouse.marriageDate),
+        })),
     },
   }
 }
@@ -97,7 +99,63 @@ function pruneMissingRefs(record: PersonRecord, keepIds: Set<string>): PersonRec
   }
 }
 
-/** Osoby z nepovolených rodů pryč; příbuzní viditelných osob zůstanou jako X. */
+function childrenIndex(records: PersonRecord[]): Map<string, string[]> {
+  const childrenOf = new Map<string, string[]>()
+  for (const record of records) {
+    for (const parentId of record.frontmatter.parents) {
+      if (!parentId) continue
+      const list = childrenOf.get(parentId)
+      if (list) list.push(record.frontmatter.id)
+      else childrenOf.set(parentId, [record.frontmatter.id])
+    }
+  }
+  return childrenOf
+}
+
+/**
+ * Viditelné osoby + jejich partneři, pak uzavření přes rodiče/děti.
+ * Každý ponechaný X si tak zachová celý řetězec nahoru i dolů.
+ * Nepřipojené osoby z jiných rodů vypadnou.
+ */
+function collectKeepIds(
+  records: PersonRecord[],
+  byId: Map<string, PersonRecord>,
+  visibleIds: Set<string>,
+): Set<string> {
+  const keepIds = new Set(visibleIds)
+  const childrenOf = childrenIndex(records)
+
+  for (const id of visibleIds) {
+    const record = byId.get(id)
+    if (!record) continue
+    for (const spouse of record.frontmatter.spouses) {
+      if (byId.has(spouse.id)) keepIds.add(spouse.id)
+    }
+  }
+
+  let changed = true
+  while (changed) {
+    changed = false
+    for (const id of [...keepIds]) {
+      const record = byId.get(id)
+      if (!record) continue
+      for (const parentId of record.frontmatter.parents) {
+        if (!parentId || !byId.has(parentId) || keepIds.has(parentId)) continue
+        keepIds.add(parentId)
+        changed = true
+      }
+      for (const childId of childrenOf.get(id) ?? []) {
+        if (!byId.has(childId) || keepIds.has(childId)) continue
+        keepIds.add(childId)
+        changed = true
+      }
+    }
+  }
+
+  return keepIds
+}
+
+/** Osoby z nepovolených rodů pryč; příbuzní (nahoru/dolů) zůstanou jako X s roky. */
 export function applyPersonVisibility(
   records: PersonRecord[],
   access: LineageAccess,
@@ -111,49 +169,13 @@ export function applyPersonVisibility(
       .map((record) => record.frontmatter.id),
   )
 
-  const referencedHidden = new Set<string>()
-  const addIfHidden = (id: string | undefined) => {
-    if (!id || visibleIds.has(id) || !byId.has(id)) return
-    referencedHidden.add(id)
-  }
-
-  for (const id of visibleIds) {
-    const record = byId.get(id)
-    if (!record) continue
-    for (const parentId of record.frontmatter.parents) addIfHidden(parentId)
-    for (const spouse of record.frontmatter.spouses) addIfHidden(spouse.id)
-  }
-
-  for (const record of records) {
-    const id = record.frontmatter.id
-    if (visibleIds.has(id)) continue
-    if (record.frontmatter.parents.some((parentId) => visibleIds.has(parentId))) {
-      referencedHidden.add(id)
-    }
-    for (const parentId of record.frontmatter.parents) {
-      if (!parentId) continue
-      const parent = byId.get(parentId)
-      if (!parent) continue
-      const siblingsVisible = records.some(
-        (other) =>
-          visibleIds.has(other.frontmatter.id) &&
-          other.frontmatter.parents.includes(parentId),
-      )
-      if (siblingsVisible) referencedHidden.add(id)
-    }
-  }
-
-  const keepIds = new Set([...visibleIds, ...referencedHidden])
+  const keepIds = collectKeepIds(records, byId, visibleIds)
   return records
     .filter((record) => keepIds.has(record.frontmatter.id))
     .map((record) =>
       visibleIds.has(record.frontmatter.id)
         ? pruneMissingRefs(record, keepIds)
-        : redactFrontmatter(
-            record,
-            keepIds,
-            visibleLineageForStub(record, byId, visibleIds),
-          ),
+        : redactFrontmatter(record, keepIds),
     )
 }
 
@@ -169,6 +191,13 @@ function personLineage(
   return undefined
 }
 
+function personRecord(
+  people: PersonRecord[],
+  personId: string,
+): PersonRecord | undefined {
+  return people.find((person) => person.frontmatter.id === personId)
+}
+
 function mentionHidden(
   mention: TextMention,
   access: LineageAccess,
@@ -178,6 +207,64 @@ function mentionHidden(
   const lineage = personLineage(people, mention.ref)
   if (!lineage) return true
   return !canSeeLineage(access, lineage)
+}
+
+const NAME_TOKEN_RE = /\p{L}+/u
+
+/**
+ * Bare zmínka `Zuzanou Spilkovou{13}` zachytí jen poslední token; při redakci
+ * rozšíří span o sousední křestní/příjmení patřící k dané osobě.
+ */
+export function expandHiddenMentionSpan(
+  body: string,
+  start: number,
+  end: number,
+  person: PersonRecord | undefined,
+  blockedRanges: Array<{ start: number; end: number }> = [],
+): { start: number; end: number } {
+  if (!person) return { start, end }
+  const names = {
+    givenName: person.frontmatter.givenName,
+    familyName: person.frontmatter.familyName,
+    maidenName: person.frontmatter.maidenName,
+    gender: person.frontmatter.gender as 'male' | 'female' | 'unknown' | undefined,
+  }
+
+  const overlapsBlocked = (from: number, to: number) =>
+    blockedRanges.some((range) => from < range.end && to > range.start && !(from === start && to === end))
+
+  let nextStart = start
+  let nextEnd = end
+
+  const left = body.slice(0, nextStart).match(/(\p{L}+)(\s*)$/u)
+  if (left) {
+    const token = left[1]
+    const ws = left[2] ?? ''
+    const tokenStart = nextStart - token.length - ws.length
+    if (
+      NAME_TOKEN_RE.test(token) &&
+      tokenMatchesPersonName(token, names) &&
+      !overlapsBlocked(tokenStart, nextStart)
+    ) {
+      nextStart = tokenStart
+    }
+  }
+
+  const right = body.slice(nextEnd).match(/^(\s*)(\p{L}+)/u)
+  if (right) {
+    const ws = right[1] ?? ''
+    const token = right[2]
+    const tokenEnd = nextEnd + ws.length + token.length
+    if (
+      NAME_TOKEN_RE.test(token) &&
+      tokenMatchesPersonName(token, names) &&
+      !overlapsBlocked(nextEnd, tokenEnd)
+    ) {
+      nextEnd = tokenEnd
+    }
+  }
+
+  return { start: nextStart, end: nextEnd }
 }
 
 export function redactTextDocuments(
@@ -199,23 +286,40 @@ export function redactTextDocument(
 
   let displayBody = document.displayBody
   const mentions: TextMention[] = document.mentions.map((mention) => ({ ...mention }))
-  const hiddenStarts = new Set(hidden.map((mention) => `${mention.start}:${mention.end}:${mention.ref}`))
+  const hiddenKeys = new Set(hidden.map((mention) => `${mention.start}:${mention.end}:${mention.ref}`))
 
   const targets = mentions
-    .filter((mention) => hiddenStarts.has(`${mention.start}:${mention.end}:${mention.ref}`))
+    .filter((mention) => hiddenKeys.has(`${mention.start}:${mention.end}:${mention.ref}`))
     .sort((a, b) => b.start - a.start)
 
   for (const target of targets) {
-    const oldLen = target.end - target.start
-    displayBody = `${displayBody.slice(0, target.start)}${REDACTED_LABEL}${displayBody.slice(target.end)}`
+    const otherRanges = mentions
+      .filter(
+        (mention) =>
+          !(mention.start === target.start && mention.end === target.end && mention.ref === target.ref),
+      )
+      .map((mention) => ({ start: mention.start, end: mention.end }))
+
+    const person = target.kind === 'person' ? personRecord(people, target.ref) : undefined
+    const span = expandHiddenMentionSpan(
+      displayBody,
+      target.start,
+      target.end,
+      person,
+      otherRanges,
+    )
+
+    const oldLen = span.end - span.start
+    displayBody = `${displayBody.slice(0, span.start)}${REDACTED_LABEL}${displayBody.slice(span.end)}`
     const delta = REDACTED_LABEL.length - oldLen
     for (const mention of mentions) {
       if (mention.start === target.start && mention.end === target.end && mention.ref === target.ref) {
+        mention.start = span.start
         mention.display = REDACTED_LABEL
-        mention.end = mention.start + REDACTED_LABEL.length
+        mention.end = span.start + REDACTED_LABEL.length
         continue
       }
-      if (mention.start >= target.end) {
+      if (mention.start >= span.end) {
         mention.start += delta
         mention.end += delta
       }

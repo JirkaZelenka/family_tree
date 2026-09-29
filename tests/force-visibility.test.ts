@@ -5,6 +5,8 @@ import {
   computeForceVisibility,
   isCrossLineagePerson,
 } from '@/lib/layout/force-visibility'
+import { getLineages } from '@/lib/graph/queries'
+import { NO_ACCESS_LINEAGE } from '@/auth/lineage-visibility'
 
 function person(
   id: string,
@@ -148,5 +150,38 @@ describe('computeForceVisibility', () => {
     })
 
     expect(visibleIds.has('jan')).toBe(false)
+  })
+
+  it('anonymizované osoby se zobrazí přes skupinu Rody bez přístupu', () => {
+    const graph = new Graph<PersonNode>()
+    graph.addNode(
+      'jan',
+      person('jan', 'novakovi', { familyName: 'Novák', children: ['x-parent'] }),
+    )
+    graph.addNode(
+      'x-parent',
+      person('x-parent', NO_ACCESS_LINEAGE, {
+        givenName: 'X',
+        familyName: '',
+        redacted: true,
+        parents: [],
+        children: ['jan'],
+      }),
+    )
+
+    expect(getLineages(graph)).toEqual(['novakovi', NO_ACCESS_LINEAGE])
+
+    const hidden = computeForceVisibility(graph, {
+      expandedLineages: new Set(['novakovi']),
+      timeVisible: () => true,
+    })
+    expect(hidden.visibleIds.has('jan')).toBe(true)
+    expect(hidden.visibleIds.has('x-parent')).toBe(false)
+
+    const shown = computeForceVisibility(graph, {
+      expandedLineages: new Set(['novakovi', NO_ACCESS_LINEAGE]),
+      timeVisible: () => true,
+    })
+    expect(shown.visibleIds.has('x-parent')).toBe(true)
   })
 })
