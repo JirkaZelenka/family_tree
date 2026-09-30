@@ -17,6 +17,22 @@ export interface UnresolvedTextMention {
   end: number
 }
 
+export type TextAttachmentKind = 'audio' | 'pdf' | 'link'
+
+export interface TextAttachment {
+  kind: TextAttachmentKind
+  /** Viditelný popisek z `[popisek](…)`. */
+  label: string
+  /** Původní cíl z markdownu. */
+  href: string
+  /** URL pro prohlížeč (`/vault/…` nebo https). */
+  resolvedUrl: string
+  /** Relativní cesta ve vaultu, pokud jde o lokální soubor. */
+  vaultPath?: string
+  start: number
+  end: number
+}
+
 export interface TextDocument {
   id: string
   title: string
@@ -27,6 +43,7 @@ export interface TextDocument {
   rawContent: string
   displayBody: string
   mentions: TextMention[]
+  attachments: TextAttachment[]
 }
 
 export interface TextExcerpt {

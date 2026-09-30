@@ -222,6 +222,7 @@ describe('redactTextDocument', () => {
       filePath: 'texts/svatba.md',
       rawContent: '',
       displayBody,
+      attachments: [],
       mentions: [
         {
           kind: 'person',
@@ -277,6 +278,7 @@ describe('redactTextDocument', () => {
       filePath: 'texts/pokus.md',
       rawContent: '',
       displayBody,
+      attachments: [],
       mentions: [
         {
           kind: 'person',
@@ -317,6 +319,7 @@ describe('redactTextDocument', () => {
       filePath: 'texts/pokus.md',
       rawContent: '',
       displayBody,
+      attachments: [],
       mentions: [
         {
           kind: 'person',

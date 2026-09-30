@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ArrowLeft, BookOpen, MessageSquarePlus, Pencil, Plus, Trash2 } from 'lucide-react'
+import { ArrowLeft, BookOpen, Download, ExternalLink, FileAudio, MessageSquarePlus, Pencil, Plus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -35,6 +35,7 @@ import {
   previewBody,
   sortTextDocuments,
 } from '@/lib/texts/sort'
+import { collectStoryAttachments } from '@/lib/texts/attachments'
 import { extractTextBody } from '@/lib/texts/frontmatter'
 import { youngestPersonIdInLineage } from '@/lib/graph/queries'
 import { cn } from '@/lib/utils'
@@ -611,6 +612,7 @@ function StoryReader({ document }: { document: TextDocument }) {
                   <InteractiveTextBody
                     body={document.displayBody}
                     mentions={document.mentions}
+                    attachments={document.attachments}
                     className="text-base leading-7"
                     onClickPerson={(personId, mentionStart) =>
                       navigateToTree({ personId, mentionStart })
@@ -705,6 +707,15 @@ export function StoriesView({ className }: ViewProps) {
     [displayTexts, sort],
   )
 
+  const fileAttachments = useMemo(
+    () => collectStoryAttachments(displayTexts, ['audio', 'pdf']),
+    [displayTexts],
+  )
+  const linkAttachments = useMemo(
+    () => collectStoryAttachments(displayTexts, ['link']),
+    [displayTexts],
+  )
+
   const openDocument = useMemo(
     () => (openTextId ? sorted.find((doc) => doc.id === openTextId) ?? null : null),
     [openTextId, sorted],
@@ -747,21 +758,121 @@ export function StoriesView({ className }: ViewProps) {
       </div>
 
       <ScrollArea className="min-h-0 flex-1">
-        <div className="grid grid-cols-1 gap-4 p-4 sm:grid-cols-2 sm:p-6 xl:grid-cols-3">
-          {sorted.length === 0 && (
-            <p className="col-span-full text-sm text-muted-foreground">{t('stories.empty')}</p>
-          )}
-          {sorted.map((document) => (
-            <StoryTile
-              key={document.id}
-              document={document}
-              onOpen={() => setOpenTextId(document.id)}
-            />
-          ))}
+        <div className="space-y-8 p-4 sm:p-6">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {sorted.length === 0 && (
+              <p className="col-span-full text-sm text-muted-foreground">{t('stories.empty')}</p>
+            )}
+            {sorted.map((document) => (
+              <StoryTile
+                key={document.id}
+                document={document}
+                onOpen={() => setOpenTextId(document.id)}
+              />
+            ))}
+          </div>
+
+          <AttachmentCatalog
+            title={t('stories.filesSection')}
+            empty={t('stories.filesEmpty')}
+            items={fileAttachments}
+            onOpenText={setOpenTextId}
+          />
+
+          <AttachmentCatalog
+            title={t('stories.linksSection')}
+            empty={t('stories.linksEmpty')}
+            items={linkAttachments}
+            onOpenText={setOpenTextId}
+          />
         </div>
       </ScrollArea>
 
       {isAdmin && <NewTextDialog open={newOpen} onOpenChange={setNewOpen} />}
     </div>
+  )
+}
+
+function AttachmentCatalog({
+  title,
+  empty,
+  items,
+  onOpenText,
+}: {
+  title: string
+  empty: string
+  items: ReturnType<typeof collectStoryAttachments>
+  onOpenText: (id: string) => void
+}) {
+  const { t } = useTranslation()
+  return (
+    <section className="border-t border-border pt-6">
+      <h3 className="font-heritage text-lg font-semibold tracking-wide">{title}</h3>
+      {items.length === 0 ? (
+        <p className="mt-2 text-sm text-muted-foreground">{empty}</p>
+      ) : (
+        <ul className="mt-3 space-y-3">
+          {items.map((item) => (
+            <li
+              key={`${item.kind}:${item.resolvedUrl}`}
+              className="rounded-md border border-border bg-card/50 px-4 py-3"
+            >
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    {item.kind === 'audio' ? (
+                      <FileAudio className="h-4 w-4 shrink-0 text-primary" aria-hidden />
+                    ) : item.kind === 'pdf' ? (
+                      <Download className="h-4 w-4 shrink-0 text-sky-700 dark:text-sky-300" aria-hidden />
+                    ) : (
+                      <ExternalLink className="h-4 w-4 shrink-0 text-emerald-700 dark:text-emerald-300" aria-hidden />
+                    )}
+                    <a
+                      href={item.resolvedUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="font-medium text-foreground hover:underline"
+                      {...(item.kind === 'pdf' ? { download: true } : {})}
+                    >
+                      {item.label}
+                    </a>
+                    <span className="text-xs uppercase tracking-wide text-muted-foreground">
+                      {item.kind === 'audio'
+                        ? t('stories.kindAudio')
+                        : item.kind === 'pdf'
+                          ? t('stories.kindPdf')
+                          : t('stories.kindLink')}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {t('stories.attachmentSource')}:{' '}
+                    {item.sources.map((source, index) => (
+                      <span key={source.textId}>
+                        {index > 0 && ', '}
+                        <button
+                          type="button"
+                          className="text-primary hover:underline"
+                          onClick={() => onOpenText(source.textId)}
+                        >
+                          {source.textTitle}
+                        </button>
+                      </span>
+                    ))}
+                  </p>
+                </div>
+              </div>
+              {item.kind === 'audio' && (
+                <audio
+                  controls
+                  preload="metadata"
+                  className="mt-3 w-full max-w-xl"
+                  src={item.resolvedUrl}
+                />
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   )
 }

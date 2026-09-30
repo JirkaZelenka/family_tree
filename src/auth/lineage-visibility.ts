@@ -286,6 +286,7 @@ export function redactTextDocument(
 
   let displayBody = document.displayBody
   const mentions: TextMention[] = document.mentions.map((mention) => ({ ...mention }))
+  const attachments = document.attachments.map((item) => ({ ...item }))
   const hiddenKeys = new Set(hidden.map((mention) => `${mention.start}:${mention.end}:${mention.ref}`))
 
   const targets = mentions
@@ -324,7 +325,16 @@ export function redactTextDocument(
         mention.end += delta
       }
     }
+    for (const attachment of attachments) {
+      if (attachment.start >= span.end) {
+        attachment.start += delta
+        attachment.end += delta
+      } else if (attachment.end > span.start && attachment.start < span.end) {
+        // překryv s redakcí — posuň konec
+        attachment.end = Math.max(attachment.start, attachment.end + delta)
+      }
+    }
   }
 
-  return { ...document, displayBody, mentions }
+  return { ...document, displayBody, mentions, attachments }
 }

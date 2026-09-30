@@ -2,13 +2,17 @@ import { parseFrontmatter } from '@/lib/parser/markdown'
 import { rodNamesMatch } from '@/lib/vault/lineage-colors'
 import { normalizeLineageKey } from '@/lib/vault/lineage-names'
 import type {
+  TextAttachment,
+  TextAttachmentKind,
   TextDocument,
   TextMention,
   TextMentionKind,
   UnresolvedTextMention,
 } from '@/types/text'
 
-const MENTION_RE = /\[([^\]]+)\]\{([^}]+)\}|([^\s[\]{}]+)\{([^}]+)\}/g
+/** Odkaz MD, multi-word zmínka, single-word zmínka — v tomto pořadí. */
+const TOKEN_RE =
+  /\[([^\]]+)\]\(([^)\s]+)\)|\[([^\]]+)\]\{([^}]+)\}|([^\s[\]{}]+)\{([^}]+)\}/g
 
 export function isTextMarkdownPath(path: string): boolean {
   const normalized = path.replace(/\\/g, '/')
@@ -60,36 +64,109 @@ function extractFamily(data: unknown): string | undefined {
   return undefined
 }
 
+export function classifyAttachmentHref(href: string): TextAttachmentKind {
+  const clean = href.split('?')[0].split('#')[0].toLowerCase()
+  if (/\.(mp3|wav|ogg|m4a|aac)$/i.test(clean)) return 'audio'
+  if (/\.pdf$/i.test(clean)) return 'pdf'
+  return 'link'
+}
+
+function normalizeVaultRelPath(path: string): string {
+  const parts: string[] = []
+  for (const part of path.replace(/\\/g, '/').split('/')) {
+    if (!part || part === '.') continue
+    if (part === '..') {
+      parts.pop()
+      continue
+    }
+    parts.push(part)
+  }
+  return parts.join('/')
+}
+
+export function resolveAttachmentTarget(
+  href: string,
+  textFilePath: string,
+): { resolvedUrl: string; vaultPath?: string } {
+  const trimmed = href.trim()
+  if (!trimmed) return { resolvedUrl: trimmed }
+  if (/^(https?:)?\/\//i.test(trimmed) || /^(mailto|tel):/i.test(trimmed)) {
+    return { resolvedUrl: trimmed.startsWith('//') ? `https:${trimmed}` : trimmed }
+  }
+  if (trimmed.startsWith('/vault/')) {
+    const vaultPath = normalizeVaultRelPath(trimmed.slice('/vault/'.length))
+    return { resolvedUrl: `/vault/${vaultPath}`, vaultPath }
+  }
+  if (trimmed.startsWith('/')) {
+    return { resolvedUrl: trimmed }
+  }
+  const dir = textFilePath.replace(/\\/g, '/').replace(/\/[^/]*$/, '')
+  const vaultPath = normalizeVaultRelPath(`${dir}/${trimmed}`)
+  return { resolvedUrl: `/vault/${vaultPath}`, vaultPath }
+}
+
 export function extractMentions(body: string): {
   displayBody: string
   mentions: UnresolvedTextMention[]
 } {
+  const { displayBody, mentions } = extractTextBodyContent(body, 'texts/unknown.md')
+  return { displayBody, mentions }
+}
+
+export function extractTextBodyContent(
+  body: string,
+  textFilePath: string,
+): {
+  displayBody: string
+  mentions: UnresolvedTextMention[]
+  attachments: TextAttachment[]
+} {
   const mentions: UnresolvedTextMention[] = []
+  const attachments: TextAttachment[] = []
   let displayBody = ''
   let lastIndex = 0
 
-  for (const match of body.matchAll(MENTION_RE)) {
+  for (const match of body.matchAll(TOKEN_RE)) {
     const index = match.index ?? 0
     displayBody += body.slice(lastIndex, index)
-
-    const display = (match[1] ?? match[3] ?? '').trim()
-    const rawRef = (match[2] ?? match[4] ?? '').trim()
     const start = displayBody.length
-    displayBody += display
-    if (display.length > 0 && rawRef.length > 0) {
-      mentions.push({
-        display,
-        rawRef,
-        start,
-        end: start + display.length,
-      })
+
+    if (match[1] != null && match[2] != null) {
+      const label = match[1].trim() || match[2].trim()
+      const href = match[2].trim()
+      displayBody += label
+      const end = displayBody.length
+      if (href) {
+        const resolved = resolveAttachmentTarget(href, textFilePath)
+        attachments.push({
+          kind: classifyAttachmentHref(href),
+          label,
+          href,
+          resolvedUrl: resolved.resolvedUrl,
+          vaultPath: resolved.vaultPath,
+          start,
+          end,
+        })
+      }
+    } else {
+      const display = (match[3] ?? match[5] ?? '').trim()
+      const rawRef = (match[4] ?? match[6] ?? '').trim()
+      displayBody += display
+      if (display.length > 0 && rawRef.length > 0) {
+        mentions.push({
+          display,
+          rawRef,
+          start,
+          end: start + display.length,
+        })
+      }
     }
 
     lastIndex = index + match[0].length
   }
 
   displayBody += body.slice(lastIndex)
-  return { displayBody, mentions }
+  return { displayBody, mentions, attachments }
 }
 
 function matchLineageKey(raw: string, lineages: Iterable<string>): string | null {
@@ -155,7 +232,7 @@ export function parseTextMarkdown(
   lineages: Iterable<string> = [],
 ): TextDocument {
   const { data, body } = parseFrontmatter(content)
-  const { displayBody, mentions } = extractMentions(body)
+  const { displayBody, mentions, attachments } = extractTextBodyContent(body, filePath)
   return {
     id: textDocumentIdFromPath(filePath),
     title: extractTitle(data, body, filePath),
@@ -165,5 +242,6 @@ export function parseTextMarkdown(
     rawContent: String(content).replace(/^\uFEFF/, ''),
     displayBody,
     mentions: resolveMentions(mentions, personIds, lineages),
+    attachments,
   }
 }

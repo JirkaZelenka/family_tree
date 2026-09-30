@@ -51,6 +51,12 @@ Obřad spojil rodiny Novákovi{novakovi} a Dvořákovi{dvorakovi}.
 - `Jméno{id}` — označí jedno slovo
 - `{id}` je `id` osoby z `people/`
 - rod: `Novákovi{novakovi}` nebo `Novákovi{rod:novakovi}` (klíč jako v panelu rodů)
+- odkazy a soubory (běžný markdown):
+  - `[Matrika SOA](https://…)` — externí odkaz
+  - `[Snímek matriky](media/matrika.pdf)` — PDF (relativně k souboru textu, servírované z `/vault/…`)
+  - `[Nahrávka](media/vzpominka.mp3)` — audio přehrávač
+
+Media soubory dávej např. do `data/texts/media/`. Na přehledu Povídání jsou sekce **Soubory** (PDF/audio) a **Odkazy**, u každé položky je vidět zdrojový text.
 
 Po kliknutí na osobu ve stromu (nebo na rod v pravém panelu) se v bočním panelu ukážou náhledy všech textů, kde je entita označená. Celý text otevře náhled se zvýrazněným jménem.
 

@@ -87,6 +87,21 @@ date: "11.9.2022"
       'person:13',
       'lineage:dvorakovi',
     ])
+    expect(doc.attachments).toEqual([])
+  })
+
+  it('extracts markdown links as audio, pdf and external attachments', () => {
+    const doc = parseTextMarkdown(
+      `Poslechni [vzpomínku](media/a.mp3), stáhni [matriku](../media/b.pdf) a otevři [Acta](https://www.actapublica.eu/).`,
+      'texts/pokus.md',
+      [],
+      [],
+    )
+    expect(doc.displayBody).toBe('Poslechni vzpomínku, stáhni matriku a otevři Acta.')
+    expect(doc.attachments.map((a) => a.kind)).toEqual(['audio', 'pdf', 'link'])
+    expect(doc.attachments[0].resolvedUrl).toBe('/vault/texts/media/a.mp3')
+    expect(doc.attachments[1].resolvedUrl).toBe('/vault/media/b.pdf')
+    expect(doc.attachments[2].resolvedUrl).toBe('https://www.actapublica.eu/')
   })
 })
 
