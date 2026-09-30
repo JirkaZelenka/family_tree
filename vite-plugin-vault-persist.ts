@@ -3,12 +3,17 @@ import path from 'node:path'
 import type { Plugin } from 'vite'
 
 const META_PATH_RE = /^\.family-tree\/(config\.yaml|layout\.json)$/
+const TEXT_PATH_RE = /^texts\/.+\.md$/i
+
+function isAllowedVaultPath(relPath: string): boolean {
+  return META_PATH_RE.test(relPath) || TEXT_PATH_RE.test(relPath)
+}
 
 function dataFilePath(root: string, relPath: string): string {
   return path.join(root, 'data', relPath)
 }
 
-/** Dev-only: zapisuje config.yaml a layout.json do data/.family-tree/ na disku. */
+/** Dev-only: zapisuje vault soubory do data/ na disku. */
 export function vaultPersistPlugin(): Plugin {
   return {
     name: 'vault-persist',
@@ -31,7 +36,7 @@ export function vaultPersistPlugin(): Plugin {
             const parsed = JSON.parse(body) as { path?: string; content?: string }
             const relPath = parsed.path ?? ''
             const content = parsed.content ?? ''
-            if (!META_PATH_RE.test(relPath)) {
+            if (!isAllowedVaultPath(relPath) || relPath.includes('..')) {
               res.statusCode = 403
               res.end('forbidden path')
               return
@@ -57,7 +62,7 @@ export function vaultPersistPlugin(): Plugin {
         try {
           const url = new URL(req.url ?? '', 'http://localhost')
           const relPath = url.searchParams.get('path') ?? ''
-          if (!META_PATH_RE.test(relPath)) {
+          if (!isAllowedVaultPath(relPath) || relPath.includes('..')) {
             res.statusCode = 403
             res.end('forbidden path')
             return

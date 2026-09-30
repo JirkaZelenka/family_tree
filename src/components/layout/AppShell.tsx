@@ -111,7 +111,9 @@ export function AppShell() {
         </div>
         <TimeSliderBar />
         <CommandPalette />
-        {activeView !== 'tree' && activeView !== 'map' && <PersonProfileDialog />}
+        {activeView !== 'tree' && activeView !== 'map' && activeView !== 'stories' && (
+          <PersonProfileDialog />
+        )}
         <PersonHoverTooltip />
       </div>
     </TooltipProvider>

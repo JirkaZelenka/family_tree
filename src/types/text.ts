@@ -21,6 +21,8 @@ export interface TextDocument {
   id: string
   title: string
   date?: string
+  /** Volitelný rod pro řazení (frontmatter `family`). */
+  family?: string
   filePath: string
   rawContent: string
   displayBody: string

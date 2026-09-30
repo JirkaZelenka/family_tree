@@ -9,7 +9,7 @@ Aplikace je SPA s Django session autentizací.
 3. **Parser** — YAML frontmatter osob + markdown texty se zmínkami `{id}`
 4. **Graph** — Graphology builder, queries (současníci, předci)
 5. **Layout** — d3-force + ForceAtlas2 na sféře, persistence v layout.json
-6. **Views** — plugin registry (sphere, tree, force, timeline, map)
+6. **Views** — plugin registry (tree, stories/Povídání, timeline, calendar, map)
 7. **UI** — React + shadcn/ui + Zustand stores
 
 ## Datový tok

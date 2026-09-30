@@ -83,3 +83,30 @@ export function getLineages(graph: Graph<PersonNode>): string[] {
   if (hasNoAccess) list.push(NO_ACCESS_LINEAGE)
   return list
 }
+
+/** Nejmladší (nejvyšší birthYear) člen rodu; při shodě preferuje novější id stabilně podle jména. */
+export function youngestPersonIdInLineage(
+  persons: Map<string, PersonNode>,
+  lineage: string,
+): string | null {
+  const needle = lineage.trim()
+  if (!needle) return null
+  let bestId: string | null = null
+  let bestYear = Number.NEGATIVE_INFINITY
+  let bestName = ''
+  for (const [id, person] of persons) {
+    if (person.redacted || isNoAccessLineage(person.lineage)) continue
+    if (person.lineage !== needle) continue
+    const year = person.birthYear ?? Number.NEGATIVE_INFINITY
+    const name = person.fullName ?? id
+    if (
+      year > bestYear ||
+      (year === bestYear && (bestId == null || name.localeCompare(bestName, 'cs') < 0))
+    ) {
+      bestYear = year
+      bestId = id
+      bestName = name
+    }
+  }
+  return bestId
+}

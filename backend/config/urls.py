@@ -8,4 +8,5 @@ admin.site.index_title = "Správa účtů"
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/auth/", include("accounts.urls")),
+    path("api/texts/", include("texts.urls")),
 ]

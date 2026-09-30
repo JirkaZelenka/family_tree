@@ -13,6 +13,7 @@ import { useTimeStore } from '@/stores/time-store'
 import { useVaultStore } from '@/stores/vault-store'
 import { useLayoutStore } from '@/stores/layout-store'
 import { useViewStore } from '@/stores/view-store'
+import { useStoriesStore } from '@/stores/stories-store'
 import { computeForceVisibility } from '@/lib/layout/force-visibility'
 import {
   buildForceEdgeSegments,
@@ -275,6 +276,10 @@ export function ForceView({ className }: ViewProps) {
   const personSidebarOpen = useViewStore((s) => s.personSidebarOpen)
   const lineageSidebarOpen = useViewStore((s) => s.lineageSidebarOpen)
   const toggleTreeFullscreen = useViewStore((s) => s.toggleTreeFullscreen)
+  const setActiveView = useViewStore((s) => s.setActiveView)
+  const storiesReturnTarget = useStoriesStore((s) => s.returnTarget)
+  const pendingFocusPersonId = useViewStore((s) => s.pendingFocusPersonId)
+  const setPendingFocusPersonId = useViewStore((s) => s.setPendingFocusPersonId)
   const isTreeFullscreenActive = !personSidebarOpen && !lineageSidebarOpen
   const svgRef = useRef<SVGSVGElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -469,6 +474,21 @@ export function ForceView({ className }: ViewProps) {
       useLayoutStore.setState({ pendingForceFit: false })
     }
   }, [graph, layout, fitToView, pendingForceFit])
+
+  useEffect(() => {
+    if (!pendingFocusPersonId || !layout || !svgRef.current) return
+    const pos = displayPositions.get(pendingFocusPersonId)
+    if (!pos) return
+    const viewW = svgRef.current.clientWidth || 800
+    const viewH = svgRef.current.clientHeight || 600
+    const k = Math.min(2.2, Math.max(1.15, Math.min(viewW / 420, viewH / 320)))
+    setTransform({
+      k,
+      x: viewW / 2 - (pos.x + FORCE_NODE_WIDTH / 2) * k,
+      y: viewH / 2 - (pos.y + FORCE_NODE_HEIGHT / 2) * k,
+    })
+    setPendingFocusPersonId(null)
+  }, [pendingFocusPersonId, displayPositions, layout, setPendingFocusPersonId])
 
   useEffect(() => {
     const el = containerRef.current
@@ -754,7 +774,7 @@ export function ForceView({ className }: ViewProps) {
       } ${className ?? ''}`}
       onPointerDown={() => window.getSelection()?.removeAllRanges()}
     >
-      <div className="absolute left-3 top-3 z-10 flex gap-2">
+      <div className="absolute left-3 top-3 z-10 flex flex-wrap gap-2">
         <button
           type="button"
           onClick={() => {
@@ -796,6 +816,18 @@ export function ForceView({ className }: ViewProps) {
             {t('layout.fullscreen')}
           </span>
         </button>
+        {storiesReturnTarget && (
+          <button
+            type="button"
+            onClick={() => {
+              useStoriesStore.getState().consumeReturn()
+              setActiveView('stories')
+            }}
+            className="rounded-md border border-primary/40 bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary shadow-sm hover:bg-primary/20"
+          >
+            ← {t('stories.backToText')}
+          </button>
+        )}
       </div>
 
       <svg

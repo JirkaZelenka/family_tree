@@ -11,6 +11,8 @@ interface ViewState {
   selectedLineage: string | null
   lineageSidebarOpen: boolean
   personSidebarOpen: boolean
+  /** Po Ctrl+klik z Povídání: ForceView vycentruje a přiblíží uzlu. */
+  pendingFocusPersonId: string | null
   setActiveView: (view: ViewId) => void
   setEventsPanelOpen: (open: boolean) => void
   setProfilePersonId: (id: string | null) => void
@@ -18,6 +20,7 @@ interface ViewState {
   setLineageSort: (sort: LineageSort) => void
   setLineageSidebarOpen: (open: boolean) => void
   setPersonSidebarOpen: (open: boolean) => void
+  setPendingFocusPersonId: (id: string | null) => void
   toggleTreeFullscreen: () => void
 }
 
@@ -29,6 +32,7 @@ export const useViewStore = create<ViewState>((set) => ({
   lineageSort: 'name',
   lineageSidebarOpen: true,
   personSidebarOpen: true,
+  pendingFocusPersonId: null,
   setActiveView: (view) => set({ activeView: view }),
   setEventsPanelOpen: (open) => set({ eventsPanelOpen: open }),
   setProfilePersonId: (id) => set({ profilePersonId: id }),
@@ -36,6 +40,7 @@ export const useViewStore = create<ViewState>((set) => ({
   setLineageSort: (sort) => set({ lineageSort: sort }),
   setLineageSidebarOpen: (open) => set({ lineageSidebarOpen: open }),
   setPersonSidebarOpen: (open) => set({ personSidebarOpen: open }),
+  setPendingFocusPersonId: (id) => set({ pendingFocusPersonId: id }),
   toggleTreeFullscreen: () =>
     set((s) => {
       if (s.personSidebarOpen || s.lineageSidebarOpen) {

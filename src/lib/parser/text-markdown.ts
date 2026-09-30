@@ -50,6 +50,16 @@ function extractDate(data: unknown): string | undefined {
   return value.length > 0 ? value : undefined
 }
 
+function extractFamily(data: unknown): string | undefined {
+  if (!data || typeof data !== 'object') return undefined
+  const record = data as { family?: unknown; lineage?: unknown }
+  for (const key of ['family', 'lineage'] as const) {
+    const value = record[key]
+    if (typeof value === 'string' && value.trim()) return value.trim()
+  }
+  return undefined
+}
+
 export function extractMentions(body: string): {
   displayBody: string
   mentions: UnresolvedTextMention[]
@@ -150,6 +160,7 @@ export function parseTextMarkdown(
     id: textDocumentIdFromPath(filePath),
     title: extractTitle(data, body, filePath),
     date: extractDate(data),
+    family: extractFamily(data),
     filePath,
     rawContent: String(content).replace(/^\uFEFF/, ''),
     displayBody,

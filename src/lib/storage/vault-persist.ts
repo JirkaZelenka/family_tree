@@ -15,6 +15,19 @@ async function persistMetaToDevDisk(path: VaultMetaPath, content: string): Promi
   }
 }
 
+async function persistPathToDevDisk(path: string, content: string): Promise<void> {
+  if (!import.meta.env.DEV) return
+  try {
+    await fetch('/__vault/persist', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path, content }),
+    })
+  } catch {
+    // ignore
+  }
+}
+
 export async function readDevVaultMetaFiles(): Promise<Map<string, string>> {
   const files = new Map<string, string>()
   if (!import.meta.env.DEV) return files
@@ -74,5 +87,17 @@ export async function persistVaultMetaPaths(
         await writeTextFile(handle, metaPath, content)
       }
     }
+  }
+}
+
+/** Uloží markdown textu (dev disk + případně File System Access). */
+export async function persistVaultTextPath(path: string, content: string): Promise<void> {
+  const fileMap = new Map(useVaultStore.getState().fileMap)
+  fileMap.set(path, content)
+  await cacheVaultFiles(fileMap)
+  await persistPathToDevDisk(path, content)
+  const handle = useVaultStore.getState().directoryHandle
+  if (handle) {
+    await writeTextFile(handle, path, content)
   }
 }
