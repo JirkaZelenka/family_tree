@@ -29,6 +29,7 @@ function applyVault(vault: Awaited<ReturnType<typeof loadVaultFromFileMap>>, fil
   const { min, max } = getYearRange(birthYears, deathYears)
   useTimeStore.getState().setYearRange(min, max)
   useTimeStore.getState().setCurrentYear(max)
+  useTimeStore.getState().setShowAllPeople(true)
   useTimeStore.getState().setSphereHighlightByYear(false)
   const sphereLayout = vault.layout.views.sphere ?? { nodes: {}, lineageOffsets: {} }
   const forceView = vault.layout.views.force ?? {
@@ -77,7 +78,9 @@ export function useVaultActions() {
       }
 
       const files = await loadSampleFiles()
-      const diskMeta = clearCache ? null : await readDevVaultMetaFiles()
+      // V dev vždy načti layout/config z disku — Vite glob i IndexedDB můžou být zastaralé.
+      // clearCache nesmí layout zahodit (dřív se diskMeta při clearCache vůbec nečetl).
+      const diskMeta = import.meta.env.DEV ? await readDevVaultMetaFiles() : null
       mergeVaultMetaFiles(files, cached, diskMeta, import.meta.env.DEV)
 
       if (files.size === 0) {

@@ -1,11 +1,11 @@
 import { useMemo } from 'react'
-import { FileText, PanelRightClose, PanelRightOpen, X } from 'lucide-react'
+import { FileText, PanelRightClose, PanelRightOpen, User, X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useVaultStore } from '@/stores/vault-store'
 import { getLineages } from '@/lib/graph/queries'
 import { isNoAccessLineage } from '@/auth/lineage-visibility'
 import { useGraphStore } from '@/stores/graph-store'
-import { useViewStore } from '@/stores/view-store'
+import { useViewStore, type LineageSort } from '@/stores/view-store'
 import { useLayoutStore } from '@/stores/layout-store'
 import {
   enrichLineageColors,
@@ -16,6 +16,8 @@ import { findLineageTexts } from '@/lib/texts'
 import { LineageColorPicker } from '@/components/lineage/LineageColorPicker'
 import { MentionedTexts } from '@/components/texts/MentionedTexts'
 import { cn } from '@/lib/utils'
+
+const SORT_OPTIONS: LineageSort[] = ['name', 'members', 'mentions']
 
 export function LineageSidebar() {
   const { t } = useTranslation()
@@ -46,18 +48,6 @@ export function LineageSidebar() {
     [lineages, vaultColors, memberCounts],
   )
 
-  const sortedLineages = useMemo(() => {
-    const items = lineages.map((name) => ({ name, count: memberCounts[name] ?? 0 }))
-    const accessible = items.filter((item) => !isNoAccessLineage(item.name))
-    const noAccess = items.filter((item) => isNoAccessLineage(item.name))
-    if (lineageSort === 'members') {
-      accessible.sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, 'cs'))
-    } else {
-      accessible.sort((a, b) => a.name.localeCompare(b.name, 'cs'))
-    }
-    return [...accessible, ...noAccess]
-  }, [lineages, memberCounts, lineageSort])
-
   const textCounts = useMemo(() => {
     const counts: Record<string, number> = {}
     for (const name of lineages) {
@@ -65,6 +55,24 @@ export function LineageSidebar() {
     }
     return counts
   }, [lineages, texts])
+
+  const sortedLineages = useMemo(() => {
+    const items = lineages.map((name) => ({
+      name,
+      members: memberCounts[name] ?? 0,
+      mentions: textCounts[name] ?? 0,
+    }))
+    const accessible = items.filter((item) => !isNoAccessLineage(item.name))
+    const noAccess = items.filter((item) => isNoAccessLineage(item.name))
+    if (lineageSort === 'members') {
+      accessible.sort((a, b) => b.members - a.members || a.name.localeCompare(b.name, 'cs'))
+    } else if (lineageSort === 'mentions') {
+      accessible.sort((a, b) => b.mentions - a.mentions || a.name.localeCompare(b.name, 'cs'))
+    } else {
+      accessible.sort((a, b) => a.name.localeCompare(b.name, 'cs'))
+    }
+    return [...accessible, ...noAccess]
+  }, [lineages, memberCounts, textCounts, lineageSort])
 
   const selectedOccurrences = useMemo(
     () =>
@@ -78,6 +86,12 @@ export function LineageSidebar() {
 
   const lineageLabel = (name: string) =>
     isNoAccessLineage(name) ? t('lineage.noAccess') : name
+
+  const sortLabelKey = (sort: LineageSort) => {
+    if (sort === 'members') return 'lineage.sortByMembers'
+    if (sort === 'mentions') return 'lineage.sortByMentions'
+    return 'lineage.sortByName'
+  }
 
   if (!graph) return null
 
@@ -113,40 +127,31 @@ export function LineageSidebar() {
           </button>
         </div>
         <div className="mt-2 flex gap-1">
-          <button
-            type="button"
-            onClick={() => setLineageSort('name')}
-            className={cn(
-              'rounded-md px-2 py-1 text-xs transition-colors',
-              lineageSort === 'name'
-                ? 'bg-primary text-primary-foreground'
-                : 'text-muted-foreground hover:bg-accent hover:text-foreground',
-            )}
-          >
-            {t('lineage.sortByName')}
-          </button>
-          <button
-            type="button"
-            onClick={() => setLineageSort('members')}
-            className={cn(
-              'rounded-md px-2 py-1 text-xs transition-colors',
-              lineageSort === 'members'
-                ? 'bg-primary text-primary-foreground'
-                : 'text-muted-foreground hover:bg-accent hover:text-foreground',
-            )}
-          >
-            {t('lineage.sortByMembers')}
-          </button>
+          {SORT_OPTIONS.map((sort) => (
+            <button
+              key={sort}
+              type="button"
+              onClick={() => setLineageSort(sort)}
+              className={cn(
+                'min-w-0 flex-1 rounded-md px-1.5 py-1 text-center text-[11px] leading-tight transition-colors',
+                lineageSort === sort
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+              )}
+            >
+              {t(sortLabelKey(sort))}
+            </button>
+          ))}
         </div>
       </div>
 
       <ul className="min-h-0 flex-1 overflow-y-auto px-2 py-2">
-        {sortedLineages.map(({ name, count }) => {
+        {sortedLineages.map(({ name, members, mentions }) => {
           const baseColor = lineageColor(name, colors)
           const expanded = isTree ? expandedLineages.has(name) : true
           const selected = selectedLineage === name
-          const relatedTextCount = textCounts[name] ?? 0
           const noAccess = isNoAccessLineage(name)
+          const collapsed = isTree && !expanded
           return (
             <li key={name}>
               <div
@@ -154,7 +159,7 @@ export function LineageSidebar() {
                   'flex w-full items-center gap-1 rounded-md px-1 py-1 text-left text-sm transition-colors',
                   selected && 'bg-accent ring-1 ring-primary',
                   isTree && expanded && !selected && 'bg-accent/70',
-                  isTree && !expanded && 'opacity-80',
+                  collapsed && 'opacity-75',
                   noAccess && 'mt-1 border-t border-border/60 pt-2',
                 )}
               >
@@ -162,7 +167,7 @@ export function LineageSidebar() {
                   <span
                     className={cn(
                       'ml-1 h-4 w-4 shrink-0 rounded-full border border-border',
-                      isTree && !expanded && 'opacity-50',
+                      collapsed && 'opacity-50',
                     )}
                     style={{ backgroundColor: baseColor }}
                     title={t('lineage.noAccess')}
@@ -171,7 +176,7 @@ export function LineageSidebar() {
                   <LineageColorPicker
                     lineage={name}
                     color={baseColor}
-                    muted={isTree && !expanded}
+                    muted={collapsed}
                   />
                 )}
                 <button
@@ -185,20 +190,29 @@ export function LineageSidebar() {
                       setHighlightedIds(new Set())
                     }
                   }}
-                  className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 rounded-md px-1 py-1 hover:bg-accent/80"
+                  className="grid min-w-0 flex-1 cursor-pointer grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)] items-center gap-x-1 rounded-md px-1 py-1 hover:bg-accent/80"
                 >
-                  <span className="min-w-0 flex-1 truncate font-medium">{lineageLabel(name)}</span>
-                  {relatedTextCount > 0 && (
-                    <FileText
-                      className={cn(
-                        'h-3.5 w-3.5 shrink-0',
-                        selected ? 'text-primary' : 'text-muted-foreground',
-                      )}
-                      aria-hidden
-                    />
-                  )}
-                  <span className="shrink-0 tabular-nums text-xs text-muted-foreground">
-                    {count}
+                  <span
+                    className={cn(
+                      'min-w-0 truncate font-medium',
+                      collapsed && 'text-muted-foreground line-through decoration-muted-foreground/70',
+                    )}
+                  >
+                    {lineageLabel(name)}
+                  </span>
+                  <span
+                    className="inline-flex min-w-0 items-center justify-end gap-1 tabular-nums text-xs text-muted-foreground"
+                    title={t('lineage.memberCount')}
+                  >
+                    <User className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                    {members}
+                  </span>
+                  <span
+                    className="inline-flex min-w-0 items-center justify-end gap-1 tabular-nums text-xs text-muted-foreground"
+                    title={t('lineage.mentionCount')}
+                  >
+                    <FileText className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                    {mentions}
                   </span>
                 </button>
               </div>

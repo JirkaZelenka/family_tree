@@ -28,7 +28,6 @@
   "views": {
     "tree": "Strom",
     "stories": "Povídání",
-    "timeline": "Časová osa",
     "calendar": "Kalendář",
     "map": "Mapa"
   },
@@ -138,15 +137,18 @@
   },
   "lineage": {
     "panelTitle": "Rody",
-    "sortByName": "Podle jména",
-    "sortByMembers": "Podle počtu",
+    "sortByName": "Jméno",
+    "sortByMembers": "Počet členů",
+    "sortByMentions": "Počet zmínek",
     "noAccess": "Rody bez přístupu",
     "changeColor": "Změnit barvu",
     "changeColorFor": "Barva rodu {{name}}",
     "colorInput": "Vlastní barva",
     "colorPlaceholder": "#4ade80 nebo 74, 222, 128",
     "colorApply": "Použít",
-    "colorInvalid": "Neplatná barva. Zadejte #hex nebo RGB."
+    "colorInvalid": "Neplatná barva. Zadejte #hex nebo RGB.",
+    "memberCount": "Počet členů",
+    "mentionCount": "Počet zmínek"
   },
   "time": {
     "slider": "Rok",

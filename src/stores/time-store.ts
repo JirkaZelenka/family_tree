@@ -29,7 +29,7 @@ export const useTimeStore = create<TimeState>((set, get) => ({
   minYear: 1800,
   maxYear: 2025,
   animatePlaying: false,
-  showAllPeople: false,
+  showAllPeople: true,
   sphereHighlightByYear: false,
   setCurrentYear: (year, opts) =>
     set({

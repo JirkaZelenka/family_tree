@@ -5,7 +5,7 @@ Moderní browser-only aplikace pro vizualizaci genealogických dat inspirovaná 
 ## Funkce
 
 - **3D sféra** (React Three Fiber) — osoby podle období narození, shluky rodů
-- **Více pohledů** — Strom, Povídání, Časová osa, Kalendář, Mapa
+- **Více pohledů** — Strom, Povídání, Kalendář, Mapa
 - **Markdown vault** — jeden člověk = jeden `.md` soubor s YAML frontmatter
 - **Texty** — složka `texts/` se zmínkami `{id}` u osob a rodů; stránka Povídání + náhledy v bočním panelu
 - **Komentáře k textům** — úsekové poznámky (Django API; vidí autor + admin)

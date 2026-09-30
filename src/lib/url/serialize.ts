@@ -9,12 +9,17 @@ export interface UrlAppState {
   showContemporaries?: boolean
 }
 
-const VIEW_SEGMENTS = new Set(['tree', 'timeline', 'calendar', 'map', 'texts', 'stories'])
+const VIEW_SEGMENTS = new Set(['tree', 'calendar', 'map', 'texts', 'stories'])
 
 /** Cesta + query, např. `/texts/pokus?sel=1` nebo `/tree?year=1950`. */
 export function stateToPath(state: UrlAppState): string {
   const view = state.view ?? 'tree'
-  const segment = view === 'stories' ? 'texts' : view === 'sphere' || view === 'force' ? 'tree' : view
+  const segment =
+    view === 'stories'
+      ? 'texts'
+      : view === 'sphere' || view === 'force' || view === 'timeline'
+        ? 'tree'
+        : view
   let pathname = `/${segment}`
   if ((view === 'stories' || segment === 'texts') && state.text) {
     pathname += `/${state.text
@@ -38,7 +43,7 @@ export function pathToState(pathname: string, search = ''): UrlAppState | null {
   if (parts.length === 0) return { view: 'tree' }
 
   const head = parts[0]
-  if (!VIEW_SEGMENTS.has(head) && head !== 'force' && head !== 'sphere') {
+  if (!VIEW_SEGMENTS.has(head) && head !== 'force' && head !== 'sphere' && head !== 'timeline') {
     return null
   }
 
@@ -64,7 +69,7 @@ export function pathToState(pathname: string, search = ''): UrlAppState | null {
     return { view: 'stories', text, ...extras }
   }
 
-  if (head === 'force' || head === 'sphere') {
+  if (head === 'force' || head === 'sphere' || head === 'timeline') {
     return { view: 'tree', ...extras }
   }
 

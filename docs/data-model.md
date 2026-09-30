@@ -30,9 +30,9 @@ Soubor končí YAML frontmatterem (bez markdown těla).
 
 Volné markdown soubory s příběhy, výpisy z matrik nebo poznámkami. Jména a rody se v textu označí složenými závorkami, které se v aplikaci **nezobrazují**.
 
-Prohlížení všech textů je na stránce **Povídání** (mezi Stromem a Časovou osou): dlaždice s náhledem, řazení podle data / rodu / názvu, čtení se zvýrazněnými zmínkami. **Klik** na osobu (nebo rod) přepne do Stromu; chip „Zpět k textu“ nebo **prohlížečové Zpět** vrátí na stejný text.
+Prohlížení všech textů je na stránce **Povídání** (mezi Stromem a Kalendářem): dlaždice s náhledem, řazení podle data / rodu / názvu, čtení se zvýrazněnými zmínkami. **Klik** na osobu (nebo rod) přepne do Stromu; chip „Zpět k textu“ nebo **prohlížečové Zpět** vrátí na stejný text.
 
-Čitelné URL: `/tree`, `/texts`, `/texts/<id>`, `/timeline`, `/calendar`, `/map` (volitelně `?sel=` / `?year=`).
+Čitelné URL: `/tree`, `/texts`, `/texts/<id>`, `/calendar`, `/map` (volitelně `?sel=` / `?year=`).
 
 ```md
 ---

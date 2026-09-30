@@ -14,6 +14,7 @@ import {
   activeForceViewNodes,
   mergeForcePositions,
   migrateForceSavedViews,
+  STARTUP_FORCE_VIEW_PRESET,
 } from '@/lib/layout/force-saved-views'
 import {
   FORCE_PADDING,
@@ -192,7 +193,10 @@ export const useLayoutStore = create<LayoutState>((set, get) => ({
       sessionForceNodes: {},
       forceAutoLayout: {},
       activeForceViewName: null,
+      // Prázdná množina → ForceView znovu rozbalí všechny rody.
+      expandedLineages: new Set(),
       forceLayoutRevision: get().forceLayoutRevision + 1,
+      pendingForceFit: true,
     })
     persistForceViews(get().forceSavedViews, null, {})
   },
@@ -291,10 +295,11 @@ export function initForceViewsFromVault(forceView: ViewLayout): {
   sessionNodes: Record<string, ForceNodeLayout>
 } {
   const views = migrateForceSavedViews(forceView)
-  const storedActive = forceView.activeForceViewName ?? null
-  const activeName =
-    storedActive && views[storedActive] ? storedActive : null
-  const sessionNodes =
-    activeName !== null ? { ...views[activeName] } : {}
+  const preferred =
+    views[STARTUP_FORCE_VIEW_PRESET] !== undefined ? STARTUP_FORCE_VIEW_PRESET : null
+  const stored = forceView.activeForceViewName ?? null
+  const storedOk = stored && views[stored] ? stored : null
+  const activeName = preferred ?? storedOk
+  const sessionNodes = activeName !== null ? { ...views[activeName] } : {}
   return { views, activeName, sessionNodes }
 }

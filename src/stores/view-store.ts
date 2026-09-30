@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import type { ViewId } from '@/views/types'
 
-export type LineageSort = 'name' | 'members'
+export type LineageSort = 'name' | 'members' | 'mentions'
 
 interface ViewState {
   activeView: ViewId

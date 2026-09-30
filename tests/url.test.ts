@@ -20,7 +20,7 @@ describe('url serialize', () => {
     expect(stateToPath({ view: 'stories' })).toBe('/texts')
     expect(stateToPath({ view: 'stories', text: 'pokus' })).toBe('/texts/pokus')
     expect(stateToPath({ view: 'stories', text: 'rod/pokus' })).toBe('/texts/rod/pokus')
-    expect(stateToPath({ view: 'timeline' })).toBe('/timeline')
+    expect(stateToPath({ view: 'timeline' })).toBe('/tree')
   })
 
   it('parses readable paths', () => {
@@ -34,6 +34,7 @@ describe('url serialize', () => {
     expect(pathToState('/texts/pokus')).toEqual({ view: 'stories', text: 'pokus' })
     expect(pathToState('/texts/rod/pokus')).toEqual({ view: 'stories', text: 'rod/pokus' })
     expect(pathToState('/force')).toEqual({ view: 'tree' })
+    expect(pathToState('/timeline')).toEqual({ view: 'tree' })
   })
 
   it('roundtrips path state', () => {

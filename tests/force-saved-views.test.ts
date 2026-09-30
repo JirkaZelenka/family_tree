@@ -34,7 +34,7 @@ describe('force-saved-views', () => {
     })
   })
 
-  it('init does not auto-load first preset without activeForceViewName', () => {
+  it('init does not auto-load first preset without preferred or active name', () => {
     const result = initForceViewsFromVault({
       nodes: {},
       lineageOffsets: {},
@@ -49,7 +49,23 @@ describe('force-saved-views', () => {
     expect(result.sessionNodes).toEqual({})
   })
 
-  it('init restores active preset when stored in layout', () => {
+  it('init prefers Zelenkovi center when present', () => {
+    const result = initForceViewsFromVault({
+      nodes: {},
+      lineageOffsets: {},
+      forceNodes: {},
+      forceSavedView: {},
+      forceSavedViews: {
+        V11: { '1': { x: 100 } },
+        'Zelenkovi center': { '1': { x: 200 } },
+      },
+      activeForceViewName: 'V11',
+    })
+    expect(result.activeName).toBe('Zelenkovi center')
+    expect(result.sessionNodes).toEqual({ '1': { x: 200 } })
+  })
+
+  it('init falls back to stored activeForceViewName', () => {
     const result = initForceViewsFromVault({
       nodes: {},
       lineageOffsets: {},

@@ -33,4 +33,24 @@ describe('mergeVaultMetaFiles', () => {
 
     expect(files.get('.family-tree/config.yaml')).toBe('disk-config')
   })
+
+  it('preferDisk beats cache for layout', () => {
+    const files = new Map([['.family-tree/layout.json', '{"version":1,"views":{}}']])
+    const cached = new Map([
+      ['.family-tree/layout.json', '{"version":1,"views":{"force":{"forceSavedViews":{}}}}'],
+    ])
+    const disk = new Map([
+      [
+        '.family-tree/layout.json',
+        JSON.stringify({
+          version: 1,
+          views: { force: { forceSavedViews: { V11: { '1': { x: 1 } } } } },
+        }),
+      ],
+    ])
+
+    mergeVaultMetaFiles(files, cached, disk, true)
+
+    expect(files.get('.family-tree/layout.json')).toContain('V11')
+  })
 })
