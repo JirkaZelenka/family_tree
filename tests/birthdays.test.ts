@@ -128,7 +128,7 @@ describe('birthdays', () => {
     ])
     const from = new Date(2024, 0, 1)
     const base = collectUpcomingMilestones(people, from, { limit: 10 })
-    const byName = sortMilestones(base, 'givenName', 'asc')
+    const byName = sortMilestones(base, 'name', 'asc')
     expect(byName[0].givenName).toBe('Adam')
     const byAge = sortMilestones(base, 'age', 'desc')
     expect(byAge[0].age).toBeGreaterThanOrEqual(byAge[1].age)

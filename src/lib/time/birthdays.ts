@@ -24,7 +24,7 @@ export interface MilestoneEntry {
   age: number
 }
 
-export type MilestoneSortKey = 'date' | 'givenName' | 'familyName' | 'age'
+export type MilestoneSortKey = 'date' | 'name' | 'birth' | 'age'
 
 function startOfLocalDay(d: Date): Date {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate())
@@ -149,11 +149,11 @@ export function sortMilestones(
       case 'date':
         cmp = a.milestoneDate.getTime() - b.milestoneDate.getTime()
         break
-      case 'givenName':
-        cmp = a.givenName.localeCompare(b.givenName, 'cs')
+      case 'name':
+        cmp = a.fullName.localeCompare(b.fullName, 'cs')
         break
-      case 'familyName':
-        cmp = a.familyName.localeCompare(b.familyName, 'cs')
+      case 'birth':
+        cmp = a.birthDate.localeCompare(b.birthDate, 'cs')
         break
       case 'age':
         cmp = a.age - b.age
