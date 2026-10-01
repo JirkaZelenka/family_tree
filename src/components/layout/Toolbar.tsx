@@ -7,6 +7,7 @@ import { useSearchStore } from '@/stores/search-store'
 import { useVaultStore } from '@/stores/vault-store'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ThemeToggle } from '@/components/layout/ThemeToggle'
+import { FontPicker } from '@/components/layout/FontPicker'
 import { AuthMenu } from '@/components/auth/AuthMenu'
 
 export function Toolbar() {
@@ -34,6 +35,7 @@ export function Toolbar() {
 
       <div className="ml-auto flex flex-wrap items-center gap-1">
         <AuthMenu />
+        <FontPicker />
         <ThemeToggle />
         <Button variant="ghost" size="sm" onClick={() => setCommandOpen(true)}>
           <Search className="h-4 w-4" />

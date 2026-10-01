@@ -613,7 +613,7 @@ function StoryReader({ document }: { document: TextDocument }) {
                     body={document.displayBody}
                     mentions={document.mentions}
                     attachments={document.attachments}
-                    className="text-base leading-7"
+                    className="stories-body"
                     onClickPerson={(personId, mentionStart) =>
                       navigateToTree({ personId, mentionStart })
                     }

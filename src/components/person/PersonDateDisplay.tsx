@@ -66,7 +66,7 @@ export function LifeSpanSvg({
   person,
   x,
   y,
-  className = 'fill-slate-700 text-[9px] opacity-80',
+  className = 'fill-slate-700 text-[11px] font-medium opacity-90',
 }: {
   person: Pick<PersonNode, 'birth' | 'death' | 'birthYear' | 'deathYear'>
   x: number

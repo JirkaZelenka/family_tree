@@ -9,7 +9,14 @@
     "importZip": "Importovat ZIP",
     "search": "Hledat…",
     "lightMode": "Světlý režim",
-    "darkMode": "Tmavý režim"
+    "darkMode": "Tmavý režim",
+    "font": {
+      "label": "Písmo",
+      "source": "Source Serif",
+      "literata": "Literata",
+      "crimson": "Crimson Pro",
+      "cormorant": "Cormorant"
+    }
   },
   "auth": {
     "subtitle": "Přihlaste se jménem a heslem",

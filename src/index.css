@@ -36,7 +36,9 @@
 :root {
   --radius: 0.4rem;
   --font-heritage: "Cinzel", Palatino, "Palatino Linotype", "Book Antiqua", Georgia, serif;
-  --font-serif: "Cormorant Garamond", "Source Serif 4", Palatino, Georgia, serif;
+  --font-serif: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --font-size-base: 1.0625rem;
+  --font-weight-body: 500;
   --background: oklch(0.93 0.035 85);
   --foreground: oklch(0.28 0.045 50);
   --card: oklch(0.965 0.02 85);
@@ -66,6 +68,23 @@
   --spouse-line: #8f3b4c;
   --marriage-knot: #c4a35a;
   --toolbar-wash: color-mix(in oklab, var(--card) 78%, transparent);
+}
+
+html[data-font='literata'] {
+  --font-serif: "Literata", Georgia, "Times New Roman", serif;
+}
+
+html[data-font='crimson'] {
+  --font-serif: "Crimson Pro", Georgia, "Times New Roman", serif;
+}
+
+html[data-font='cormorant'] {
+  --font-serif: "Cormorant Garamond", Palatino, Georgia, serif;
+  --font-weight-body: 600;
+}
+
+html[data-font='source'] {
+  --font-serif: "Source Serif 4", Georgia, "Times New Roman", serif;
 }
 
 .dark {
@@ -109,6 +128,11 @@ body {
   min-height: 100vh;
   color: var(--foreground);
   font-family: var(--font-serif);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-body);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   background-color: var(--background);
   background-image:
     radial-gradient(ellipse 90% 70% at 8% 10%, var(--wash-wine), transparent 56%),
@@ -139,8 +163,17 @@ body {
 
 .font-heritage {
   font-family: var(--font-heritage);
+  font-weight: 600;
 }
 
 .font-serif-body {
   font-family: var(--font-serif);
+  font-weight: var(--font-weight-body);
+}
+
+.stories-body {
+  font-family: var(--font-serif);
+  font-size: 1.125rem;
+  font-weight: var(--font-weight-body);
+  line-height: 1.75;
 }

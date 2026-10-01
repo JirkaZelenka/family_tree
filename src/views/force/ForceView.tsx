@@ -169,7 +169,7 @@ function PersonNodeCard({
         x={FORCE_NODE_WIDTH / 2}
         y={22}
         textAnchor="middle"
-        className="fill-slate-950 text-[13px] font-semibold font-heritage"
+        className="fill-slate-950 text-[14px] font-semibold font-heritage"
         style={{ pointerEvents: 'none' }}
       >
         {person.givenName}
@@ -178,7 +178,7 @@ function PersonNodeCard({
         x={FORCE_NODE_WIDTH / 2}
         y={40}
         textAnchor="middle"
-        className="fill-slate-800 text-[11px] font-serif-body"
+        className="fill-slate-800 text-[12px] font-semibold font-serif-body"
         style={{ pointerEvents: 'none' }}
       >
         {formatFamilyNameWithMaiden(person)}
@@ -897,7 +897,7 @@ export function ForceView({ className }: ViewProps) {
                 x={FORCE_TIMELINE_WIDTH - 10}
                 y={tick.y + 4}
                 textAnchor="end"
-                className="fill-[color:var(--muted-foreground)] text-[11px] tabular-nums font-serif-body"
+                className="fill-[color:var(--muted-foreground)] text-[12px] font-medium tabular-nums font-serif-body"
               >
                 {tick.label}
               </text>
