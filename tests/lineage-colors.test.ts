@@ -62,8 +62,36 @@ describe('rodNamesMatch', () => {
     expect(rodNamesMatch('Zelenka', 'zelenkovi')).toBe(true)
   })
 
+  it('spáruje Spilka / Spilková se Spilkovi', () => {
+    expect(rodNamesMatch('Spilka', 'Spilkovi')).toBe(true)
+    expect(rodNamesMatch('Spilková', 'Spilkovi')).toBe(true)
+  })
+
+  it('neslučuje Špičkovi se Spilkovi', () => {
+    expect(rodNamesMatch('Špičková', 'Spilkovi')).toBe(false)
+    expect(rodNamesMatch('Špičkovi', 'Spilkovi')).toBe(false)
+    expect(rodNamesMatch('Spilka', 'Špičkovi')).toBe(false)
+    expect(rodNamesMatch('Špičková', 'Špičkovi')).toBe(true)
+  })
+
   it('nerozpozná nesouvisející jména', () => {
     expect(rodNamesMatch('Novák', 'hynkovi')).toBe(false)
+    expect(rodNamesMatch('Novák', 'Novotní')).toBe(false)
+  })
+
+  it('počítá Špičkovi samostatně od Spilkových', () => {
+    const persons = [
+      { lineage: 'Špičkovi', familyName: 'Bartoňová' },
+      { lineage: 'Spilkovi', familyName: 'Spilka' },
+      { lineage: 'Spilkovi', familyName: 'Spilka' },
+      { lineage: 'Hladíkovi', familyName: 'Spilková' },
+    ]
+    const counts = countAffiliatedLineageMembers(persons, [
+      'Špičkovi',
+      'Spilkovi',
+    ])
+    expect(counts['Špičkovi']).toBe(1)
+    expect(counts['Spilkovi']).toBe(3)
   })
 })
 

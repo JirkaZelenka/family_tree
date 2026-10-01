@@ -52,22 +52,31 @@ describe('dates', () => {
     expect(isUncertainDate('?1925')).toBe(true)
     expect(isUncertainDate('1925')).toBe(false)
     expect(isUncertainDate('??1925')).toBe(false)
+    expect(isUncertainDate('?')).toBe(false)
     expect(dateDisplayText('?1.2.1690')).toBe('1.2.1690')
     expect(dateDisplayText('?1925')).toBe('1925')
   })
 
-  it('treats ?? as unknown display while still parsing year for layout', () => {
+  it('treats ?? and lone ? as unknown display (not red), still parsing ?? year for layout', () => {
     expect(parseYear('??1925')).toBe(1925)
     expect(parseYear('??1.2.1690')).toBe(1690)
     expect(isUnknownDisplayDate('??1925')).toBe(true)
     expect(isUnknownDisplayDate('?1925')).toBe(false)
+    expect(isUnknownDisplayDate('?')).toBe(true)
     expect(dateDisplayText('??1925')).toBe('?')
     expect(dateDisplayText('??1.2.1690')).toBe('?')
+    expect(dateDisplayText('?')).toBe('?')
     expect(dateFieldSegments('??1925')).toEqual([{ text: '?', uncertain: false }])
+    expect(dateFieldSegments('?')).toEqual([{ text: '?', uncertain: false }])
     expect(lifeSpanSegments('??1925', '1940', 1925, 1940)).toEqual([
       { text: '?', uncertain: false },
       { text: ' – ', uncertain: false },
       { text: '1940', uncertain: false },
+    ])
+    expect(lifeSpanSegments('??1864', '?', 1864, null)).toEqual([
+      { text: '?', uncertain: false },
+      { text: ' – ', uncertain: false },
+      { text: '?', uncertain: false },
     ])
   })
 
@@ -83,6 +92,9 @@ describe('dates', () => {
     ])
     expect(dateFieldSegments('?1.2.1690')).toEqual([
       { text: '1.2.1690', uncertain: true },
+    ])
+    expect(dateFieldSegments('?1925')).toEqual([
+      { text: '1925', uncertain: true },
     ])
   })
 

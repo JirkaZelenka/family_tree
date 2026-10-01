@@ -13,17 +13,28 @@ export function uncertaintyPrefixLength(date: string | undefined | null): number
   return match ? match[0].length : 0
 }
 
-/** Jeden úvodní `?` — hodnota se zobrazí se zvýrazněním nejistoty. */
+function valueAfterUncertaintyPrefix(date: string): string {
+  return date.trim().replace(UNCERTAIN_PREFIX_RE, '')
+}
+
+/** Jeden úvodní `?` + hodnota (`?1925`) — zobrazit se zvýrazněním nejistoty. */
 export function isUncertainDate(date: string | undefined | null): boolean {
-  return uncertaintyPrefixLength(date) === 1
+  const trimmed = date?.trim() ?? ''
+  if (uncertaintyPrefixLength(trimmed) !== 1) return false
+  return valueAfterUncertaintyPrefix(trimmed).length > 0
 }
 
 /**
- * Dva a více úvodních `??` — hodnota je pro zobrazení neznámá (jen `?`),
- * ale pod ní ležící rok se dál používá pro ukotvení na ose.
+ * Neznámé zobrazení (jen `?`, nikdy červené):
+ * - dva a více úvodních `??` (`??1925`) — podkladový rok zůstává pro layout
+ * - samotné `?` (typicky úmrtí) — úplně neznámý rok
  */
 export function isUnknownDisplayDate(date: string | undefined | null): boolean {
-  return uncertaintyPrefixLength(date) >= 2
+  const trimmed = date?.trim() ?? ''
+  if (!trimmed) return false
+  const prefixes = uncertaintyPrefixLength(trimmed)
+  if (prefixes >= 2) return true
+  return prefixes >= 1 && valueAfterUncertaintyPrefix(trimmed).length === 0
 }
 
 /** Text pro zobrazení — bez úvodního otazníku; u `??` nebo samotného `?` jen `?`. */

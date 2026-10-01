@@ -171,4 +171,85 @@ describe('buildForceEdgeSegments', () => {
     })
     expect(showAll.some((s) => s.kind === 'spouse')).toBe(true)
   })
+
+  it('děti vede jen k manželství vyplněnému v parents, ne k jinému sňatku rodiče', () => {
+    const graph = new Graph<PersonNode>()
+    // 126 + 125 mají děti; 126 + 130 je jiné (bezdětné) manželství
+    graph.addNode(
+      '126',
+      person('126', {
+        spouses: [
+          { id: '125', marriageDate: '1854' },
+          { id: '130', marriageDate: '1843' },
+        ],
+        children: ['120', '121'],
+        birthYear: 1814,
+      }),
+    )
+    graph.addNode(
+      '125',
+      person('125', {
+        lineage: 'kalinovi',
+        spouses: [{ id: '126', marriageDate: '1854' }],
+        children: ['120', '121'],
+        birthYear: 1814,
+      }),
+    )
+    graph.addNode(
+      '130',
+      person('130', {
+        lineage: 'dostalovi',
+        spouses: [{ id: '126', marriageDate: '1843' }],
+        children: [],
+        birthYear: 1814,
+      }),
+    )
+    graph.addNode(
+      '120',
+      person('120', { parents: ['125', '126'], birthYear: 1855 }),
+    )
+    graph.addNode(
+      '121',
+      person('121', { parents: ['125', '126'], birthYear: 1857 }),
+    )
+
+    const visible = new Set(['125', '126', '130', '120', '121'])
+    const positions = new Map([
+      ['126', { x: 200, y: 40 }],
+      ['125', { x: 320, y: 45 }],
+      ['130', { x: 80, y: 42 }],
+      ['120', { x: 220, y: 200 }],
+      ['121', { x: 340, y: 205 }],
+    ])
+
+    const segments = buildForceEdgeSegments(graph, visible, positions)
+
+    const descents = segments.filter((s) => s.kind === 'descent' || s.kind === 'branch')
+    for (const seg of descents) {
+      const parents = seg.parentIds ?? []
+      expect(parents).not.toContain('130')
+      if (parents.length === 2) {
+        expect(parents.sort()).toEqual(['125', '126'])
+      }
+    }
+
+    // Obě manželství mají růžovou linku, ale děti jen u 125+126
+    expect(
+      segments.some(
+        (s) =>
+          s.kind === 'spouse' &&
+          s.spouseIds?.slice().sort().join() === '125,126',
+      ),
+    ).toBe(true)
+    expect(
+      segments.some(
+        (s) =>
+          s.kind === 'spouse' &&
+          s.spouseIds?.slice().sort().join() === '126,130',
+      ),
+    ).toBe(true)
+    expect(
+      descents.some((s) => (s.parentIds ?? []).includes('125')),
+    ).toBe(true)
+  })
 })

@@ -61,21 +61,33 @@ export function normalizeRodName(s: string): string {
     .replace(/ové$/, '')
 }
 
-/** Porovná příjmení a rod (např. Hynek ↔ hynkovi, Zelenka ↔ zelenkovi). */
+/**
+ * Pomíjivé e/i/y ve kmeni (Hynek → hynk u Hynkovi, Němec → nemc).
+ * Delší tvar má přesně o jednu samohlásku navíc; po jejím odstranění = kratší.
+ */
+function stemsMatchWithFleetingVowel(a: string, b: string): boolean {
+  const longer = a.length >= b.length ? a : b
+  const shorter = a.length < b.length ? a : b
+  if (longer.length !== shorter.length + 1) return false
+  for (let i = 0; i < longer.length; i++) {
+    if (!'aeiouy'.includes(longer[i])) continue
+    if (longer.slice(0, i) + longer.slice(i + 1) === shorter) return true
+  }
+  return false
+}
+
+/**
+ * Porovná příjmení a rod (např. Hynek ↔ hynkovi, Zelenka ↔ zelenkovi).
+ * Přesná shoda kořene, podřetězec (`spilk` ⊂ `spilka`), nebo pomíjivá
+ * samohláska. Volný společný prefix ne — ten mylně slučoval Špičkovi/Spilkovi.
+ */
 export function rodNamesMatch(a: string, b: string): boolean {
   const left = normalizeRodName(a)
   const right = normalizeRodName(b)
   if (!left || !right) return !left && !right
   if (left === right) return true
   if (left.includes(right) || right.includes(left)) return true
-
-  const shorter = left.length <= right.length ? left : right
-  const longer = left.length > right.length ? left : right
-  let prefix = 0
-  while (prefix < shorter.length && shorter[prefix] === longer[prefix]) prefix++
-
-  const minPrefix = 3
-  return prefix >= minPrefix && shorter.length >= minPrefix
+  return stemsMatchWithFleetingVowel(left, right)
 }
 
 function lineageKeyMatchScore(

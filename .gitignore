@@ -44,12 +44,13 @@ backend/staticfiles/
 # Notes
 pozn.txt
 
-# Real people data
-data/people/*.md
-data/texts/*.md
-data/.family-tree/*
-data/family_files/*
-data/texts/*
+# Real people data - bascially all except events -> rather all
+# data/people/*.md
+# data/.family-tree/*
+# data/family_files/*
+# data/texts/*
+# data/backup_data/*
+data/*
 
 src/types/vault.ts
 tests/lineage-names.test.ts

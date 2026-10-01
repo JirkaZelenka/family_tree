@@ -26,39 +26,43 @@ function allSpouses(graph: Graph<PersonNode>, id: string): string[] {
   return spouseIds(graph.getNodeAttributes(id).spouses).filter((sid) => graph.hasNode(sid))
 }
 
-function childrenInLineage(
+/** Dítě má ve `parents` vyplněné všechny osoby z páru (ne jen jednoho z manželů). */
+function childListsAllParents(
   graph: Graph<PersonNode>,
-  id: string,
-  lineage: string,
-): string[] {
-  return graph.getNodeAttributes(id).children.filter(
-    (cid) => graph.hasNode(cid) && graph.getNodeAttributes(cid).lineage === lineage,
-  )
+  childId: string,
+  parentIds: string[],
+): boolean {
+  const parents = graph.getNodeAttributes(childId).parents.filter(Boolean)
+  return parentIds.every((pid) => parents.includes(pid))
 }
 
-function allChildren(graph: Graph<PersonNode>, parentIds: string[]): string[] {
-  const set = new Set<string>()
-  for (const pid of parentIds) {
-    for (const cid of graph.getNodeAttributes(pid).children) {
-      if (cid && graph.hasNode(cid)) set.add(cid)
-    }
-  }
-  return sortByAge(graph, [...set])
-}
-
+/**
+ * Děti rodinné jednotky: jen ti, kdo mají u sebe vyplněné všechny rodiče z páru.
+ * Tím pádem děti druhého manželství nevisí na bezdětném / jiném sňatku téhož rodiče.
+ */
 function sharedChildren(
   graph: Graph<PersonNode>,
   parentIds: string[],
   lineage: string,
 ): string[] {
-  const inLineage = new Set<string>()
+  if (parentIds.length === 0) return []
+
+  const shared: string[] = []
+  const seen = new Set<string>()
   for (const pid of parentIds) {
-    for (const cid of childrenInLineage(graph, pid, lineage)) {
-      inLineage.add(cid)
+    for (const cid of graph.getNodeAttributes(pid).children) {
+      if (!cid || !graph.hasNode(cid) || seen.has(cid)) continue
+      if (!childListsAllParents(graph, cid, parentIds)) continue
+      seen.add(cid)
+      shared.push(cid)
     }
   }
-  if (inLineage.size > 0) return sortByAge(graph, [...inLineage])
-  return allChildren(graph, parentIds)
+
+  const inLineage = shared.filter(
+    (cid) => graph.getNodeAttributes(cid).lineage === lineage,
+  )
+  if (inLineage.length > 0) return sortByAge(graph, inLineage)
+  return sortByAge(graph, shared)
 }
 
 /** Manželský pár pro strom – včetně partnera z jiného rodu. */

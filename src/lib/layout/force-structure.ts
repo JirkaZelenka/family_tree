@@ -32,10 +32,15 @@ function visibleChildren(
   parentIds: string[],
   visibleIds: Set<string>,
 ): string[] {
+  if (parentIds.length === 0) return []
+
   const set = new Set<string>()
   for (const pid of parentIds) {
     for (const cid of graph.getNodeAttributes(pid).children) {
-      if (cid && visibleIds.has(cid)) set.add(cid)
+      if (!cid || !visibleIds.has(cid) || !graph.hasNode(cid)) continue
+      const parents = graph.getNodeAttributes(cid).parents.filter(Boolean)
+      if (!parentIds.every((p) => parents.includes(p))) continue
+      set.add(cid)
     }
   }
   return sortByAge(graph, [...set])

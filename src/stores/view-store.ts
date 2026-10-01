@@ -35,7 +35,8 @@ export const useViewStore = create<ViewState>((set) => ({
   pendingFocusPersonId: null,
   setActiveView: (view) => set({ activeView: view }),
   setEventsPanelOpen: (open) => set({ eventsPanelOpen: open }),
-  setProfilePersonId: (id) => set({ profilePersonId: id }),
+  setProfilePersonId: (id) =>
+    set(id ? { profilePersonId: id, personSidebarOpen: true } : { profilePersonId: null }),
   setSelectedLineage: (lineage) => set({ selectedLineage: lineage }),
   setLineageSort: (sort) => set({ lineageSort: sort }),
   setLineageSidebarOpen: (open) => set({ lineageSidebarOpen: open }),
