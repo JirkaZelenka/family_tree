@@ -1,5 +1,6 @@
-import { LifeSpanDisplay } from '@/components/person/PersonDateDisplay'
+import { useTranslation } from 'react-i18next'
 import type { PersonNode } from '@/types/person'
+import { isUnknownDisplayDate } from '@/lib/time/dates'
 import { cn } from '@/lib/utils'
 
 function personInitials(person: PersonNode): string {
@@ -8,13 +9,25 @@ function personInitials(person: PersonNode): string {
   return (g + f).toUpperCase() || '?'
 }
 
+/** Jméno + rok jako identifikátor; u `??ROK` označí rok jako odhad. */
+export function personNameWithYear(
+  name: string,
+  person: Pick<PersonNode, 'birth' | 'birthYear'>,
+  estimateLabel: string,
+): string {
+  if (person.birthYear == null) return name
+  if (isUnknownDisplayDate(person.birth?.date)) {
+    return `${name} (${estimateLabel}: ${person.birthYear})`
+  }
+  return `${name} (${person.birthYear})`
+}
+
 interface PersonMedallionProps {
   person: PersonNode
   color: string
   variant?: 'card' | 'panel'
   className?: string
   hideLineage?: boolean
-  hideDeathIfUnknown?: boolean
   displayName?: string
 }
 
@@ -23,13 +36,12 @@ export function PersonMedallion({
   color,
   variant = 'card',
   className,
-  hideDeathIfUnknown = false,
   displayName,
 }: PersonMedallionProps) {
+  const { t } = useTranslation()
   const isPanel = variant === 'panel'
   const name = displayName ?? person.fullName
-  const nameWithYear =
-    person.birthYear != null ? `${name} (${person.birthYear})` : name
+  const nameWithYear = personNameWithYear(name, person, t('person.yearEstimate'))
 
   if (isPanel) {
     return (
@@ -48,7 +60,7 @@ export function PersonMedallion({
               {nameWithYear}
             </h2>
             <p className="mt-0.5 text-xs tabular-nums text-slate-800/85">
-              <LifeSpanDisplay person={person} hideDeathIfUnknown={hideDeathIfUnknown} />
+              {t('person.idLabel', { id: person.id })}
             </p>
             {person.birth?.place?.trim() && (
               <p className="mt-0.5 text-[11px] text-slate-800/75">{person.birth.place}</p>
@@ -80,7 +92,7 @@ export function PersonMedallion({
           {nameWithYear}
         </h2>
         <p className="mt-1.5 text-sm tabular-nums text-muted-foreground">
-          <LifeSpanDisplay person={person} hideDeathIfUnknown={hideDeathIfUnknown} />
+          {t('person.idLabel', { id: person.id })}
         </p>
         {person.birth?.place?.trim() && (
           <p className="mt-1 text-xs text-muted-foreground">{person.birth.place}</p>

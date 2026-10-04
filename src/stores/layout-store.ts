@@ -17,16 +17,19 @@ import {
   STARTUP_FORCE_VIEW_PRESET,
 } from '@/lib/layout/force-saved-views'
 import {
-  FORCE_PADDING,
-  FORCE_TIMELINE_WIDTH,
+  forceMaxNodeX,
+  forceMinNodeX,
 } from '@/lib/layout/force-layout'
 
-const MIN_FORCE_X = FORCE_TIMELINE_WIDTH + FORCE_PADDING
-const MAX_FORCE_X = 12_000
+const FALLBACK_MAX_FORCE_X = 12_000
 
 function clampForceX(x: number): number {
-  if (!Number.isFinite(x)) return MIN_FORCE_X
-  return Math.min(MAX_FORCE_X, Math.max(MIN_FORCE_X, x))
+  const minX = forceMinNodeX()
+  if (!Number.isFinite(x)) return minX
+  const lock = useLayoutStore.getState().forceCanvasWidthLock
+  const maxX =
+    lock != null && lock > 0 ? forceMaxNodeX(lock) : FALLBACK_MAX_FORCE_X
+  return Math.min(maxX, Math.max(minX, x))
 }
 
 interface LayoutState {
@@ -46,6 +49,8 @@ interface LayoutState {
   expandedLineages: Set<string>
   forceLayoutRevision: number
   pendingForceFit: boolean
+  /** Zamčená šířka plátna (vzdálenost levá↔pravá osa). Null = spočítat z obsahu. */
+  forceCanvasWidthLock: number | null
   setSphereLayout: (result: SphereLayoutResult) => void
   updateNodePosition: (id: string, pos: SpherePosition, pinned?: boolean) => void
   setSavedLayout: (layout: ViewLayout) => void
@@ -54,6 +59,7 @@ interface LayoutState {
   ensureForceAutoBaseline: (nodes: Record<string, ForceNodeLayout>) => void
   updateForceNodeX: (id: string, x: number) => void
   updateForceNodesX: (updates: Record<string, number>) => void
+  setForceCanvasWidthLock: (width: number | null) => void
   resetForceLayout: () => void
   saveForceViewPreset: (name: string) => boolean
   loadForceViewPreset: (name: string) => boolean
@@ -126,6 +132,7 @@ export const useLayoutStore = create<LayoutState>((set, get) => ({
   expandedLineages: new Set(),
   forceLayoutRevision: 0,
   pendingForceFit: false,
+  forceCanvasWidthLock: null,
   setSphereLayout: (result) =>
     set({
       positions: result.positions,
@@ -188,6 +195,7 @@ export const useLayoutStore = create<LayoutState>((set, get) => ({
       sessionForceNodes,
     )
   },
+  setForceCanvasWidthLock: (width) => set({ forceCanvasWidthLock: width }),
   resetForceLayout: () => {
     set({
       sessionForceNodes: {},
@@ -197,6 +205,7 @@ export const useLayoutStore = create<LayoutState>((set, get) => ({
       expandedLineages: new Set(),
       forceLayoutRevision: get().forceLayoutRevision + 1,
       pendingForceFit: true,
+      forceCanvasWidthLock: null,
     })
     persistForceViews(get().forceSavedViews, null, {})
   },
@@ -230,6 +239,7 @@ export const useLayoutStore = create<LayoutState>((set, get) => ({
       forceAutoLayout,
       forceLayoutRevision: get().forceLayoutRevision + 1,
       pendingForceFit: true,
+      forceCanvasWidthLock: null,
     })
     persistForceViews(get().forceSavedViews, name, sessionForceNodes)
     return true

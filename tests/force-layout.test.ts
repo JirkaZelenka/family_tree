@@ -3,10 +3,13 @@ import Graph from 'graphology'
 import type { PersonNode } from '@/types/person'
 import {
   computeForceLayout,
+  FORCE_CANVAS_EXPAND,
   FORCE_NODE_GAP_X,
   FORCE_NODE_GAP_Y,
   FORCE_NODE_HEIGHT,
   FORCE_NODE_WIDTH,
+  FORCE_TIMELINE_WIDTH,
+  forceCanvasWidth,
   resolveNodeOverlaps,
 } from '@/lib/layout/force-layout'
 import { layoutVisiblePedigreeU } from '@/lib/layout/force-structure'
@@ -106,6 +109,53 @@ describe('computeForceLayout', () => {
     expect(moved.positions.get('b')!.x).toBe(initial.positions.get('b')!.x)
     expect(moved.positions.get('c')!.x).toBe(initial.positions.get('c')!.x)
     expect(moved.positions.get('a')!.x).toBe(auto.a.x + 240)
+  })
+
+  it('rozšíří plátno doprava (~30 %) + pravá osa, bez posunu uložených x', () => {
+    const graph = new Graph<PersonNode>()
+    graph.addNode('a', person('a', 'novak', 1990))
+    graph.addNode('b', person('b', 'novak', 1992))
+
+    const visible = new Set(['a', 'b'])
+    const saved = { a: { x: 400 }, b: { x: 600 } }
+    const layout = computeForceLayout(graph, visible, saved)
+
+    expect(layout.positions.get('a')!.x).toBe(400)
+    expect(layout.positions.get('b')!.x).toBe(600)
+    expect(layout.width).toBe(forceCanvasWidth(layout.contentWidth))
+    expect(layout.width).toBeGreaterThan(layout.contentWidth)
+    expect(layout.rightTimelineX).toBe(layout.width - FORCE_TIMELINE_WIDTH)
+    const treeArea = layout.contentWidth - FORCE_TIMELINE_WIDTH
+    expect(layout.width).toBeCloseTo(
+      FORCE_TIMELINE_WIDTH + treeArea * FORCE_CANVAS_EXPAND + FORCE_TIMELINE_WIDTH,
+    )
+  })
+
+  it('zamčená šířka plátna se nemění při posunu uzlů doprava', () => {
+    const graph = new Graph<PersonNode>()
+    graph.addNode('a', person('a', 'novak', 1990))
+    graph.addNode('b', person('b', 'novak', 1992))
+
+    const visible = new Set(['a', 'b'])
+    const initial = computeForceLayout(graph, visible, {
+      a: { x: 400 },
+      b: { x: 600 },
+    })
+    const locked = initial.width
+
+    const afterDrag = computeForceLayout(
+      graph,
+      visible,
+      { a: { x: 400 }, b: { x: 600 + 400 } },
+      {},
+      locked,
+    )
+
+    expect(afterDrag.width).toBe(locked)
+    expect(afterDrag.rightTimelineX).toBe(initial.rightTimelineX)
+    expect(afterDrag.positions.get('b')!.x).toBeLessThanOrEqual(
+      afterDrag.rightTimelineX - FORCE_NODE_WIDTH,
+    )
   })
 
   it('resolveNodeOverlaps oddělí překrývající se uzly', () => {

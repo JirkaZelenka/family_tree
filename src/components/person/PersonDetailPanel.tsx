@@ -66,7 +66,6 @@ export function PersonDetailPanel({ variant = 'default' }: PersonDetailPanelProp
           person={person}
           color={color}
           variant="panel"
-          hideDeathIfUnknown
           displayName={displayName}
         />
 

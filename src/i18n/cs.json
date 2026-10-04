@@ -143,7 +143,9 @@
     "noSelection": "Vyberte osobu v grafu",
     "doubleClickHint": "Dvojklikněte na osobu ve stromu pro zobrazení karty",
     "closeProfile": "Zavřít profil",
-    "profileTitle": "Profil osoby"
+    "profileTitle": "Profil osoby",
+    "idLabel": "id: {{id}}",
+    "yearEstimate": "odhad"
   },
   "texts": {
     "sectionTitle": "Zmínky",

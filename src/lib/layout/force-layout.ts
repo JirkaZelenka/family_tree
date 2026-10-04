@@ -22,6 +22,39 @@ export const FORCE_PIXELS_PER_YEAR = 5
 export const FORCE_MIN_TIMELINE_HEIGHT = 360
 export const FORCE_NODE_GAP_X = 24
 export const FORCE_NODE_GAP_Y = 16
+/**
+ * Rozšíření plochy pro uzly doprava (bez posunu existujících x).
+ * Celková šířka = levá osa + content×faktor + pravá osa.
+ * Po prvním výpočtu se šířka zamkne — osy se od sebe dál neposouvají.
+ */
+export const FORCE_CANVAS_EXPAND = 1.3
+
+/** X souřadnice pravé svislé osy (zrcadlo levé). */
+export function forceRightTimelineX(canvasWidth: number): number {
+  return canvasWidth - FORCE_TIMELINE_WIDTH
+}
+
+/** Minimální x levého horního rohu uzlu (hned za levou osou). */
+export function forceMinNodeX(): number {
+  return FORCE_TIMELINE_WIDTH
+}
+
+/**
+ * Maximální x levého horního rohu uzlu — pravý okraj karty až k pravé ose.
+ * (Bez extra paddingu, ať není „stěna“ kus před timeline.)
+ */
+export function forceMaxNodeX(canvasWidth: number): number {
+  return forceRightTimelineX(canvasWidth) - FORCE_NODE_WIDTH
+}
+
+/**
+ * Šířka plátna: obsah uzlů rozšířený o {@link FORCE_CANVAS_EXPAND}
+ * + stejný pás pro pravou timeline jako nalevo.
+ */
+export function forceCanvasWidth(contentWidth: number): number {
+  const treeArea = Math.max(contentWidth - FORCE_TIMELINE_WIDTH, FORCE_PADDING)
+  return FORCE_TIMELINE_WIDTH + treeArea * FORCE_CANVAS_EXPAND + FORCE_TIMELINE_WIDTH
+}
 
 export interface ForceNodePosition {
   x: number
@@ -43,7 +76,11 @@ export interface ForceLayoutResult {
   yearMin: number
   yearMax: number
   timelineHeight: number
+  /** Těsný pravý okraj obsahu (uzly + padding), bez rozšíření a bez pravé osy. */
   contentWidth: number
+  /** X pravé svislé timeline. */
+  rightTimelineX: number
+  /** Celková šířka plátna včetně rozšíření a pravé timeline. */
   width: number
   height: number
 }
@@ -137,7 +174,7 @@ export function resolveNodeOverlaps(
     const pos = positions.get(id)
     return pos && !pos.pinned
   })
-  const minX = FORCE_TIMELINE_WIDTH + FORCE_PADDING
+  const minX = forceMinNodeX()
 
   for (let pass = 0; pass < 80; pass++) {
     let moved = false
@@ -188,6 +225,8 @@ export function computeForceLayout(
   visibleIds: Set<string>,
   savedNodes: Record<string, ForceNodeLayout> = {},
   autoLayout: Record<string, ForceNodeLayout> = {},
+  /** Zamčená šířka plátna — pravá osa se nehýbe při posunu uzlů. */
+  lockedCanvasWidth?: number | null,
 ): ForceLayoutResult {
   const { yearMin, yearMax } = yearRangeForGraph(graph)
   const span = Math.max(yearMax - yearMin, 1)
@@ -253,6 +292,16 @@ export function computeForceLayout(
   }
 
   height = Math.max(height, FORCE_PADDING * 2 + timelineHeight)
+  const width =
+    lockedCanvasWidth != null && lockedCanvasWidth > 0
+      ? lockedCanvasWidth
+      : forceCanvasWidth(contentWidth)
+  const rightTimelineX = forceRightTimelineX(width)
+  const minX = forceMinNodeX()
+  const maxX = forceMaxNodeX(width)
+  for (const pos of positions.values()) {
+    pos.x = Math.min(maxX, Math.max(minX, pos.x))
+  }
 
   return {
     positions,
@@ -261,7 +310,8 @@ export function computeForceLayout(
     yearMax,
     timelineHeight,
     contentWidth,
-    width: contentWidth,
+    rightTimelineX,
+    width,
     height,
   }
 }

@@ -28,6 +28,8 @@ import {
   FORCE_NODE_WIDTH,
   FORCE_PADDING,
   FORCE_TIMELINE_WIDTH,
+  forceMaxNodeX,
+  forceMinNodeX,
   type ForceNodePosition,
 } from '@/lib/layout/force-layout'
 import { enrichLineageColors, lineageColor, countLineageMembers } from '@/lib/vault/lineage-colors'
@@ -305,9 +307,11 @@ export function ForceView({ className }: ViewProps) {
   const forceAutoLayout = useLayoutStore((s) => s.forceAutoLayout)
   const forceLayoutRevision = useLayoutStore((s) => s.forceLayoutRevision)
   const pendingForceFit = useLayoutStore((s) => s.pendingForceFit)
+  const forceCanvasWidthLock = useLayoutStore((s) => s.forceCanvasWidthLock)
   const initForceLineages = useLayoutStore((s) => s.initForceLineages)
   const ensureForceAutoBaseline = useLayoutStore((s) => s.ensureForceAutoBaseline)
   const updateForceNodesX = useLayoutStore((s) => s.updateForceNodesX)
+  const setForceCanvasWidthLock = useLayoutStore((s) => s.setForceCanvasWidthLock)
   const resetForceLayout = useLayoutStore((s) => s.resetForceLayout)
 
   const [transform, setTransform] = useState<ViewTransform>({ x: 40, y: 40, k: 1 })
@@ -400,8 +404,28 @@ export function ForceView({ className }: ViewProps) {
 
   const layout = useMemo(() => {
     if (!graph) return null
-    return computeForceLayout(graph, visibleIds, sessionForceNodes, forceAutoLayout)
-  }, [graph, visibleIds, sessionForceNodes, forceAutoLayout, forceLayoutRevision])
+    return computeForceLayout(
+      graph,
+      visibleIds,
+      sessionForceNodes,
+      forceAutoLayout,
+      forceCanvasWidthLock,
+    )
+  }, [
+    graph,
+    visibleIds,
+    sessionForceNodes,
+    forceAutoLayout,
+    forceLayoutRevision,
+    forceCanvasWidthLock,
+  ])
+
+  useEffect(() => {
+    if (!layout) return
+    if (forceCanvasWidthLock == null) {
+      setForceCanvasWidthLock(layout.width)
+    }
+  }, [layout, forceCanvasWidthLock, setForceCanvasWidthLock])
 
   const displayPositions = useMemo(() => {
     if (!layout) return new Map<string, ForceNodePosition>()
@@ -545,11 +569,17 @@ export function ForceView({ className }: ViewProps) {
     e.currentTarget.setPointerCapture(e.pointerId)
   }, [marqueeMode])
 
-  const clampDragX = useCallback((x: number) => {
-    const minX = FORCE_TIMELINE_WIDTH + FORCE_PADDING
-    if (!Number.isFinite(x)) return minX
-    return Math.max(minX, x)
-  }, [])
+  const clampDragX = useCallback(
+    (x: number) => {
+      const minX = forceMinNodeX()
+      if (!layout) return minX
+      // Mezi osami: pravý okraj karty až k pravé timeline (bez mezery před ní).
+      const maxX = forceMaxNodeX(layout.width)
+      if (!Number.isFinite(x)) return minX
+      return Math.min(maxX, Math.max(minX, x))
+    },
+    [layout],
+  )
 
   const clearSelection = useCallback(() => {
     setSelectedIds([])
@@ -563,11 +593,6 @@ export function ForceView({ className }: ViewProps) {
         const dx = (e.clientX - nodeDragRef.current.startClientX) / transformRef.current.k
         if (!nodeDragRef.current.moved && Math.abs(dx) > MIN_DRAG_PX) {
           nodeDragRef.current.moved = true
-          try {
-            e.currentTarget.setPointerCapture(e.pointerId)
-          } catch {
-            /* ignore */
-          }
         }
         if (!nodeDragRef.current.moved) return
         const next: Record<string, number> = {}
@@ -744,6 +769,12 @@ export function ForceView({ className }: ViewProps) {
         pointerId: e.pointerId,
         moved: false,
       }
+      // Capture hned — jinak u okraje SVG (`pointerleave`) drag skončí jako „neviditelná stěna“.
+      try {
+        svgRef.current.setPointerCapture(e.pointerId)
+      } catch {
+        /* ignore */
+      }
     },
     [displayPositions, ensureForceAutoBaseline, selectedIds, setSelectedId, setSelectedIds],
   )
@@ -836,7 +867,7 @@ export function ForceView({ className }: ViewProps) {
         onPointerDown={onSvgPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
-        onPointerLeave={onPointerUp}
+        onPointerCancel={onPointerUp}
       >
         <defs>
           <filter id="force-node-shadow" x="-30%" y="-30%" width="160%" height="160%">
@@ -878,7 +909,7 @@ export function ForceView({ className }: ViewProps) {
           <rect
             x={0}
             y={0}
-            width={layout.contentWidth}
+            width={layout.width}
             height={layout.height}
             fill="transparent"
           />
@@ -887,7 +918,7 @@ export function ForceView({ className }: ViewProps) {
               <line
                 x1={FORCE_TIMELINE_WIDTH}
                 y1={tick.y}
-                x2={layout.contentWidth}
+                x2={layout.rightTimelineX}
                 y2={tick.y}
                 stroke="rgba(90,58,36,0.28)"
                 strokeWidth={1}
@@ -901,6 +932,14 @@ export function ForceView({ className }: ViewProps) {
               >
                 {tick.label}
               </text>
+              <text
+                x={layout.rightTimelineX + 10}
+                y={tick.y + 4}
+                textAnchor="start"
+                className="fill-[color:var(--muted-foreground)] text-[12px] font-medium tabular-nums font-serif-body"
+              >
+                {tick.label}
+              </text>
             </g>
           ))}
 
@@ -908,6 +947,14 @@ export function ForceView({ className }: ViewProps) {
             x1={FORCE_TIMELINE_WIDTH}
             y1={FORCE_PADDING - 8}
             x2={FORCE_TIMELINE_WIDTH}
+            y2={layout.height - FORCE_PADDING}
+            stroke="rgba(90,58,36,0.55)"
+            strokeWidth={1.8}
+          />
+          <line
+            x1={layout.rightTimelineX}
+            y1={FORCE_PADDING - 8}
+            x2={layout.rightTimelineX}
             y2={layout.height - FORCE_PADDING}
             stroke="rgba(90,58,36,0.55)"
             strokeWidth={1.8}
