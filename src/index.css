@@ -177,3 +177,11 @@ body {
   font-weight: var(--font-weight-body);
   line-height: 1.75;
 }
+
+.formatted-text-body {
+  overflow-wrap: anywhere;
+}
+
+.formatted-text-body :where(p, ul, ol, blockquote) {
+  overflow-wrap: anywhere;
+}

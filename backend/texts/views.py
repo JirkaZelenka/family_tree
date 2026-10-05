@@ -1,5 +1,6 @@
 import json
 
+from django.db.models import Count
 from django.http import HttpRequest, JsonResponse
 from django.views.decorators.http import require_http_methods
 
@@ -43,6 +44,20 @@ def _visible_queryset(user):
     if _is_admin(user):
         return TextComment.objects.all()
     return TextComment.objects.filter(author=user)
+
+
+@require_http_methods(["GET"])
+def text_comment_counts_view(request: HttpRequest) -> JsonResponse:
+    if not request.user.is_authenticated:
+        return JsonResponse({"error": "Nepřihlášen."}, status=401)
+
+    rows = (
+        _visible_queryset(request.user)
+        .values("text_id")
+        .annotate(count=Count("id"))
+    )
+    counts = {row["text_id"]: row["count"] for row in rows if row["count"] > 0}
+    return JsonResponse({"counts": counts})
 
 
 @require_http_methods(["GET", "POST"])

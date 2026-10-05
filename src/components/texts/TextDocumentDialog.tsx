@@ -5,7 +5,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { HighlightedBody } from './HighlightedText'
+import { InteractiveTextBody } from './InteractiveTextBody'
 import { highlightRanges } from '@/lib/texts'
 import type { TextOccurrence } from '@/types/text'
 
@@ -34,9 +34,12 @@ export function TextDocumentDialog({ occurrence, onClose }: TextDocumentDialogPr
         </DialogHeader>
         <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
           {occurrence && (
-            <HighlightedBody
+            <InteractiveTextBody
               body={occurrence.document.displayBody}
-              ranges={highlightRanges(occurrence.mentions)}
+              mentions={occurrence.document.mentions}
+              attachments={occurrence.document.attachments}
+              highlightRanges={highlightRanges(occurrence.mentions)}
+              className="stories-body"
             />
           )}
         </div>

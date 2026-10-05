@@ -143,3 +143,18 @@ class TextCommentApiTests(TestCase):
         listed = self.client.get("/api/texts/rod/pokus/comments")
         self.assertEqual(listed.status_code, 200)
         self.assertEqual(len(listed.json()["comments"]), 1)
+
+    def test_comment_counts_endpoint(self) -> None:
+        self._login("reader_a")
+        self._create_comment(text_id="pokus")
+        self._create_comment(text_id="pokus", start=40, end=50, quote="druhý", body="B")
+        self._create_comment(text_id="jiny")
+
+        counts = self.client.get("/api/texts/comments/counts")
+        self.assertEqual(counts.status_code, 200)
+        self.assertEqual(counts.json()["counts"], {"pokus": 2, "jiny": 1})
+
+        self._login("reader_b")
+        empty = self.client.get("/api/texts/comments/counts")
+        self.assertEqual(empty.status_code, 200)
+        self.assertEqual(empty.json()["counts"], {})

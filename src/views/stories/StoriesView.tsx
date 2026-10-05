@@ -1,6 +1,27 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type MouseEvent as ReactMouseEvent,
+  type RefObject,
+} from 'react'
 import { useTranslation } from 'react-i18next'
-import { ArrowLeft, BookOpen, Download, ExternalLink, FileAudio, MessageSquarePlus, Pencil, Plus, Trash2 } from 'lucide-react'
+import {
+  ArrowLeft,
+  BookOpen,
+  Download,
+  ExternalLink,
+  FileAudio,
+  MessageSquare,
+  MessageSquarePlus,
+  Pencil,
+  Plus,
+  Trash2,
+  X,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -19,6 +40,8 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { InteractiveTextBody } from '@/components/texts/InteractiveTextBody'
+import { StoryTreePreview } from '@/components/texts/StoryTreePreview'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useVaultStore } from '@/stores/vault-store'
 import { useViewStore } from '@/stores/view-store'
 import { useGraphStore } from '@/stores/graph-store'
@@ -27,9 +50,11 @@ import { useAuthStore } from '@/stores/auth-store'
 import {
   createTextComment,
   deleteTextComment,
+  fetchTextCommentCounts,
   fetchTextComments,
   type TextCommentDto,
 } from '@/lib/texts/comments-api'
+import { collectCommentClientRects, findCommentAtPoint } from '@/lib/texts/comment-ranges'
 import {
   formatStoryMetaLine,
   previewBody,
@@ -96,9 +121,11 @@ function FamilySelect({
 function StoryTile({
   document,
   onOpen,
+  commentCount = 0,
 }: {
   document: TextDocument
   onOpen: () => void
+  commentCount?: number
 }) {
   const { t } = useTranslation()
   return (
@@ -126,9 +153,17 @@ function StoryTile({
       <p className="line-clamp-5 flex-1 text-sm leading-relaxed text-muted-foreground">
         {previewBody(document.displayBody)}
       </p>
-      <span className="mt-4 text-xs font-medium text-primary opacity-80 group-hover:opacity-100">
-        {t('stories.openText')} →
-      </span>
+      <div className="mt-4 flex items-center justify-between gap-3">
+        <span className="text-xs font-medium text-primary opacity-80 group-hover:opacity-100">
+          {t('stories.openText')} →
+        </span>
+        {commentCount > 0 && (
+          <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+            <MessageSquare className="h-3.5 w-3.5 text-amber-700 dark:text-amber-300" aria-hidden />
+            {t('stories.comments.count', { count: commentCount })}
+          </span>
+        )}
+      </div>
     </button>
   )
 }
@@ -281,21 +316,57 @@ function CommentsSidebar({
   loading,
   error,
   onDelete,
+  onClose,
+  activeCommentId,
+  compact = false,
 }: {
   comments: TextCommentDto[]
   loading: boolean
   error: string | null
   onDelete: (id: number) => void
+  onClose: () => void
+  activeCommentId: number | null
+  compact?: boolean
 }) {
   const { t } = useTranslation()
+  const activeRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (activeCommentId == null) return
+    activeRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+  }, [activeCommentId])
+
   return (
-    <aside className="flex w-full flex-col border-l border-border bg-card/40 lg:w-80">
-      <div className="border-b border-border px-4 py-3">
-        <h3 className="text-sm font-medium">{t('stories.comments.title')}</h3>
-        <p className="mt-1 text-xs text-muted-foreground">{t('stories.comments.selectHint')}</p>
+    <aside
+      className={cn(
+        'flex w-full flex-col border-l border-border bg-card/40',
+        compact ? 'lg:w-52 xl:w-56' : 'lg:w-80',
+      )}
+    >
+      <div
+        className={cn(
+          'flex items-start justify-between gap-2 border-b border-border',
+          compact ? 'px-3 py-2' : 'px-4 py-3',
+        )}
+      >
+        <div className="min-w-0">
+          <h3 className="text-sm font-medium">{t('stories.comments.title')}</h3>
+          {!compact && (
+            <p className="mt-1 text-xs text-muted-foreground">{t('stories.comments.selectHint')}</p>
+          )}
+        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 shrink-0"
+          onClick={onClose}
+          aria-label={t('stories.comments.hide')}
+        >
+          <X className="h-4 w-4" />
+        </Button>
       </div>
       <ScrollArea className="min-h-0 flex-1">
-        <div className="space-y-3 p-4">
+        <div className={cn('space-y-3', compact ? 'p-2.5' : 'p-4')}>
           {loading && (
             <p className="text-xs text-muted-foreground">{t('stories.comments.loading')}</p>
           )}
@@ -303,32 +374,95 @@ function CommentsSidebar({
           {!loading && !error && comments.length === 0 && (
             <p className="text-xs text-muted-foreground">{t('stories.comments.empty')}</p>
           )}
-          {comments.map((comment) => (
-            <div key={comment.id} className="rounded-md border border-border bg-background/70 p-3">
-              <blockquote className="mb-2 border-l-2 border-primary/40 pl-2 text-xs italic text-muted-foreground">
-                {comment.quote}
-              </blockquote>
-              <p className="whitespace-pre-wrap text-sm leading-relaxed">{comment.body}</p>
-              <div className="mt-2 flex items-center justify-between gap-2">
-                <span className="text-[11px] text-muted-foreground">
-                  {t('stories.comments.by', { user: comment.authorUsername })}
-                </span>
-                {comment.canDelete && (
-                  <button
-                    type="button"
-                    className="inline-flex items-center gap-1 text-[11px] text-destructive hover:underline"
-                    onClick={() => onDelete(comment.id)}
-                  >
-                    <Trash2 className="h-3 w-3" />
-                    {t('stories.comments.delete')}
-                  </button>
+          {comments.map((comment) => {
+            const active = comment.id === activeCommentId
+            return (
+              <div
+                key={comment.id}
+                ref={active ? activeRef : undefined}
+                className={cn(
+                  'rounded-md border bg-background/70',
+                  compact ? 'p-2' : 'p-3',
+                  active ? 'border-amber-500/70 ring-1 ring-amber-500/40' : 'border-border',
                 )}
+              >
+                <blockquote className="mb-2 border-l-2 border-amber-500/50 pl-2 text-xs italic text-muted-foreground">
+                  {comment.quote}
+                </blockquote>
+                <p className="whitespace-pre-wrap text-sm leading-relaxed">{comment.body}</p>
+                <div className="mt-2 flex items-center justify-between gap-2">
+                  <span className="text-[11px] text-muted-foreground">
+                    {t('stories.comments.by', { user: comment.authorUsername })}
+                  </span>
+                  {comment.canDelete && (
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-1 text-[11px] text-destructive hover:underline"
+                      onClick={() => onDelete(comment.id)}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                      {t('stories.comments.delete')}
+                    </button>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       </ScrollArea>
     </aside>
+  )
+}
+
+function CommentHighlightOverlays({
+  rootRef,
+  comments,
+  activeCommentId,
+  revision,
+}: {
+  rootRef: RefObject<HTMLDivElement | null>
+  comments: TextCommentDto[]
+  activeCommentId: number | null
+  revision: string
+}) {
+  const [rects, setRects] = useState<
+    Array<{ commentId: number; top: number; left: number; width: number; height: number }>
+  >([])
+
+  useLayoutEffect(() => {
+    const root = rootRef.current
+    if (!root || comments.length === 0) {
+      setRects([])
+      return
+    }
+    setRects(collectCommentClientRects(root, comments))
+  }, [rootRef, comments, revision])
+
+  if (rects.length === 0) return null
+
+  return (
+    <div className="pointer-events-none absolute inset-0 z-10" aria-hidden>
+      {rects.map((rect, index) => {
+        const active = rect.commentId === activeCommentId
+        return (
+          <div
+            key={`${rect.commentId}-${index}`}
+            className={cn(
+              'absolute rounded-sm',
+              active
+                ? 'bg-amber-400/40 ring-1 ring-amber-600/40'
+                : 'bg-amber-300/30',
+            )}
+            style={{
+              top: rect.top,
+              left: rect.left,
+              width: rect.width,
+              height: rect.height,
+            }}
+          />
+        )
+      })}
+    </div>
   )
 }
 
@@ -360,6 +494,8 @@ function StoryReader({ document }: { document: TextDocument }) {
   const [commentsLoading, setCommentsLoading] = useState(true)
   const [commentsError, setCommentsError] = useState<string | null>(null)
   const [saveError, setSaveError] = useState<string | null>(null)
+  const [commentsOpen, setCommentsOpen] = useState(false)
+  const [activeCommentId, setActiveCommentId] = useState<number | null>(null)
 
   const [editing, setEditing] = useState(false)
   const [editTitle, setEditTitle] = useState(document.title)
@@ -368,6 +504,9 @@ function StoryReader({ document }: { document: TextDocument }) {
   const [editBody, setEditBody] = useState(() => extractTextBody(document.rawContent))
   const [editError, setEditError] = useState<string | null>(null)
   const [savedFlash, setSavedFlash] = useState(false)
+  const [readerMode, setReaderMode] = useState<'text' | 'tree'>('text')
+  const [treeFocusPersonId, setTreeFocusPersonId] = useState<string | null>(null)
+  const withTree = readerMode === 'tree' && !editing
 
   useEffect(() => {
     if (editing) return
@@ -393,7 +532,38 @@ function StoryReader({ document }: { document: TextDocument }) {
 
   useEffect(() => {
     void reloadComments()
+    setCommentsOpen(false)
+    setActiveCommentId(null)
   }, [reloadComments])
+
+  const highlightRevision = useMemo(
+    () =>
+      `${document.id}:${document.displayBody.length}:${comments.map((c) => c.id).join(',')}:${readerMode}`,
+    [document.id, document.displayBody.length, comments, readerMode],
+  )
+
+  const openCommentsPanel = useCallback((commentId?: number | null) => {
+    setCommentsOpen(true)
+    if (commentId != null) setActiveCommentId(commentId)
+  }, [])
+
+  const closeCommentsPanel = useCallback(() => {
+    setCommentsOpen(false)
+    setActiveCommentId(null)
+  }, [])
+
+  const handleBodyClick = useCallback(
+    (event: ReactMouseEvent<HTMLDivElement>) => {
+      if (editing || composerOpen) return
+      const sel = window.getSelection()
+      if (sel && !sel.isCollapsed) return
+      const root = bodyRef.current
+      if (!root) return
+      const commentId = findCommentAtPoint(root, comments, event.clientX, event.clientY)
+      if (commentId != null) openCommentsPanel(commentId)
+    },
+    [comments, composerOpen, editing, openCommentsPanel],
+  )
 
   useEffect(() => {
     const el = scrollRef.current
@@ -505,6 +675,8 @@ function StoryReader({ document }: { document: TextDocument }) {
       return
     }
     setComments((prev) => [...prev, result.comment].sort((a, b) => a.start - b.start))
+    setActiveCommentId(result.comment.id)
+    setCommentsOpen(true)
     setSelection(null)
     setComposerOpen(false)
     setDraft('')
@@ -512,11 +684,13 @@ function StoryReader({ document }: { document: TextDocument }) {
   }, [document.id, draft, selection, t])
 
   const handleDelete = useCallback(async (id: number) => {
+    if (!window.confirm(t('stories.comments.deleteConfirm'))) return
     const result = await deleteTextComment(id)
     if (result.ok) {
       setComments((prev) => prev.filter((c) => c.id !== id))
+      setActiveCommentId((current) => (current === id ? null : current))
     }
-  }, [])
+  }, [t])
 
   const saveEdit = () => {
     setEditError(null)
@@ -556,7 +730,7 @@ function StoryReader({ document }: { document: TextDocument }) {
               {!editing && (
                 <>
                   {' · '}
-                  {t('stories.ctrlClickHint')}
+                  {withTree ? t('stories.readerHoverTreeHint') : t('stories.ctrlClickHint')}
                 </>
               )}
               {savedFlash && !editing && (
@@ -567,6 +741,37 @@ function StoryReader({ document }: { document: TextDocument }) {
               )}
             </p>
           </div>
+          {!editing && (
+            <Tabs
+              value={readerMode}
+              onValueChange={(v) => setReaderMode(v === 'tree' ? 'tree' : 'text')}
+            >
+              <TabsList className="h-8">
+                <TabsTrigger value="text" className="px-2.5 text-xs">
+                  {t('stories.readerModeTextOnly')}
+                </TabsTrigger>
+                <TabsTrigger value="tree" className="px-2.5 text-xs">
+                  {t('stories.readerModeWithTree')}
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+          )}
+          {!editing && (
+            <Button
+              variant={commentsOpen ? 'secondary' : 'outline'}
+              size="sm"
+              onClick={() => (commentsOpen ? closeCommentsPanel() : openCommentsPanel())}
+              title={t('stories.comments.title')}
+            >
+              <MessageSquare className="mr-1.5 h-3.5 w-3.5" />
+              {t('stories.comments.title')}
+              {comments.length > 0 && (
+                <span className="ml-1.5 rounded-full bg-amber-500/20 px-1.5 text-[11px] font-medium text-amber-900 dark:text-amber-100">
+                  {comments.length}
+                </span>
+              )}
+            </Button>
+          )}
           {isAdmin && !editing && (
             <Button
               variant="outline"
@@ -589,102 +794,158 @@ function StoryReader({ document }: { document: TextDocument }) {
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
-        <div ref={scrollRef} className="relative min-h-0 flex-1 overflow-y-auto">
-          <div className="relative mx-auto max-w-3xl px-4 py-6 sm:px-8">
-            {editing ? (
-              <StoryEditorForm
-                title={editTitle}
-                setTitle={setEditTitle}
-                family={editFamily}
-                setFamily={setEditFamily}
-                date={editDate}
-                setDate={setEditDate}
-                body={editBody}
-                setBody={setEditBody}
-                error={editError}
-                onSave={saveEdit}
-                onCancel={() => setEditing(false)}
-                saveLabel={t('stories.metaSave')}
-              />
-            ) : (
-              <>
-                <div ref={bodyRef} onMouseUp={captureSelection} onKeyUp={captureSelection}>
-                  <InteractiveTextBody
-                    body={document.displayBody}
-                    mentions={document.mentions}
-                    attachments={document.attachments}
-                    className="stories-body"
-                    onClickPerson={(personId, mentionStart) =>
-                      navigateToTree({ personId, mentionStart })
-                    }
-                    onClickLineage={(lineage, mentionStart) =>
-                      navigateToTree({ lineage, mentionStart })
-                    }
+        <div
+          className={cn(
+            'flex min-h-0 min-w-0 flex-col',
+            withTree ? 'w-full lg:w-1/2' : 'min-h-0 flex-1',
+          )}
+        >
+          <div className="flex min-h-0 flex-1 flex-col sm:flex-row">
+            <div ref={scrollRef} className="relative min-h-0 flex-1 overflow-y-auto">
+              <div
+                className={cn(
+                  'relative mx-auto px-4 py-6 sm:px-8',
+                  withTree ? 'max-w-none' : 'max-w-3xl',
+                )}
+              >
+                {editing ? (
+                  <StoryEditorForm
+                    title={editTitle}
+                    setTitle={setEditTitle}
+                    family={editFamily}
+                    setFamily={setEditFamily}
+                    date={editDate}
+                    setDate={setEditDate}
+                    body={editBody}
+                    setBody={setEditBody}
+                    error={editError}
+                    onSave={saveEdit}
+                    onCancel={() => setEditing(false)}
+                    saveLabel={t('stories.metaSave')}
                   />
-                </div>
-
-                {selection && !composerOpen && (
-                  <div
-                    className="absolute z-20"
-                    style={{ top: selection.top, left: selection.left }}
-                  >
-                    <Button
-                      size="sm"
-                      className="shadow-md"
-                      onClick={() => setComposerOpen(true)}
-                    >
-                      <MessageSquarePlus className="mr-1.5 h-4 w-4" />
-                      {t('stories.comments.add')}
-                    </Button>
-                  </div>
-                )}
-
-                {selection && composerOpen && (
-                  <div
-                    className="absolute z-20 w-[min(100%,20rem)] rounded-md border border-border bg-popover p-3 shadow-lg"
-                    style={{ top: selection.top, left: selection.left }}
-                  >
-                    <p className="mb-2 line-clamp-2 border-l-2 border-primary/40 pl-2 text-xs italic text-muted-foreground">
-                      {selection.quote}
-                    </p>
-                    <textarea
-                      className="min-h-[88px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                      placeholder={t('stories.comments.placeholder')}
-                      value={draft}
-                      onChange={(e) => setDraft(e.target.value)}
-                      autoFocus
-                    />
-                    {saveError && <p className="mt-1 text-xs text-destructive">{saveError}</p>}
-                    <div className="mt-2 flex justify-end gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setComposerOpen(false)
-                          setSelection(null)
-                          setDraft('')
-                        }}
+                ) : (
+                  <>
+                    <div className="relative">
+                      <div
+                        ref={bodyRef}
+                        onMouseUp={captureSelection}
+                        onKeyUp={captureSelection}
+                        onClick={handleBodyClick}
                       >
-                        {t('stories.comments.cancel')}
-                      </Button>
-                      <Button size="sm" disabled={!draft.trim()} onClick={() => void submitComment()}>
-                        {t('stories.comments.submit')}
-                      </Button>
+                        <InteractiveTextBody
+                          body={document.displayBody}
+                          mentions={document.mentions}
+                          attachments={document.attachments}
+                          className="stories-body"
+                          onClickPerson={
+                            withTree
+                              ? undefined
+                              : (personId, mentionStart) =>
+                                  navigateToTree({ personId, mentionStart })
+                          }
+                          onClickLineage={
+                            withTree
+                              ? undefined
+                              : (lineage, mentionStart) =>
+                                  navigateToTree({ lineage, mentionStart })
+                          }
+                          onHoverPerson={
+                            withTree
+                              ? (personId) => {
+                                  if (personId) setTreeFocusPersonId(personId)
+                                }
+                              : undefined
+                          }
+                        />
+                      </div>
+                      <CommentHighlightOverlays
+                        rootRef={bodyRef}
+                        comments={comments}
+                        activeCommentId={activeCommentId}
+                        revision={highlightRevision}
+                      />
+
+                      {selection && !composerOpen && (
+                        <div
+                          className="absolute z-20"
+                          style={{ top: selection.top, left: selection.left }}
+                        >
+                          <Button
+                            size="sm"
+                            className="shadow-md"
+                            onClick={() => {
+                              setComposerOpen(true)
+                              setCommentsOpen(true)
+                            }}
+                          >
+                            <MessageSquarePlus className="mr-1.5 h-4 w-4" />
+                            {t('stories.comments.add')}
+                          </Button>
+                        </div>
+                      )}
+
+                      {selection && composerOpen && (
+                        <div
+                          className="absolute z-20 w-[min(100%,20rem)] rounded-md border border-border bg-popover p-3 shadow-lg"
+                          style={{ top: selection.top, left: selection.left }}
+                        >
+                          <p className="mb-2 line-clamp-2 border-l-2 border-primary/40 pl-2 text-xs italic text-muted-foreground">
+                            {selection.quote}
+                          </p>
+                          <textarea
+                            className="min-h-[88px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            placeholder={t('stories.comments.placeholder')}
+                            value={draft}
+                            onChange={(e) => setDraft(e.target.value)}
+                            autoFocus
+                          />
+                          {saveError && <p className="mt-1 text-xs text-destructive">{saveError}</p>}
+                          <div className="mt-2 flex justify-end gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setComposerOpen(false)
+                                setSelection(null)
+                                setDraft('')
+                              }}
+                            >
+                              {t('stories.comments.cancel')}
+                            </Button>
+                            <Button
+                              size="sm"
+                              disabled={!draft.trim()}
+                              onClick={() => void submitComment()}
+                            >
+                              {t('stories.comments.submit')}
+                            </Button>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  </div>
+                  </>
                 )}
-              </>
+              </div>
+            </div>
+
+            {!editing && commentsOpen && (
+              <CommentsSidebar
+                comments={comments}
+                loading={commentsLoading}
+                error={commentsError}
+                onDelete={(id) => void handleDelete(id)}
+                onClose={closeCommentsPanel}
+                activeCommentId={activeCommentId}
+                compact={withTree}
+              />
             )}
           </div>
         </div>
 
-        {!editing && (
-          <CommentsSidebar
-            comments={comments}
-            loading={commentsLoading}
-            error={commentsError}
-            onDelete={(id) => void handleDelete(id)}
-          />
+        {withTree && (
+          <div className="min-h-[280px] w-full border-t border-border lg:min-h-0 lg:w-1/2 lg:border-l lg:border-t-0">
+            <StoryTreePreview focusPersonId={treeFocusPersonId} />
+          </div>
         )}
       </div>
     </div>
@@ -701,11 +962,23 @@ export function StoriesView({ className }: ViewProps) {
   const openTextId = useStoriesStore((s) => s.openTextId)
   const setOpenTextId = useStoriesStore((s) => s.setOpenTextId)
   const [newOpen, setNewOpen] = useState(false)
+  const [commentCounts, setCommentCounts] = useState<Record<string, number>>({})
 
   const sorted = useMemo(
     () => sortTextDocuments(displayTexts, sort),
     [displayTexts, sort],
   )
+
+  useEffect(() => {
+    if (openTextId) return
+    let cancelled = false
+    void fetchTextCommentCounts().then((counts) => {
+      if (!cancelled) setCommentCounts(counts)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [openTextId, displayTexts])
 
   const fileAttachments = useMemo(
     () => collectStoryAttachments(displayTexts, ['audio', 'pdf']),
@@ -767,6 +1040,7 @@ export function StoriesView({ className }: ViewProps) {
               <StoryTile
                 key={document.id}
                 document={document}
+                commentCount={commentCounts[document.id] ?? 0}
                 onOpen={() => setOpenTextId(document.id)}
               />
             ))}

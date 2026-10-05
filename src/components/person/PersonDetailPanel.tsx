@@ -20,6 +20,8 @@ import type { PersonNode } from '@/types/person'
 
 interface PersonDetailPanelProps {
   variant?: 'default' | 'sidebar'
+  /** Pokud je zadané, přepíše výběr z view-store (např. náhled ve Stromu v povídání). */
+  personId?: string | null
 }
 
 function relativeLine(rel: PersonNode | undefined, _id: string) {
@@ -31,21 +33,25 @@ function relativeLine(rel: PersonNode | undefined, _id: string) {
   )
 }
 
-export function PersonDetailPanel({ variant = 'default' }: PersonDetailPanelProps) {
+export function PersonDetailPanel({
+  variant = 'default',
+  personId,
+}: PersonDetailPanelProps) {
   const { t } = useTranslation()
   const profilePersonId = useViewStore((s) => s.profilePersonId)
   const persons = useGraphStore((s) => s.persons)
   const colors = useVaultStore((s) => s.vault?.config.lineageColors ?? {})
   const texts = useVaultStore((s) => s.displayTexts)
 
-  const person = profilePersonId ? persons.get(profilePersonId) : null
+  const resolvedId = personId !== undefined ? personId : profilePersonId
+  const person = resolvedId ? persons.get(resolvedId) : null
   const isSidebar = variant === 'sidebar'
   const occurrences = useMemo(
     () => (person && !person.redacted ? findPersonTexts(texts, person.id) : []),
     [texts, person],
   )
 
-  if (!person || !profilePersonId) {
+  if (!person || !resolvedId) {
     return (
       <div className="flex h-full min-h-[12rem] items-center justify-center p-4 text-center text-sm text-muted-foreground">
         {isSidebar ? t('person.doubleClickHint') : t('person.noSelection')}

@@ -59,6 +59,15 @@ export async function fetchTextComments(textId: string): Promise<TextCommentDto[
   return data.comments ?? []
 }
 
+/** Počty viditelných komentářů podle text_id (jen texty s count > 0). */
+export async function fetchTextCommentCounts(): Promise<Record<string, number>> {
+  const { ok, data } = await request<{ counts?: Record<string, number> }>(
+    '/api/texts/comments/counts',
+  )
+  if (!ok) return {}
+  return data.counts ?? {}
+}
+
 export async function createTextComment(
   textId: string,
   payload: { start: number; end: number; quote: string; body: string },
