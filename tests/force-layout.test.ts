@@ -10,6 +10,7 @@ import {
   FORCE_NODE_WIDTH,
   FORCE_TIMELINE_WIDTH,
   forceCanvasWidth,
+  forceMaxNodeX,
   resolveNodeOverlaps,
 } from '@/lib/layout/force-layout'
 import { layoutVisiblePedigreeU } from '@/lib/layout/force-structure'
@@ -131,7 +132,27 @@ describe('computeForceLayout', () => {
     )
   })
 
-  it('zamčená šířka plátna se nemění při posunu uzlů doprava', () => {
+  it('užší zámek s přetékajícími uzly naroste; x se neclampuje', () => {
+    const graph = new Graph<PersonNode>()
+    graph.addNode('a', person('a', 'novak', 1990))
+    graph.addNode('b', person('b', 'novak', 1992))
+
+    const visible = new Set(['a', 'b'])
+    const layout = computeForceLayout(
+      graph,
+      visible,
+      { a: { x: 400 }, b: { x: 5000 } },
+      {},
+      800, // příliš úzký zámek z předchozího pohledu
+    )
+
+    expect(layout.positions.get('a')!.x).toBe(400)
+    expect(layout.positions.get('b')!.x).toBe(5000)
+    expect(layout.width).toBe(forceCanvasWidth(layout.contentWidth))
+    expect(layout.width).toBeGreaterThan(800)
+  })
+
+  it('zámek se při tahu uvnitř plátna nezvětší', () => {
     const graph = new Graph<PersonNode>()
     graph.addNode('a', person('a', 'novak', 1990))
     graph.addNode('b', person('b', 'novak', 1992))
@@ -142,20 +163,41 @@ describe('computeForceLayout', () => {
       b: { x: 600 },
     })
     const locked = initial.width
-
-    const afterDrag = computeForceLayout(
+    const maxX = forceMaxNodeX(locked)
+    const after = computeForceLayout(
       graph,
       visible,
-      { a: { x: 400 }, b: { x: 600 + 400 } },
+      { a: { x: 400 }, b: { x: Math.min(maxX, 600 + 200) } },
       {},
       locked,
     )
 
-    expect(afterDrag.width).toBe(locked)
-    expect(afterDrag.rightTimelineX).toBe(initial.rightTimelineX)
-    expect(afterDrag.positions.get('b')!.x).toBeLessThanOrEqual(
-      afterDrag.rightTimelineX - FORCE_NODE_WIDTH,
+    expect(after.width).toBe(locked)
+    expect(after.rightTimelineX).toBe(locked - FORCE_TIMELINE_WIDTH)
+  })
+
+  it('dostatečně široký zámek se při menším obsahu nezmenší', () => {
+    const graph = new Graph<PersonNode>()
+    graph.addNode('a', person('a', 'novak', 1990))
+    graph.addNode('b', person('b', 'novak', 1992))
+
+    const visible = new Set(['a', 'b'])
+    const initial = computeForceLayout(graph, visible, {
+      a: { x: 400 },
+      b: { x: 600 },
+    })
+    const locked = initial.width + 2000
+
+    const after = computeForceLayout(
+      graph,
+      visible,
+      { a: { x: 400 }, b: { x: 600 } },
+      {},
+      locked,
     )
+
+    expect(after.width).toBe(locked)
+    expect(after.rightTimelineX).toBe(locked - FORCE_TIMELINE_WIDTH)
   })
 
   it('resolveNodeOverlaps oddělí překrývající se uzly', () => {

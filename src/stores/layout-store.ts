@@ -21,14 +21,17 @@ import {
   forceMinNodeX,
 } from '@/lib/layout/force-layout'
 
-const FALLBACK_MAX_FORCE_X = 12_000
+/** Horní strop, když ještě není zámek plátna (Default má x ~13k). */
+const FALLBACK_MAX_FORCE_X = 50_000
 
 function clampForceX(x: number): number {
   const minX = forceMinNodeX()
   if (!Number.isFinite(x)) return minX
   const lock = useLayoutStore.getState().forceCanvasWidthLock
-  const maxX =
+  let maxX =
     lock != null && lock > 0 ? forceMaxNodeX(lock) : FALLBACK_MAX_FORCE_X
+  // Úzký / rozbitý zámek nesmí hodit uzel na levý kraj (maxX < minX).
+  if (maxX < minX) maxX = FALLBACK_MAX_FORCE_X
   return Math.min(maxX, Math.max(minX, x))
 }
 
@@ -197,11 +200,19 @@ export const useLayoutStore = create<LayoutState>((set, get) => ({
   },
   setForceCanvasWidthLock: (width) => set({ forceCanvasWidthLock: width }),
   resetForceLayout: () => {
+    // Stejná cesta jako výběr pohledu v menu — načti „Default“, pokud existuje.
+    if (get().loadForceViewPreset(STARTUP_FORCE_VIEW_PRESET)) {
+      set({
+        expandedLineages: new Set(),
+        forceCanvasWidthLock: null,
+        pendingForceFit: true,
+      })
+      return
+    }
     set({
       sessionForceNodes: {},
       forceAutoLayout: {},
       activeForceViewName: null,
-      // Prázdná množina → ForceView znovu rozbalí všechny rody.
       expandedLineages: new Set(),
       forceLayoutRevision: get().forceLayoutRevision + 1,
       pendingForceFit: true,

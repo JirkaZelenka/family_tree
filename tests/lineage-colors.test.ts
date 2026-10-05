@@ -74,6 +74,22 @@ describe('rodNamesMatch', () => {
     expect(rodNamesMatch('Špičková', 'Špičkovi')).toBe(true)
   })
 
+  it('spáruje Lhotský / Lhotská / Lhotští', () => {
+    expect(rodNamesMatch('Lhotský', 'Lhotští')).toBe(true)
+    expect(rodNamesMatch('Lhotská', 'Lhotští')).toBe(true)
+    expect(rodNamesMatch('Lhotský', 'Lhotská')).toBe(true)
+    expect(
+      familyNameMatchesLineage({
+        lineage: 'Lhotští',
+        familyName: 'Lhotský',
+      }),
+    ).toBe(true)
+    expect(lineageKeyForFamilyName('Lhotská', ['Lhotští', 'Janíkovi'], 'Janíkovi', [
+      'Lhotští',
+      'Janíkovi',
+    ])).toBe('Lhotští')
+  })
+
   it('nerozpozná nesouvisející jména', () => {
     expect(rodNamesMatch('Novák', 'hynkovi')).toBe(false)
     expect(rodNamesMatch('Novák', 'Novotní')).toBe(false)

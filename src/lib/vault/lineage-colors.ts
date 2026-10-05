@@ -52,13 +52,21 @@ export function countLineageMembers(lineages: Iterable<string>): Record<string, 
 }
 
 export function normalizeRodName(s: string): string {
-  return s
+  let n = s
     .normalize('NFD')
     .replace(/\p{M}/gu, '')
     .toLowerCase()
+    // Plurál rodu / přechýlení (po odstranění diakritiky: ové→ove).
     .replace(/ovi$/, '')
     .replace(/ova$/, '')
-    .replace(/ové$/, '')
+    .replace(/ove$/, '')
+  // Přídavná příjmení: Lhotský / Lhotská / Lhotští → stejný kmen (k→t v plurálu).
+  n = n
+    .replace(/sti$/, 'sk')
+    .replace(/cti$/, 'ck')
+    .replace(/sk[yae]$/, 'sk')
+    .replace(/ck[yae]$/, 'ck')
+  return n
 }
 
 /**

@@ -292,16 +292,21 @@ export function computeForceLayout(
   }
 
   height = Math.max(height, FORCE_PADDING * 2 + timelineHeight)
-  const width =
+  const naturalWidth = forceCanvasWidth(contentWidth)
+  // Zámek drží pravou osu při běžném tahu. Když ale uložené uzly zámek přetékají
+  // (např. pohled Default po úzkém zámku), plátno naroste — nikdy neclampovat x.
+  let width =
     lockedCanvasWidth != null && lockedCanvasWidth > 0
       ? lockedCanvasWidth
-      : forceCanvasWidth(contentWidth)
-  const rightTimelineX = forceRightTimelineX(width)
-  const minX = forceMinNodeX()
-  const maxX = forceMaxNodeX(width)
+      : naturalWidth
+  let maxNodeX = forceMinNodeX()
   for (const pos of positions.values()) {
-    pos.x = Math.min(maxX, Math.max(minX, pos.x))
+    maxNodeX = Math.max(maxNodeX, pos.x)
   }
+  if (maxNodeX > forceMaxNodeX(width)) {
+    width = naturalWidth
+  }
+  const rightTimelineX = forceRightTimelineX(width)
 
   return {
     positions,

@@ -422,7 +422,8 @@ export function ForceView({ className }: ViewProps) {
 
   useEffect(() => {
     if (!layout) return
-    if (forceCanvasWidthLock == null) {
+    // Null = první výpočet; větší width = oprava po načtení širokého pohledu.
+    if (forceCanvasWidthLock == null || layout.width > forceCanvasWidthLock) {
       setForceCanvasWidthLock(layout.width)
     }
   }, [layout, forceCanvasWidthLock, setForceCanvasWidthLock])
@@ -573,9 +574,10 @@ export function ForceView({ className }: ViewProps) {
     (x: number) => {
       const minX = forceMinNodeX()
       if (!layout) return minX
-      // Mezi osami: pravý okraj karty až k pravé timeline (bez mezery před ní).
-      const maxX = forceMaxNodeX(layout.width)
       if (!Number.isFinite(x)) return minX
+      // Mezi osami: pravý okraj karty až k pravé timeline (bez mezery před ní).
+      let maxX = forceMaxNodeX(layout.width)
+      if (maxX < minX) maxX = minX
       return Math.min(maxX, Math.max(minX, x))
     },
     [layout],
@@ -593,6 +595,12 @@ export function ForceView({ className }: ViewProps) {
         const dx = (e.clientX - nodeDragRef.current.startClientX) / transformRef.current.k
         if (!nodeDragRef.current.moved && Math.abs(dx) > MIN_DRAG_PX) {
           nodeDragRef.current.moved = true
+          // Capture až po skutečném tahu — hned na pointerdown by zabil click/dvojklik.
+          try {
+            e.currentTarget.setPointerCapture(e.pointerId)
+          } catch {
+            /* ignore */
+          }
         }
         if (!nodeDragRef.current.moved) return
         const next: Record<string, number> = {}
@@ -769,12 +777,6 @@ export function ForceView({ className }: ViewProps) {
         pointerId: e.pointerId,
         moved: false,
       }
-      // Capture hned — jinak u okraje SVG (`pointerleave`) drag skončí jako „neviditelná stěna“.
-      try {
-        svgRef.current.setPointerCapture(e.pointerId)
-      } catch {
-        /* ignore */
-      }
     },
     [displayPositions, ensureForceAutoBaseline, selectedIds, setSelectedId, setSelectedIds],
   )
@@ -782,6 +784,7 @@ export function ForceView({ className }: ViewProps) {
   const handleResetLayout = useCallback(() => {
     resetForceLayout()
     fittedGraphRef.current = null
+    useLayoutStore.setState({ pendingForceFit: true })
   }, [resetForceLayout])
 
   const handlePresetLoaded = useCallback(() => {

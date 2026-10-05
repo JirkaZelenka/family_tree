@@ -2,8 +2,8 @@ import type { ForceNodeLayout, ForceSavedViews, ViewLayout } from '@/types/vault
 
 export const DEFAULT_FORCE_VIEW_PRESET = 'Uložený pohled'
 
-/** Preferovaný výchozí pohled při startu aplikace (pokud existuje v layoutu). */
-export const STARTUP_FORCE_VIEW_PRESET = 'Zelenkovi center'
+/** Preferovaný výchozí pohled při startu a tlačítku „Výchozí pohled“. */
+export const STARTUP_FORCE_VIEW_PRESET = 'Default'
 
 export function mergeForcePositions(
   autoLayout: Record<string, ForceNodeLayout>,

@@ -49,7 +49,7 @@ describe('force-saved-views', () => {
     expect(result.sessionNodes).toEqual({})
   })
 
-  it('init prefers Zelenkovi center when present', () => {
+  it('init prefers Default when present', () => {
     const result = initForceViewsFromVault({
       nodes: {},
       lineageOffsets: {},
@@ -57,11 +57,11 @@ describe('force-saved-views', () => {
       forceSavedView: {},
       forceSavedViews: {
         V11: { '1': { x: 100 } },
-        'Zelenkovi center': { '1': { x: 200 } },
+        Default: { '1': { x: 200 } },
       },
       activeForceViewName: 'V11',
     })
-    expect(result.activeName).toBe('Zelenkovi center')
+    expect(result.activeName).toBe('Default')
     expect(result.sessionNodes).toEqual({ '1': { x: 200 } })
   })
 
