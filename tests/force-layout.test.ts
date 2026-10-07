@@ -2,16 +2,21 @@ import { describe, expect, it } from 'vitest'
 import Graph from 'graphology'
 import type { PersonNode } from '@/types/person'
 import {
+  clampForceViewTransform,
   computeForceLayout,
   FORCE_CANVAS_EXPAND,
   FORCE_NODE_GAP_X,
   FORCE_NODE_GAP_Y,
   FORCE_NODE_HEIGHT,
   FORCE_NODE_WIDTH,
+  FORCE_PAN_EDGE_MARGIN,
   FORCE_TIMELINE_WIDTH,
+  FORCE_VIEW_YEAR_MAX,
+  FORCE_VIEW_YEAR_MIN,
   forceCanvasWidth,
   forceMaxNodeX,
   resolveNodeOverlaps,
+  yearRangeForGraph,
 } from '@/lib/layout/force-layout'
 import { layoutVisiblePedigreeU } from '@/lib/layout/force-structure'
 
@@ -207,5 +212,61 @@ describe('computeForceLayout', () => {
     ])
     resolveNodeOverlaps(positions, new Set(['a', 'b']))
     expect(overlaps(positions)).toBe(false)
+  })
+
+  it('yearRangeForGraph drží rozumné meze 14.–22. století', () => {
+    const graph = new Graph<PersonNode>()
+    graph.addNode('a', person('a', 'novak', 1850))
+    graph.addNode('b', person('b', 'novak', 1990))
+    const range = yearRangeForGraph(graph)
+    expect(range.yearMin).toBe(FORCE_VIEW_YEAR_MIN)
+    expect(range.yearMax).toBe(FORCE_VIEW_YEAR_MAX)
+  })
+
+  it('yearRangeForGraph rozšíří meze, když data jdou mimo', () => {
+    const graph = new Graph<PersonNode>()
+    graph.addNode('a', person('a', 'novak', 1200))
+    graph.addNode('b', person('b', 'novak', 2300))
+    const range = yearRangeForGraph(graph)
+    expect(range.yearMin).toBe(1200)
+    expect(range.yearMax).toBe(2300)
+  })
+})
+
+describe('clampForceViewTransform', () => {
+  const opts = {
+    viewW: 800,
+    viewH: 600,
+    leftAxisX: FORCE_TIMELINE_WIDTH,
+    rightAxisX: 2000,
+    layoutHeight: 4000,
+  }
+
+  it('nepustí pan tak, aby zmizela svislá osa', () => {
+    const left = clampForceViewTransform({ x: 50_000, y: 0, k: 1 }, opts)
+    expect(left.x).toBe(opts.viewW - FORCE_PAN_EDGE_MARGIN - opts.leftAxisX)
+
+    const right = clampForceViewTransform({ x: -50_000, y: 0, k: 1 }, opts)
+    expect(right.x).toBe(FORCE_PAN_EDGE_MARGIN - opts.rightAxisX)
+  })
+
+  it('nepustí pan nad/pod okraj plátna', () => {
+    const up = clampForceViewTransform({ x: 0, y: -50_000, k: 1 }, opts)
+    expect(up.y).toBe(opts.viewH - FORCE_PAN_EDGE_MARGIN - opts.layoutHeight)
+
+    const down = clampForceViewTransform({ x: 0, y: 50_000, k: 1 }, opts)
+    expect(down.y).toBe(FORCE_PAN_EDGE_MARGIN)
+  })
+
+  it('při odzoomování vycentruje, když se plátno vejde', () => {
+    const rightAxisX = 400
+    const layoutHeight = 400
+    const k = 0.1
+    const t = clampForceViewTransform(
+      { x: -100, y: -100, k },
+      { ...opts, layoutHeight, rightAxisX },
+    )
+    expect(t.x).toBeCloseTo((800 - (FORCE_TIMELINE_WIDTH + rightAxisX) * k) / 2)
+    expect(t.y).toBeCloseTo((600 - layoutHeight * k) / 2)
   })
 })

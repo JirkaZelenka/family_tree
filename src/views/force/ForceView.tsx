@@ -23,6 +23,7 @@ import {
   type ForceEdgeSegment,
 } from '@/lib/layout/force-edges'
 import {
+  clampForceViewTransform,
   computeForceLayout,
   FORCE_NODE_HEIGHT,
   FORCE_NODE_WIDTH,
@@ -31,6 +32,7 @@ import {
   forceMaxNodeX,
   forceMinNodeX,
   type ForceNodePosition,
+  type ForceViewTransform,
 } from '@/lib/layout/force-layout'
 import { enrichLineageColors, lineageColor, countLineageMembers } from '@/lib/vault/lineage-colors'
 import { getLineages } from '@/lib/graph/queries'
@@ -46,12 +48,6 @@ import { ForceTimelineEventsLayer } from '@/components/timeline/ForceTimelineEve
 import { ForceViewPresets } from '@/components/layout/ForceViewPresets'
 import type { ViewProps } from '../types'
 import type { PersonNode } from '@/types/person'
-
-interface ViewTransform {
-  x: number
-  y: number
-  k: number
-}
 
 const MIN_DRAG_PX = 4
 
@@ -314,9 +310,10 @@ export function ForceView({ className }: ViewProps) {
   const setForceCanvasWidthLock = useLayoutStore((s) => s.setForceCanvasWidthLock)
   const resetForceLayout = useLayoutStore((s) => s.resetForceLayout)
 
-  const [transform, setTransform] = useState<ViewTransform>({ x: 40, y: 40, k: 1 })
+  const [transform, setTransform] = useState<ForceViewTransform>({ x: 40, y: 40, k: 1 })
   const transformRef = useRef(transform)
   transformRef.current = transform
+  const layoutRef = useRef<ReturnType<typeof computeForceLayout> | null>(null)
 
   const spaceHeldRef = useRef(false)
   const panRef = useRef<{
@@ -419,6 +416,31 @@ export function ForceView({ className }: ViewProps) {
     forceLayoutRevision,
     forceCanvasWidthLock,
   ])
+  layoutRef.current = layout
+
+  const setClampedTransform = useCallback(
+    (
+      next:
+        | ForceViewTransform
+        | ((prev: ForceViewTransform) => ForceViewTransform),
+    ) => {
+      setTransform((prev) => {
+        const raw = typeof next === 'function' ? next(prev) : next
+        const lay = layoutRef.current
+        const viewW = svgRef.current?.clientWidth || 800
+        const viewH = svgRef.current?.clientHeight || 600
+        if (!lay) return raw
+        return clampForceViewTransform(raw, {
+          viewW,
+          viewH,
+          leftAxisX: FORCE_TIMELINE_WIDTH,
+          rightAxisX: lay.rightTimelineX,
+          layoutHeight: lay.height,
+        })
+      })
+    },
+    [],
+  )
 
   useEffect(() => {
     if (!layout) return
@@ -427,6 +449,12 @@ export function ForceView({ className }: ViewProps) {
       setForceCanvasWidthLock(layout.width)
     }
   }, [layout, forceCanvasWidthLock, setForceCanvasWidthLock])
+
+  // Po změně rozměrů plátna držet pan v mezích (osy / století).
+  useEffect(() => {
+    if (!layout) return
+    setClampedTransform((prev) => prev)
+  }, [layout, setClampedTransform])
 
   const displayPositions = useMemo(() => {
     if (!layout) return new Map<string, ForceNodePosition>()
@@ -484,12 +512,12 @@ export function ForceView({ className }: ViewProps) {
     const viewH = svgRef.current.clientHeight || 600
     const padding = 48
     const k = Math.min((viewW - padding * 2) / width, (viewH - padding * 2) / height, 1.2)
-    setTransform({
+    setClampedTransform({
       x: (viewW - width * k) / 2,
       y: (viewH - height * k) / 2,
       k,
     })
-  }, [layout])
+  }, [layout, setClampedTransform])
 
   useEffect(() => {
     if (!layout || (!pendingForceFit && graph === fittedGraphRef.current)) return
@@ -507,13 +535,19 @@ export function ForceView({ className }: ViewProps) {
     const viewW = svgRef.current.clientWidth || 800
     const viewH = svgRef.current.clientHeight || 600
     const k = Math.min(2.2, Math.max(1.15, Math.min(viewW / 420, viewH / 320)))
-    setTransform({
+    setClampedTransform({
       k,
       x: viewW / 2 - (pos.x + FORCE_NODE_WIDTH / 2) * k,
       y: viewH / 2 - (pos.y + FORCE_NODE_HEIGHT / 2) * k,
     })
     setPendingFocusPersonId(null)
-  }, [pendingFocusPersonId, displayPositions, layout, setPendingFocusPersonId])
+  }, [
+    pendingFocusPersonId,
+    displayPositions,
+    layout,
+    setPendingFocusPersonId,
+    setClampedTransform,
+  ])
 
   useEffect(() => {
     const el = containerRef.current
@@ -526,7 +560,7 @@ export function ForceView({ className }: ViewProps) {
       const mx = e.clientX - rect.left
       const my = e.clientY - rect.top
       const delta = e.deltaY > 0 ? 0.92 : 1.08
-      setTransform((prev) => {
+      setClampedTransform((prev) => {
         const k = Math.min(2.5, Math.max(0.25, prev.k * delta))
         const ratio = k / prev.k
         return {
@@ -538,7 +572,7 @@ export function ForceView({ className }: ViewProps) {
     }
     el.addEventListener('wheel', onWheel, { passive: false })
     return () => el.removeEventListener('wheel', onWheel)
-  }, [])
+  }, [setClampedTransform])
 
   const onSvgPointerDown = useCallback((e: ReactPointerEvent<SVGSVGElement>) => {
     if (nodeDragRef.current || marqueeRef.current) return
@@ -632,9 +666,9 @@ export function ForceView({ className }: ViewProps) {
       }
       panRef.current.x = e.clientX
       panRef.current.y = e.clientY
-      setTransform((prev) => ({ ...prev, x: prev.x + dx, y: prev.y + dy }))
+      setClampedTransform((prev) => ({ ...prev, x: prev.x + dx, y: prev.y + dy }))
     },
-    [clampDragX],
+    [clampDragX, setClampedTransform],
   )
 
   const onPointerUp = useCallback(

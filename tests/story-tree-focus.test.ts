@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   collectFocusNeighborhood,
+  storyFocusZoomK,
   transformToFocusPerson,
 } from '@/lib/layout/story-tree-focus'
 import type { PersonNode } from '@/types/person'
@@ -48,27 +49,42 @@ describe('collectFocusNeighborhood', () => {
   })
 })
 
+describe('storyFocusZoomK', () => {
+  it('is constant for a given viewport, independent of family span', () => {
+    expect(storyFocusZoomK(800, 600)).toBeCloseTo(1.05, 2)
+    expect(storyFocusZoomK(740, 570)).toBeCloseTo(1, 2)
+    expect(storyFocusZoomK(2000, 2000)).toBe(1.3)
+  })
+})
+
 describe('transformToFocusPerson', () => {
-  it('returns a centered transform for the focus person', () => {
-    const persons = new Map<string, PersonNode>([
-      ['a', person({ id: 'a', fullName: 'Já', parents: ['p'], children: ['c'] })],
-      ['p', person({ id: 'p', fullName: 'Otec', children: ['a'] })],
-      ['c', person({ id: 'c', fullName: 'Dítě', parents: ['a'] })],
-    ])
+  it('centers on the person with constant zoom for the viewport', () => {
     const positions = new Map<string, ForceNodePosition>([
       ['p', { x: 100, y: 0, lineage: 'Testovi', birthYear: 1900 }],
       ['a', { x: 100, y: 200, lineage: 'Testovi', birthYear: 1930 }],
       ['c', { x: 100, y: 400, lineage: 'Testovi', birthYear: 1960 }],
     ])
 
-    const transform = transformToFocusPerson('a', positions, persons, 800, 600)
+    const transform = transformToFocusPerson('a', positions, 800, 600)
     expect(transform).not.toBeNull()
-    expect(transform!.k).toBeGreaterThan(0.5)
-    expect(transform!.k).toBeLessThanOrEqual(1.85)
-    // Center of node a (100+84, 200+34) should map near view center
+    expect(transform!.k).toBe(storyFocusZoomK(800, 600))
     const cx = 100 + 168 / 2
     const cy = 200 + 68 / 2
     expect(transform!.x + cx * transform!.k).toBeCloseTo(400, 0)
     expect(transform!.y + cy * transform!.k).toBeCloseTo(300, 0)
+  })
+
+  it('uses the same zoom for sparse and dense neighborhoods', () => {
+    const sparse = new Map<string, ForceNodePosition>([
+      ['a', { x: 100, y: 200, lineage: 'Testovi', birthYear: 1930 }],
+    ])
+    const dense = new Map<string, ForceNodePosition>([
+      ['a', { x: 100, y: 200, lineage: 'Testovi', birthYear: 1930 }],
+      ['p', { x: 100, y: -400, lineage: 'Testovi', birthYear: 1900 }],
+      ['c', { x: 100, y: 800, lineage: 'Testovi', birthYear: 1960 }],
+    ])
+    expect(transformToFocusPerson('a', sparse, 700, 700)!.k).toBe(
+      transformToFocusPerson('a', dense, 700, 700)!.k,
+    )
   })
 })

@@ -12,6 +12,14 @@ export interface ViewTransform {
   k: number
 }
 
+/**
+ * Konstantní zoom při hoveru v náhledu Text + rodokmen.
+ * Nezávisí na vzdálenosti rodičů/dětí; výrazněji odzoomovaný než ForceView focus.
+ */
+export function storyFocusZoomK(viewW: number, viewH: number): number {
+  return Math.min(1.3, Math.max(0.65, Math.min(viewW / 740, viewH / 570)))
+}
+
 /** Rodinné okolí: 2 generace nahoru/dolů + partneři a sourozenci. */
 export function collectFocusNeighborhood(
   personId: string,
@@ -75,46 +83,13 @@ export function collectFocusNeighborhood(
 export function transformToFocusPerson(
   personId: string,
   positions: Map<string, ForceNodePosition>,
-  persons: Map<string, PersonNode>,
   viewW: number,
   viewH: number,
 ): ViewTransform | null {
   const focusPos = positions.get(personId)
   if (!focusPos) return null
 
-  const neighborhood = collectFocusNeighborhood(personId, persons, 2)
-  let minX = focusPos.x
-  let minY = focusPos.y
-  let maxX = focusPos.x + FORCE_NODE_WIDTH
-  let maxY = focusPos.y + FORCE_NODE_HEIGHT
-  let found = false
-
-  for (const id of neighborhood) {
-    const pos = positions.get(id)
-    if (!pos) continue
-    found = true
-    minX = Math.min(minX, pos.x)
-    minY = Math.min(minY, pos.y)
-    maxX = Math.max(maxX, pos.x + FORCE_NODE_WIDTH)
-    maxY = Math.max(maxY, pos.y + FORCE_NODE_HEIGHT)
-  }
-
-  if (!found) {
-    minX = focusPos.x
-    minY = focusPos.y
-    maxX = focusPos.x + FORCE_NODE_WIDTH
-    maxY = focusPos.y + FORCE_NODE_HEIGHT
-  }
-
-  const padX = 48
-  const padY = 36
-  const contentW = Math.max(maxX - minX + padX * 2, FORCE_NODE_WIDTH * 3)
-  const contentH = Math.max(maxY - minY + padY * 2, FORCE_NODE_HEIGHT * 5)
-  const k = Math.min(
-    1.85,
-    Math.max(0.55, Math.min((viewW - 24) / contentW, (viewH - 24) / contentH)),
-  )
-
+  const k = storyFocusZoomK(viewW, viewH)
   const cx = focusPos.x + FORCE_NODE_WIDTH / 2
   const cy = focusPos.y + FORCE_NODE_HEIGHT / 2
   return {

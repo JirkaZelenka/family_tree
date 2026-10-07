@@ -21,12 +21,14 @@ import {
   type ForceEdgeSegment,
 } from '@/lib/layout/force-edges'
 import {
+  clampForceViewTransform,
   computeForceLayout,
   FORCE_NODE_HEIGHT,
   FORCE_NODE_WIDTH,
   FORCE_PADDING,
   FORCE_TIMELINE_WIDTH,
   type ForceNodePosition,
+  type ForceViewTransform,
 } from '@/lib/layout/force-layout'
 import { enrichLineageColors, lineageColor, countLineageMembers } from '@/lib/vault/lineage-colors'
 import { getLineages } from '@/lib/graph/queries'
@@ -42,7 +44,6 @@ import { Button } from '@/components/ui/button'
 import {
   animateViewTransform,
   transformToFocusPerson,
-  type ViewTransform,
 } from '@/lib/layout/story-tree-focus'
 import { cn } from '@/lib/utils'
 import type { PersonNode } from '@/types/person'
@@ -230,9 +231,10 @@ export function StoryTreePreview({ focusPersonId, className }: StoryTreePreviewP
   const forceCanvasWidthLock = useLayoutStore((s) => s.forceCanvasWidthLock)
   const initForceLineages = useLayoutStore((s) => s.initForceLineages)
 
-  const [transform, setTransform] = useState<ViewTransform>({ x: 40, y: 40, k: 0.85 })
+  const [transform, setTransform] = useState<ForceViewTransform>({ x: 40, y: 40, k: 0.85 })
   const transformRef = useRef(transform)
   transformRef.current = transform
+  const layoutRef = useRef<ReturnType<typeof computeForceLayout> | null>(null)
   const [isPanning, setIsPanning] = useState(false)
   const [detailPersonId, setDetailPersonId] = useState<string | null>(null)
   const [selectedId, setLocalSelectedId] = useState<string | null>(null)
@@ -296,6 +298,31 @@ export function StoryTreePreview({ focusPersonId, className }: StoryTreePreviewP
     forceLayoutRevision,
     forceCanvasWidthLock,
   ])
+  layoutRef.current = layout
+
+  const setClampedTransform = useCallback(
+    (
+      next:
+        | ForceViewTransform
+        | ((prev: ForceViewTransform) => ForceViewTransform),
+    ) => {
+      setTransform((prev) => {
+        const raw = typeof next === 'function' ? next(prev) : next
+        const lay = layoutRef.current
+        const viewW = svgRef.current?.clientWidth || 800
+        const viewH = svgRef.current?.clientHeight || 600
+        if (!lay) return raw
+        return clampForceViewTransform(raw, {
+          viewW,
+          viewH,
+          leftAxisX: FORCE_TIMELINE_WIDTH,
+          rightAxisX: lay.rightTimelineX,
+          layoutHeight: lay.height,
+        })
+      })
+    },
+    [],
+  )
 
   const displayPositions = useMemo(() => {
     if (!layout) return new Map<string, ForceNodePosition>()
@@ -350,12 +377,12 @@ export function StoryTreePreview({ focusPersonId, className }: StoryTreePreviewP
     const viewH = svgRef.current.clientHeight || 600
     const padding = 40
     const k = Math.min((viewW - padding * 2) / layout.width, (viewH - padding * 2) / layout.height, 1.1)
-    setTransform({
+    setClampedTransform({
       x: (viewW - layout.width * k) / 2,
       y: (viewH - layout.height * k) / 2,
       k,
     })
-  }, [layout])
+  }, [layout, setClampedTransform])
 
   useEffect(() => {
     if (!layout || fittedRef.current) return
@@ -368,14 +395,20 @@ export function StoryTreePreview({ focusPersonId, className }: StoryTreePreviewP
     if (focusPersonId === lastFocusedRef.current) return
     const viewW = svgRef.current.clientWidth || 800
     const viewH = svgRef.current.clientHeight || 600
-    const target = transformToFocusPerson(
+    const rawTarget = transformToFocusPerson(
       focusPersonId,
       displayPositions,
-      persons,
       viewW,
       viewH,
     )
-    if (!target) return
+    if (!rawTarget) return
+    const target = clampForceViewTransform(rawTarget, {
+      viewW,
+      viewH,
+      leftAxisX: FORCE_TIMELINE_WIDTH,
+      rightAxisX: layout.rightTimelineX,
+      layoutHeight: layout.height,
+    })
 
     lastFocusedRef.current = focusPersonId
     setLocalSelectedId(focusPersonId)
@@ -388,7 +421,7 @@ export function StoryTreePreview({ focusPersonId, className }: StoryTreePreviewP
       from,
       target,
       FOCUS_ANIM_MS,
-      setTransform,
+      setClampedTransform,
       () => {
         cancelAnimRef.current = null
       },
@@ -397,9 +430,9 @@ export function StoryTreePreview({ focusPersonId, className }: StoryTreePreviewP
     focusPersonId,
     displayPositions,
     layout,
-    persons,
     setHighlightedIds,
     setSelectedId,
+    setClampedTransform,
   ])
 
   useEffect(
@@ -423,7 +456,7 @@ export function StoryTreePreview({ focusPersonId, className }: StoryTreePreviewP
       const delta = e.deltaY > 0 ? 0.92 : 1.08
       cancelAnimRef.current?.()
       cancelAnimRef.current = null
-      setTransform((prev) => {
+      setClampedTransform((prev) => {
         const k = Math.min(2.5, Math.max(0.25, prev.k * delta))
         const ratio = k / prev.k
         return {
@@ -435,7 +468,7 @@ export function StoryTreePreview({ focusPersonId, className }: StoryTreePreviewP
     }
     el.addEventListener('wheel', onWheel, { passive: false })
     return () => el.removeEventListener('wheel', onWheel)
-  }, [])
+  }, [setClampedTransform])
 
   const onPointerDown = useCallback((e: ReactPointerEvent<SVGSVGElement>) => {
     if (e.button !== 0 && e.button !== 1 && e.button !== 2) return
@@ -460,8 +493,8 @@ export function StoryTreePreview({ focusPersonId, className }: StoryTreePreviewP
     panRef.current.moved = true
     panRef.current.x = e.clientX
     panRef.current.y = e.clientY
-    setTransform((prev) => ({ ...prev, x: prev.x + dx, y: prev.y + dy }))
-  }, [])
+    setClampedTransform((prev) => ({ ...prev, x: prev.x + dx, y: prev.y + dy }))
+  }, [setClampedTransform])
 
   const onPointerUp = useCallback((e: ReactPointerEvent<SVGSVGElement>) => {
     if (panRef.current.pointerId !== e.pointerId) return

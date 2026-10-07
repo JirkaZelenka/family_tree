@@ -28,6 +28,63 @@ export const FORCE_NODE_GAP_Y = 16
  * Po prvním výpočtu se šířka zamkne — osy se od sebe dál neposouvají.
  */
 export const FORCE_CANVAS_EXPAND = 1.3
+/** Dolní mez svislé osy plátna (~14. století), pokud data nejdou dál. */
+export const FORCE_VIEW_YEAR_MIN = 1300
+/** Horní mez svislé osy plátna (~22. století), pokud data nejdou dál. */
+export const FORCE_VIEW_YEAR_MAX = 2200
+/** Min. viditelný okraj osy / plátna při krajním panu (px ve viewportu). */
+export const FORCE_PAN_EDGE_MARGIN = 24
+
+export interface ForceViewTransform {
+  x: number
+  y: number
+  k: number
+}
+
+/**
+ * Omezí pan, aby plátno nebylo nekonečné.
+ * Vodorovně: při výjezdu vlevo/vpravo zůstane vidět alespoň okraj svislé časové osy;
+ * když se osy vejdou do viewportu, vycentruje.
+ * Svisle: okraje plátna (typicky ~14.–22. století).
+ */
+export function clampForceViewTransform(
+  t: ForceViewTransform,
+  opts: {
+    viewW: number
+    viewH: number
+    leftAxisX: number
+    rightAxisX: number
+    layoutHeight: number
+    margin?: number
+  },
+): ForceViewTransform {
+  const margin = opts.margin ?? FORCE_PAN_EDGE_MARGIN
+  const { viewW, viewH, leftAxisX, rightAxisX, layoutHeight } = opts
+  const k = t.k
+
+  const axisSpanPx = (rightAxisX - leftAxisX) * k
+  let x: number
+  if (axisSpanPx <= viewW - 2 * margin) {
+    x = (viewW - (leftAxisX + rightAxisX) * k) / 2
+  } else {
+    const xMin = margin - rightAxisX * k
+    const xMax = viewW - margin - leftAxisX * k
+    x = Math.min(xMax, Math.max(xMin, t.x))
+  }
+
+  const heightPx = layoutHeight * k
+  let y: number
+  if (heightPx <= viewH - 2 * margin) {
+    y = (viewH - heightPx) / 2
+  } else {
+    // Horní/dolní mez plátna (~14. / ~22. století) zůstane u okraje viewportu.
+    const yMin = viewH - margin - layoutHeight * k
+    const yMax = margin
+    y = Math.min(yMax, Math.max(yMin, t.y))
+  }
+
+  return { x, y, k }
+}
 
 /** X souřadnice pravé svislé osy (zrcadlo levé). */
 export function forceRightTimelineX(canvasWidth: number): number {
@@ -133,7 +190,7 @@ export function buildTimelineTicks(
   return ticks
 }
 
-/** Stabilní rozsah let — celý graf, aby filtr rodů neposouval osu. */
+/** Stabilní rozsah let — celý graf + rozumné meze (~14.–22. stol.). */
 export function yearRangeForGraph(
   graph: Graph<PersonNode>,
 ): { yearMin: number; yearMax: number } {
@@ -142,10 +199,12 @@ export function yearRangeForGraph(
     if (attrs.birthYear !== null) years.push(attrs.birthYear)
   })
   if (years.length === 0) {
-    const now = new Date().getFullYear()
-    return { yearMin: now - 80, yearMax: now }
+    return { yearMin: FORCE_VIEW_YEAR_MIN, yearMax: FORCE_VIEW_YEAR_MAX }
   }
-  return { yearMin: Math.min(...years), yearMax: Math.max(...years) }
+  return {
+    yearMin: Math.min(FORCE_VIEW_YEAR_MIN, ...years),
+    yearMax: Math.max(FORCE_VIEW_YEAR_MAX, ...years),
+  }
 }
 
 function nodeTopLeftY(centerY: number): number {
